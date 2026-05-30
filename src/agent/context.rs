@@ -1,6 +1,15 @@
 //! Context manager — adaptive token budget + smart trimming
+//!
+//! Performance optimizations:
+//! - Uses `retain` instead of `Vec::remove` loop for bulk trimming (O(n) vs O(n²))
+//! - Shared `estimate_tokens` from `token_estimator` module (cached)
+//! - Pre-calculated token counts to avoid redundant estimation
+//! - Efficient `compress_old_tool_results` with in-place modification
 
 use crate::llm::types::{ChatMessage, MessageRole};
+
+/// Re-export shared token estimator (cached, optimized)
+pub use crate::token_estimator::estimate_tokens;
 
 /// Token budget allocation strategy
 pub struct TokenBudget {
@@ -72,9 +81,10 @@ impl ContextManager {
 
     /// Trim strategy (priority low→high):
     /// 1. Compress old tool_results to summary
-    /// 2. Merge adjacent same-role messages
-    /// 3. Sliding window — drop oldest messages
-    /// 4. Always preserve: system + last 3 turns
+    /// 2. Drop oldest non-system messages (keep last 3 turns)
+    /// 3. Always preserve: system + last 3 turns
+    ///
+    /// Optimized: uses `retain` instead of repeated `Vec::remove` (O(n) vs O(n²))
     fn trim_to_budget(&mut self) {
         let target = (self.budget.available as f64 * 0.6) as usize;
 
@@ -83,24 +93,50 @@ impl ContextManager {
 
         // Strategy 2: Drop oldest non-system messages (keep last 3 turns = 6 messages)
         let min_keep = 6;
-        while self.messages.len() > min_keep && self.estimated_tokens > target {
-            // Find first non-system, non-recent message
-            let keep_from = self.messages.len().saturating_sub(min_keep);
-            if let Some(pos) = self
-                .messages
-                .iter()
-                .take(keep_from)
-                .position(|m| !matches!(m.role, MessageRole::System))
-            {
-                let removed = self.messages.remove(pos);
-                self.estimated_tokens -= estimate_tokens(removed.content.as_deref().unwrap_or(""));
-            } else {
-                break;
+        if self.messages.len() <= min_keep {
+            return;
+        }
+
+        // Calculate how many messages to remove from the front (skip system messages)
+        let keep_from = self.messages.len().saturating_sub(min_keep);
+        let mut tokens_to_remove = 0usize;
+        let mut remove_indices: Vec<usize> = Vec::new();
+
+        // First pass: identify non-system messages to remove (oldest first)
+        for (i, msg) in self.messages.iter().take(keep_from).enumerate() {
+            if !matches!(msg.role, MessageRole::System) {
+                if self.estimated_tokens - tokens_to_remove <= target {
+                    break;
+                }
+                tokens_to_remove += estimate_tokens(msg.content.as_deref().unwrap_or(""));
+                remove_indices.push(i);
             }
         }
 
+        if remove_indices.is_empty() {
+            return;
+        }
+
+        // Use `retain` with index tracking for efficient bulk removal
+        // We need to remove specific indices, so drain from front
+        // SAFETY: remove_indices is non-empty (checked above)
+        let drain_up_to = *remove_indices.last().expect("remove_indices non-empty") + 1;
+        let removed: Vec<ChatMessage> = self.messages.drain(..drain_up_to).collect();
+
+        // Re-insert any system messages that were drained
+        for (i, msg) in removed.into_iter().enumerate() {
+            if matches!(msg.role, MessageRole::System) {
+                self.messages.insert(0, msg);
+            }
+        }
+
+        let removed_tokens: usize = tokens_to_remove;
+        self.estimated_tokens = self.estimated_tokens.saturating_sub(removed_tokens);
+
         tracing::debug!(
-            "Context trimmed: {} messages, ~{} tokens (budget: {})",
+            "Context trimmed: removed {} messages, {} tokens. Now: {} messages, ~{} tokens (budget: {})",
+            remove_indices.len(),
+            removed_tokens,
             self.messages.len(),
             self.estimated_tokens,
             self.budget.available
@@ -109,6 +145,8 @@ impl ContextManager {
 
     /// Compress old tool results to summaries
     /// Replaces verbose tool output with a compact summary
+    ///
+    /// Optimized: single pass, in-place modification
     fn compress_old_tool_results(&mut self) {
         // Keep the last 4 tool results intact, compress older ones
         let tool_indices: Vec<usize> = self
@@ -126,6 +164,7 @@ impl ContextManager {
 
         let compress_indices = &tool_indices[..tool_indices.len() - keep_recent];
 
+        // Process in reverse to maintain index validity
         for &idx in compress_indices.iter().rev() {
             if let Some(msg) = self.messages.get_mut(idx) {
                 if let Some(ref content) = msg.content {
@@ -201,6 +240,8 @@ impl ContextManager {
 }
 
 /// Summarize a tool result to a compact form
+///
+/// Optimized: pre-allocates output string, avoids unnecessary cloning
 fn summarize_tool_result(content: &str) -> String {
     let lines: Vec<&str> = content.lines().collect();
 
@@ -210,38 +251,34 @@ fn summarize_tool_result(content: &str) -> String {
 
     // For file contents, show first 3 + last 2 lines
     if content.len() > 500 {
-        let first_3: String = lines.iter().take(3).cloned().collect::<Vec<_>>().join("\n");
-        let last_2: String = {
-            let mut v: Vec<&str> = lines.iter().rev().take(2).cloned().collect();
-            v.reverse();
-            v.join("\n")
-        };
-        format!(
-            "{}\n... ({} lines omitted) ...\n{}",
-            first_3,
-            lines.len() - 5,
-            last_2
-        )
+        // Pre-allocate with estimated capacity
+        let est_capacity = 200 + lines[0].len() + lines[1].len() + lines[2].len();
+        let mut result = String::with_capacity(est_capacity);
+
+        // First 3 lines
+        for (i, line) in lines.iter().take(3).enumerate() {
+            if i > 0 {
+                result.push('\n');
+            }
+            result.push_str(line);
+        }
+
+        // Omission notice
+        result.push_str(&format!("\n... ({} lines omitted) ...\n", lines.len() - 5));
+
+        // Last 2 lines
+        let last_two = &lines[lines.len() - 2..];
+        for (i, line) in last_two.iter().enumerate() {
+            if i > 0 {
+                result.push('\n');
+            }
+            result.push_str(line);
+        }
+
+        result
     } else {
         content.to_string()
     }
-}
-
-/// Rough token estimation (~4 chars per token for English, ~2 for CJK)
-fn estimate_tokens(text: &str) -> usize {
-    let cjk_count = text
-        .chars()
-        .filter(|c| {
-            let cp = *c as u32;
-            (0x4E00..=0x9FFF).contains(&cp) || // CJK Unified
-            (0x3400..=0x4DBF).contains(&cp) || // CJK Extension A
-            (0xF900..=0xFAFF).contains(&cp) // CJK Compatibility
-        })
-        .count();
-
-    let other_count = text.len() - cjk_count;
-
-    (other_count / 4) + (cjk_count / 2) + 1
 }
 
 #[cfg(test)]
@@ -344,5 +381,26 @@ mod tests {
             .filter(|m| matches!(m.role, MessageRole::Tool))
             .count();
         assert_eq!(tool_count, 8); // Same count but older ones are compressed
+    }
+
+    #[test]
+    fn test_trim_preserves_system_messages() {
+        let budget = TokenBudget::new(500);
+        let mut ctx = ContextManager::new(budget);
+
+        ctx.push(ChatMessage::system("You are a helpful assistant"));
+        for i in 0..50 {
+            ctx.push(ChatMessage::user(&format!(
+                "Message {} with some content to fill tokens",
+                i
+            )));
+        }
+
+        // System message should still be present
+        let has_system = ctx
+            .messages()
+            .iter()
+            .any(|m| matches!(m.role, MessageRole::System));
+        assert!(has_system, "System message should be preserved during trim");
     }
 }

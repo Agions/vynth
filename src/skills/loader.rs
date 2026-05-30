@@ -23,8 +23,9 @@ use crate::skills::trait_def::SkillDef;
 ///
 /// When reviewing code, focus on...
 /// ```
-pub fn load_skill_file(path: &Path) -> Result<SkillDef, AppError> {
-    let content = std::fs::read_to_string(path)
+pub async fn load_skill_file(path: &Path) -> Result<SkillDef, AppError> {
+    let content = tokio::fs::read_to_string(path)
+        .await
         .map_err(|e| AppError::Config(format!("Failed to read skill file: {}", e)))?;
 
     // Split frontmatter from body

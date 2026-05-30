@@ -8,8 +8,12 @@ use crate::error::AppError;
 ///
 /// This ensures that either the old file or the new file exists —
 /// no partial writes or corruption on crash.
+///
+/// NOTE: This function uses synchronous I/O intentionally. It is called
+/// from synchronous test code and has no async callers. If future callers
+/// are async, wrap with `tokio::task::spawn_blocking`.
 pub fn atomic_write(path: &Path, content: &[u8]) -> Result<(), AppError> {
-    let tmp_path = path.with_extension("syncode.tmp");
+    let tmp_path = path.with_extension("synerix.tmp");
 
     // 1. Write to temp file
     std::fs::write(&tmp_path, content)?;
@@ -31,7 +35,7 @@ pub fn atomic_write(path: &Path, content: &[u8]) -> Result<(), AppError> {
 pub fn atomic_write_with_backup(path: &Path, content: &[u8]) -> Result<(), AppError> {
     // Create backup of existing file
     if path.exists() {
-        let bak_path = path.with_extension("syncode.bak");
+        let bak_path = path.with_extension("synerix.bak");
         std::fs::copy(path, &bak_path)?;
     }
 
@@ -45,7 +49,7 @@ mod tests {
 
     #[test]
     fn test_atomic_write() {
-        let dir = std::env::temp_dir().join("syncode_test_atomic");
+        let dir = std::env::temp_dir().join("synerix_test_atomic");
         let _ = fs::create_dir_all(&dir);
 
         let path = dir.join("test.txt");

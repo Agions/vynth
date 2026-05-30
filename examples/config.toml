@@ -1,5 +1,5 @@
-# Syncode Configuration Example
-# ~/.config/syncode/config.toml
+# Synerix Configuration Example
+# ~/.config/synerix/config.toml
 
 [llm]
 provider = "deepseek"       # deepseek | mimo | custom
@@ -45,7 +45,7 @@ GITEE_TOKEN = "your-token-here"
 # Local directory
 [[skill_sources]]
 type = "local"
-location = "~/.config/syncode/skills"
+location = "~/.config/synerix/skills"
 
 # Git repository
 [[skill_sources]]
@@ -93,8 +93,8 @@ tags = ["docs"]
 # ─── Custom Agents Directory ──────────────────────────────────────
 
 # Load additional agents from YAML/TOML files
-agents_dir = "~/.config/syncode/agents"
+agents_dir = "~/.config/synerix/agents"
 
 # ─── Skills Directory ─────────────────────────────────────────────
 
-skills_dir = "~/.config/syncode/skills"
+skills_dir = "~/.config/synerix/skills"

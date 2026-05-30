@@ -1,4 +1,4 @@
-//! Syncode — AI Pair Programming Terminal (library crate)
+//! Synerix — AI Coding Terminal (library crate)
 //!
 //! Re-exports all modules for both binary and integration test use.
 
@@ -18,6 +18,7 @@ pub mod sandbox;
 pub mod session;
 pub mod skills;
 pub mod telemetry;
+pub mod token_estimator;
 pub mod tools;
 pub mod tui;
 pub mod workflow;

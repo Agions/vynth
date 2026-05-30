@@ -97,7 +97,7 @@ impl StdioTransport {
                 "protocolVersion": "2024-11-05",
                 "capabilities": {},
                 "clientInfo": {
-                    "name": "syncode",
+                    "name": "synerix",
                     "version": env!("CARGO_PKG_VERSION")
                 }
             })),

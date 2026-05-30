@@ -1,4 +1,4 @@
-//! Integration tests for Syncode core components
+//! Integration tests for Synerix core components
 
 use std::sync::Arc;
 
@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 #[test]
 fn test_settings_defaults() {
-    let settings = syncode::config::Settings::load().unwrap();
+    let settings = synerix::config::Settings::load().unwrap();
     assert_eq!(settings.llm.model, "deepseek-chat");
     assert_eq!(settings.llm.context_window, 128_000);
     assert_eq!(settings.ui.theme, "dark");
@@ -15,9 +15,9 @@ fn test_settings_defaults() {
 
 #[test]
 fn test_settings_toml_roundtrip() {
-    let settings = syncode::config::Settings::load().unwrap();
+    let settings = synerix::config::Settings::load().unwrap();
     let toml_str = toml::to_string(&settings).unwrap();
-    let parsed: syncode::config::Settings = toml::from_str(&toml_str).unwrap();
+    let parsed: synerix::config::Settings = toml::from_str(&toml_str).unwrap();
     assert_eq!(parsed.llm.model, settings.llm.model);
     assert_eq!(parsed.ui.theme, settings.ui.theme);
 }
@@ -26,11 +26,11 @@ fn test_settings_toml_roundtrip() {
 
 #[test]
 fn test_app_creation() {
-    let settings = syncode::config::Settings::load().unwrap();
+    let settings = synerix::config::Settings::load().unwrap();
     let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
-    let app = syncode::app::App::new_with_channel(settings, tx, _rx);
+    let app = synerix::app::App::new_with_channel(settings, tx, _rx);
 
-    assert_eq!(app.mode, syncode::app::InputMode::Normal);
+    assert_eq!(app.mode, synerix::app::InputMode::Normal);
     assert!(!app.should_quit);
     assert!(app.chat_state.messages.is_empty());
     assert!(!app.chat_state.is_streaming);
@@ -38,29 +38,29 @@ fn test_app_creation() {
 
 #[test]
 fn test_input_mode_transitions() {
-    let settings = syncode::config::Settings::load().unwrap();
+    let settings = synerix::config::Settings::load().unwrap();
     let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
-    let mut app = syncode::app::App::new_with_channel(settings, tx, _rx);
+    let mut app = synerix::app::App::new_with_channel(settings, tx, _rx);
 
-    assert_eq!(app.mode, syncode::app::InputMode::Normal);
+    assert_eq!(app.mode, synerix::app::InputMode::Normal);
 
     // Simulate mode transitions
-    app.mode = syncode::app::InputMode::Insert;
-    assert_eq!(app.mode, syncode::app::InputMode::Insert);
+    app.mode = synerix::app::InputMode::Insert;
+    assert_eq!(app.mode, synerix::app::InputMode::Insert);
 
-    app.mode = syncode::app::InputMode::Command;
-    assert_eq!(app.mode, syncode::app::InputMode::Command);
+    app.mode = synerix::app::InputMode::Command;
+    assert_eq!(app.mode, synerix::app::InputMode::Command);
 
-    app.mode = syncode::app::InputMode::Normal;
-    assert_eq!(app.mode, syncode::app::InputMode::Normal);
+    app.mode = synerix::app::InputMode::Normal;
+    assert_eq!(app.mode, synerix::app::InputMode::Normal);
 }
 
 // ── Tool Registry ─────────────────────────────────────────
 
 #[test]
 fn test_tool_registry() {
-    let mut registry = syncode::tools::ToolRegistry::new();
-    syncode::tools::builtin::register_builtins(&mut registry);
+    let mut registry = synerix::tools::ToolRegistry::new();
+    synerix::tools::builtin::register_builtins(&mut registry);
 
     let names = registry.list_names();
     assert!(names.contains(&"file_read"));
@@ -73,8 +73,8 @@ fn test_tool_registry() {
 
 #[test]
 fn test_tool_schemas() {
-    let mut registry = syncode::tools::ToolRegistry::new();
-    syncode::tools::builtin::register_builtins(&mut registry);
+    let mut registry = synerix::tools::ToolRegistry::new();
+    synerix::tools::builtin::register_builtins(&mut registry);
 
     let schemas = registry.all_schemas();
     assert_eq!(schemas.len(), 5);
@@ -90,11 +90,11 @@ fn test_tool_schemas() {
 
 #[test]
 fn test_builtin_skills() {
-    let code_review = syncode::skills::builtin::code_review_skill();
+    let code_review = synerix::skills::builtin::code_review_skill();
     assert_eq!(code_review.name, "code-review");
     assert!(!code_review.instructions.is_empty());
 
-    let refactor = syncode::skills::builtin::refactor_skill();
+    let refactor = synerix::skills::builtin::refactor_skill();
     assert_eq!(refactor.name, "refactor");
     assert!(!refactor.instructions.is_empty());
 }
@@ -103,9 +103,9 @@ fn test_builtin_skills() {
 
 #[test]
 fn test_session_store_memory() {
-    let store = syncode::session::SessionStore::memory().unwrap();
+    let store = synerix::session::SessionStore::memory().unwrap();
 
-    let session = syncode::session::Session::new("Test Session", "deepseek-chat");
+    let session = synerix::session::Session::new("Test Session", "deepseek-chat");
     store.create_session(&session).unwrap();
 
     let sessions = store.list_sessions().unwrap();
@@ -115,15 +115,15 @@ fn test_session_store_memory() {
 
 #[test]
 fn test_message_storage() {
-    let store = syncode::session::SessionStore::memory().unwrap();
+    let store = synerix::session::SessionStore::memory().unwrap();
 
-    let session = syncode::session::Session::new("Chat Test", "deepseek-chat");
+    let session = synerix::session::Session::new("Chat Test", "deepseek-chat");
     store.create_session(&session).unwrap();
 
-    let msg = syncode::session::StoredMessage::user(&session.id, "Hello");
+    let msg = synerix::session::StoredMessage::user(&session.id, "Hello");
     store.save_message(&msg).unwrap();
 
-    let msg2 = syncode::session::StoredMessage::assistant(&session.id, "Hi there!");
+    let msg2 = synerix::session::StoredMessage::assistant(&session.id, "Hi there!");
     store.save_message(&msg2).unwrap();
 
     let messages = store.load_messages(&session.id).unwrap();
@@ -136,7 +136,7 @@ fn test_message_storage() {
 
 #[test]
 fn test_context_manager() {
-    use syncode::agent::context::{ContextManager, TokenBudget};
+    use synerix::agent::context::{ContextManager, TokenBudget};
 
     let budget = TokenBudget::new(128_000);
     let mut ctx = ContextManager::new(budget);
@@ -144,14 +144,14 @@ fn test_context_manager() {
     assert_eq!(ctx.current_tokens(), 0);
     assert!(ctx.messages().is_empty());
 
-    ctx.push(syncode::llm::types::ChatMessage::user("Hello"));
+    ctx.push(synerix::llm::types::ChatMessage::user("Hello"));
     assert!(!ctx.messages().is_empty());
     assert!(ctx.current_tokens() > 0);
 }
 
 #[test]
 fn test_token_budget() {
-    use syncode::agent::context::TokenBudget;
+    use synerix::agent::context::TokenBudget;
 
     let budget = TokenBudget::new(128_000);
     assert_eq!(budget.total, 128_000);
@@ -163,19 +163,19 @@ fn test_token_budget() {
 
 #[test]
 fn test_chat_message_types() {
-    let sys = syncode::llm::types::ChatMessage::system("You are helpful.");
-    assert_eq!(sys.role, syncode::llm::types::MessageRole::System);
+    let sys = synerix::llm::types::ChatMessage::system("You are helpful.");
+    assert_eq!(sys.role, synerix::llm::types::MessageRole::System);
 
-    let user = syncode::llm::types::ChatMessage::user("Hello");
-    assert_eq!(user.role, syncode::llm::types::MessageRole::User);
+    let user = synerix::llm::types::ChatMessage::user("Hello");
+    assert_eq!(user.role, synerix::llm::types::MessageRole::User);
 
-    let asst = syncode::llm::types::ChatMessage::assistant("Hi!");
-    assert_eq!(asst.role, syncode::llm::types::MessageRole::Assistant);
+    let asst = synerix::llm::types::ChatMessage::assistant("Hi!");
+    assert_eq!(asst.role, synerix::llm::types::MessageRole::Assistant);
 }
 
 #[test]
 fn test_chat_message_to_json() {
-    let msg = syncode::llm::types::ChatMessage::user("test message");
+    let msg = synerix::llm::types::ChatMessage::user("test message");
     let json = msg.to_json();
     assert_eq!(json["role"], "user");
     assert_eq!(json["content"], "test message");
@@ -185,10 +185,10 @@ fn test_chat_message_to_json() {
 
 #[test]
 fn test_error_display() {
-    let err = syncode::error::AppError::Config("bad config".to_string());
+    let err = synerix::error::AppError::Config("bad config".to_string());
     assert!(err.to_string().contains("bad config"));
 
-    let err = syncode::error::AppError::ToolNotFound("my_tool".to_string());
+    let err = synerix::error::AppError::ToolNotFound("my_tool".to_string());
     assert!(err.to_string().contains("my_tool"));
 }
 
@@ -196,10 +196,10 @@ fn test_error_display() {
 
 #[test]
 fn test_command_preview() {
-    let preview = syncode::sandbox::CommandPreview::analyze("ls -la");
+    let preview = synerix::sandbox::CommandPreview::analyze("ls -la");
     assert_eq!(preview.command, "ls -la");
 
-    let dangerous = syncode::sandbox::CommandPreview::analyze("rm -rf /");
+    let dangerous = synerix::sandbox::CommandPreview::analyze("rm -rf /");
     assert_eq!(dangerous.command, "rm -rf /");
 }
 
@@ -207,7 +207,7 @@ fn test_command_preview() {
 
 #[test]
 fn test_json_rpc_request() {
-    let req = syncode::mcp::types::JsonRpcRequest::new(1, "initialize", None);
+    let req = synerix::mcp::types::JsonRpcRequest::new(1, "initialize", None);
     assert_eq!(req.id, 1);
     assert_eq!(req.method, "initialize");
     assert_eq!(req.jsonrpc, "2.0");

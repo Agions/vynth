@@ -227,18 +227,5 @@ async fn dispatch_tool(
     Err(AppError::ToolNotFound(name.to_string()))
 }
 
-/// Rough token estimation (~4 chars per token for English, ~2 for CJK)
-fn estimate_tokens(text: &str) -> usize {
-    let cjk_count = text
-        .chars()
-        .filter(|c| {
-            let cp = *c as u32;
-            (0x4E00..=0x9FFF).contains(&cp) || // CJK Unified
-            (0x3400..=0x4DBF).contains(&cp) || // CJK Extension A
-            (0xF900..=0xFAFF).contains(&cp) // CJK Compatibility
-        })
-        .count();
-
-    let other_count = text.len() - cjk_count;
-    (other_count / 4) + (cjk_count / 2) + 1
-}
+/// Re-export shared token estimator (cached, optimized)
+pub use crate::token_estimator::estimate_tokens;

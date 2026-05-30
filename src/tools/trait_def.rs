@@ -43,10 +43,19 @@ pub struct ToolContext {
     pub approval_handler: Option<Arc<dyn ApprovalHandler>>,
 }
 
+/// Cached working directory (computed once, reused forever)
+static CACHED_CWD: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
+
+fn get_cached_cwd() -> PathBuf {
+    CACHED_CWD
+        .get_or_init(|| std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")))
+        .clone()
+}
+
 impl Default for ToolContext {
     fn default() -> Self {
         Self {
-            working_dir: std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
+            working_dir: get_cached_cwd(),
             sandbox_mode: SandboxMode::Confirm,
             approval_handler: None,
         }

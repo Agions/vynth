@@ -4,9 +4,9 @@
 //! dependency resolution, parallel execution, variable propagation,
 //! condition evaluation, and error handling.
 
-use syncode::agent::multi::AgentSwarm;
-use syncode::workflow::definition::parse_workflow;
-use syncode::workflow::runner::{StepResult, StepStatus, WorkflowRunner};
+use synerix::agent::multi::AgentSwarm;
+use synerix::workflow::definition::parse_workflow;
+use synerix::workflow::runner::{StepResult, StepStatus, WorkflowRunner};
 
 // ---------------------------------------------------------------------------
 // Helpers

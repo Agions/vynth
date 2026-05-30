@@ -77,7 +77,7 @@ pub struct ProjectContext {
 
 impl ProjectContext {
     /// Auto-detect project context from working directory
-    pub fn detect() -> Self {
+    pub async fn detect() -> Self {
         let mut ctx = Self::default();
 
         // Detect language and framework from common files
@@ -91,7 +91,7 @@ impl ProjectContext {
                 .push("Use `cargo clippy` for linting".to_string());
 
             // Check for common frameworks
-            if let Ok(cargo_content) = std::fs::read_to_string("Cargo.toml") {
+            if let Ok(cargo_content) = tokio::fs::read_to_string("Cargo.toml").await {
                 if cargo_content.contains("actix-web") {
                     ctx.framework = Some("actix-web".to_string());
                 } else if cargo_content.contains("axum") {
@@ -107,7 +107,7 @@ impl ProjectContext {
             ctx.conventions
                 .push("Use `npm run lint` for linting".to_string());
 
-            if let Ok(pkg_content) = std::fs::read_to_string("package.json") {
+            if let Ok(pkg_content) = tokio::fs::read_to_string("package.json").await {
                 if pkg_content.contains("\"react\"") {
                     ctx.framework = Some("React".to_string());
                 } else if pkg_content.contains("\"vue\"") {
@@ -150,9 +150,9 @@ impl ProjectContext {
     }
 }
 
-/// Default system prompt for Syncode
+/// Default system prompt for Synerix
 pub fn default_system_prompt() -> String {
-    r#"You are Syncode, an AI pair programming assistant running in a terminal.
+    r#"You are Synerix, an AI coding assistant running in a terminal.
 
 ## Capabilities
 - Read, write, and search files in the user's project

@@ -62,7 +62,8 @@ impl Tool for PatchTool {
 
         let full_path = ctx.working_dir.join(path);
 
-        let content = std::fs::read_to_string(&full_path)
+        let content = tokio::fs::read_to_string(&full_path)
+            .await
             .map_err(|e| AppError::ExecutionFailed(format!("Failed to read {}: {}", path, e)))?;
 
         if !content.contains(old_text) {
@@ -81,9 +82,9 @@ impl Tool for PatchTool {
         };
 
         // Atomic write
-        let tmp_path = full_path.with_extension("tmp.syncode");
-        std::fs::write(&tmp_path, &new_content)?;
-        std::fs::rename(&tmp_path, &full_path)?;
+        let tmp_path = full_path.with_extension("tmp.synerix");
+        tokio::fs::write(&tmp_path, &new_content).await?;
+        tokio::fs::rename(&tmp_path, &full_path).await?;
 
         let replaced = if replace_all { count } else { 1 };
 

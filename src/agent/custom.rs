@@ -1,6 +1,6 @@
 //! Custom agent definitions — load from YAML/TOML files
 //!
-//! Users can define custom agent roles in `~/.config/syncode/agents/*.yaml`:
+//! Users can define custom agent roles in `~/.config/synerix/agents/*.yaml`:
 //!
 //! ```yaml
 //! name: security-auditor
@@ -103,7 +103,7 @@ impl CustomAgentRegistry {
     }
 
     /// Load all custom agents from a directory
-    pub fn load_from_dir(path: &Path) -> Result<Self, AppError> {
+    pub async fn load_from_dir(path: &Path) -> Result<Self, AppError> {
         let mut registry = Self::new();
 
         if !path.exists() {
@@ -111,11 +111,11 @@ impl CustomAgentRegistry {
             return Ok(registry);
         }
 
-        for entry in walk_dir(path) {
+        for entry in walk_dir(path).await {
             let ext = entry.extension().and_then(|e| e.to_str()).unwrap_or("");
 
             if ext == "yaml" || ext == "yml" || ext == "toml" {
-                match load_agent_file(&entry) {
+                match load_agent_file(&entry).await {
                     Ok(agent) => {
                         tracing::info!("Loaded custom agent: {}", agent.name);
                         registry.agents.insert(agent.name.clone(), agent);
@@ -165,8 +165,9 @@ impl CustomAgentRegistry {
 }
 
 /// Load a single agent definition from a YAML or TOML file
-fn load_agent_file(path: &Path) -> Result<CustomAgentDef, AppError> {
-    let content = std::fs::read_to_string(path)
+async fn load_agent_file(path: &Path) -> Result<CustomAgentDef, AppError> {
+    let content = tokio::fs::read_to_string(path)
+        .await
         .map_err(|e| AppError::Config(format!("Failed to read agent file: {}", e)))?;
 
     let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
@@ -184,16 +185,18 @@ fn load_agent_file(path: &Path) -> Result<CustomAgentDef, AppError> {
 }
 
 /// Recursively walk a directory for files
-fn walk_dir(path: &Path) -> Vec<PathBuf> {
+async fn walk_dir(path: &Path) -> Vec<PathBuf> {
     let mut results = Vec::new();
-    if let Ok(entries) = std::fs::read_dir(path) {
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.is_dir() {
-                results.extend(walk_dir(&path));
-            } else {
-                results.push(path);
-            }
+    let mut read_dir = match tokio::fs::read_dir(path).await {
+        Ok(rd) => rd,
+        Err(_) => return results,
+    };
+    while let Ok(Some(entry)) = read_dir.next_entry().await {
+        let path = entry.path();
+        if path.is_dir() {
+            results.extend(Box::pin(walk_dir(&path)).await);
+        } else {
+            results.push(path);
         }
     }
     results

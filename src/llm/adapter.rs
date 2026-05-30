@@ -30,6 +30,17 @@ pub trait LlmAdapter: Send + Sync {
 
     /// Context window size (for token budget calculation)
     fn context_window(&self) -> usize;
+
+    /// Provider name (e.g. "deepseek", "openai", "custom")
+    fn provider_name(&self) -> &'static str {
+        "unknown"
+    }
+
+    /// Estimate token count for text (default: ~4 chars/token for English, ~2 for CJK)
+    /// Providers may override with more accurate counting (e.g., tiktoken)
+    fn count_tokens(&self, text: &str) -> usize {
+        crate::token_estimator::estimate_tokens(text)
+    }
 }
 
 /// OpenAI-compatible API adapter
@@ -111,6 +122,10 @@ impl LlmAdapter for OpenAICompatAdapter {
     fn context_window(&self) -> usize {
         self.context_window_size
     }
+
+    fn provider_name(&self) -> &'static str {
+        "openai_compat"
+    }
 }
 
 /// Build OpenAI-compatible request body
@@ -120,20 +135,27 @@ fn build_request_body(
     tools: &[ToolSchema],
     stream: bool,
 ) -> serde_json::Value {
-    let msgs: Vec<serde_json::Value> = messages.iter().map(|m| m.to_json()).collect();
+    let capacity = if tools.is_empty() { 3 } else { 4 };
+    let mut map = serde_json::Map::with_capacity(capacity);
 
-    let mut body = serde_json::json!({
-        "model": model,
-        "messages": msgs,
-        "stream": stream,
-    });
+    let mut msgs = Vec::with_capacity(messages.len());
+    for m in messages {
+        msgs.push(m.to_json());
+    }
+    map.insert("messages".into(), serde_json::Value::Array(msgs));
+
+    map.insert("model".into(), serde_json::Value::String(model.into()));
+    map.insert("stream".into(), serde_json::Value::Bool(stream));
 
     if !tools.is_empty() {
-        let tool_schemas: Vec<serde_json::Value> = tools.iter().map(|t| t.to_json()).collect();
-        body["tools"] = serde_json::json!(tool_schemas);
+        let mut tool_schemas = Vec::with_capacity(tools.len());
+        for t in tools {
+            tool_schemas.push(t.to_json());
+        }
+        map.insert("tools".into(), serde_json::Value::Array(tool_schemas));
     }
 
-    body
+    serde_json::Value::Object(map)
 }
 
 /// Parse a non-streaming chat response

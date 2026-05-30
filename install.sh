@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Syncode installer — installs the latest release binary
-# Usage: curl -fsSL https://gitee.com/Agions/syncode/raw/main/install.sh | bash
+# Synerix installer — installs the latest release binary
+# Usage: curl -fsSL https://gitee.com/Agions/synerix/raw/main/install.sh | bash
 
-REPO="Agions/syncode"
-BINARY="syncode"
+REPO="Agions/synerix"
+BINARY="synerix"
 INSTALL_DIR="${INSTALL_DIR:-/usr/local/bin}"
 GITEE_API="https://gitee.com/api/v5/repos"
 
@@ -140,7 +140,7 @@ verify() {
 main() {
     echo ""
     echo "  ╔═══════════════════════════════════════╗"
-    echo "  ║     Syncode — AI 配对编程终端安装器     ║"
+    echo "  ║     Synerix — AI Coding Terminal       ║"
     echo "  ╚═══════════════════════════════════════╝"
     echo ""
 
@@ -157,10 +157,10 @@ main() {
     verify
 
     echo ""
-    ok "安装完成！运行 'syncode' 开始使用。"
+    ok "安装完成！运行 'synerix' 开始使用。"
     echo ""
-    echo "  配置文件: ~/.config/syncode/config.toml"
-    echo "  文档: https://gitee.com/Agions/syncode"
+    echo "  配置文件: ~/.config/synerix/config.toml"
+    echo "  文档: https://gitee.com/Agions/synerix"
     echo ""
 }
 

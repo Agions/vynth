@@ -24,20 +24,20 @@ pub fn format_tokens(count: usize) -> String {
 /// Get the mode label and its display color
 pub fn mode_style(mode: &InputMode) -> (&'static str, Color) {
     match mode {
-        InputMode::Normal => (" NORMAL ", Color::Rgb(40, 42, 58)),   // dark bg for normal
-        InputMode::Insert => (" INSERT ", Color::Rgb(30, 100, 50)),   // green bg for insert
+        InputMode::Normal => (" NORMAL ", Color::Rgb(40, 42, 58)), // dark bg for normal
+        InputMode::Insert => (" INSERT ", Color::Rgb(30, 100, 50)), // green bg for insert
         InputMode::Command => (" COMMAND ", Color::Rgb(100, 80, 20)), // yellow bg for command
-        InputMode::Search => (" SEARCH ", Color::Rgb(80, 40, 100)),   // purple bg for search
+        InputMode::Search => (" SEARCH ", Color::Rgb(80, 40, 100)), // purple bg for search
     }
 }
 
 /// Get the mode indicator foreground color
 pub fn mode_fg(mode: &InputMode) -> Color {
     match mode {
-        InputMode::Normal => Color::Rgb(125, 207, 255),   // cyan
-        InputMode::Insert => Color::Rgb(158, 206, 121),   // green
-        InputMode::Command => Color::Rgb(224, 175, 104),  // yellow
-        InputMode::Search => Color::Rgb(187, 154, 247),   // purple
+        InputMode::Normal => Color::Rgb(125, 207, 255), // cyan
+        InputMode::Insert => Color::Rgb(158, 206, 121), // green
+        InputMode::Command => Color::Rgb(224, 175, 104), // yellow
+        InputMode::Search => Color::Rgb(187, 154, 247), // purple
     }
 }
 

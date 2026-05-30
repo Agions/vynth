@@ -51,13 +51,13 @@ impl Tool for FileWriteTool {
 
         // Create parent directories
         if let Some(parent) = full_path.parent() {
-            std::fs::create_dir_all(parent)?;
+            tokio::fs::create_dir_all(parent).await?;
         }
 
         // Atomic write: write to temp → rename
-        let tmp_path = full_path.with_extension("tmp.syncode");
-        std::fs::write(&tmp_path, content)?;
-        std::fs::rename(&tmp_path, &full_path)?;
+        let tmp_path = full_path.with_extension("tmp.synerix");
+        tokio::fs::write(&tmp_path, content).await?;
+        tokio::fs::rename(&tmp_path, &full_path).await?;
 
         let line_count = content.lines().count();
         let byte_size = content.len();

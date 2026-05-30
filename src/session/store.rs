@@ -14,6 +14,13 @@ pub struct SessionStore {
 }
 
 impl SessionStore {
+    /// Acquire the connection lock, converting poison errors to AppError
+    fn lock_conn(&self) -> Result<std::sync::MutexGuard<'_, Connection>, AppError> {
+        self.conn
+            .lock()
+            .map_err(|e| AppError::MutexPoisoned(e.to_string()))
+    }
+
     /// Open or create the session database
     pub fn open(path: &Path) -> Result<Self, AppError> {
         let conn = Connection::open(path)?;
@@ -45,20 +52,14 @@ impl SessionStore {
     }
 
     fn run_migrations(&self) -> Result<(), AppError> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|e| AppError::MutexPoisoned(e.to_string()))?;
+        let conn = self.lock_conn()?;
         run_migrations(&conn)?;
         Ok(())
     }
 
     /// Create a new session
     pub fn create_session(&self, session: &Session) -> Result<(), AppError> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|e| AppError::MutexPoisoned(e.to_string()))?;
+        let conn = self.lock_conn()?;
         conn.execute(
             "INSERT INTO sessions (id, title, created_at, updated_at, model, total_tokens, message_count)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
@@ -77,10 +78,7 @@ impl SessionStore {
 
     /// List all sessions (most recent first)
     pub fn list_sessions(&self) -> Result<Vec<Session>, AppError> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|e| AppError::MutexPoisoned(e.to_string()))?;
+        let conn = self.lock_conn()?;
         let mut stmt = conn.prepare(
             "SELECT id, title, created_at, updated_at, model, total_tokens, message_count
              FROM sessions ORDER BY updated_at DESC",
@@ -109,10 +107,7 @@ impl SessionStore {
 
     /// Save a message to a session
     pub fn save_message(&self, message: &StoredMessage) -> Result<(), AppError> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|e| AppError::MutexPoisoned(e.to_string()))?;
+        let conn = self.lock_conn()?;
 
         let role_str = match message.role {
             StoredRole::System => "system",
@@ -153,10 +148,7 @@ impl SessionStore {
 
     /// Load all messages for a session
     pub fn load_messages(&self, session_id: &str) -> Result<Vec<StoredMessage>, AppError> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|e| AppError::MutexPoisoned(e.to_string()))?;
+        let conn = self.lock_conn()?;
         let mut stmt = conn.prepare(
             "SELECT id, session_id, role, content, tool_calls, timestamp, tokens_used
              FROM messages WHERE session_id = ?1 ORDER BY timestamp ASC",

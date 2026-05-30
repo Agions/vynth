@@ -1,4 +1,4 @@
-//! Syncode — AI Pair Programming Terminal
+//! Synerix — AI Coding Terminal
 //!
 //! A high-performance, single-process TUI application that fuses
 //! Claude Code's interaction model, Codex CLI's sandbox mechanism,
@@ -16,6 +16,7 @@ mod sandbox;
 mod session;
 mod skills;
 mod telemetry;
+mod token_estimator;
 mod tools;
 mod tui;
 
@@ -35,7 +36,7 @@ async fn main() -> Result<(), AppError> {
         )
         .init();
 
-    tracing::info!("Syncode v{} starting up", env!("CARGO_PKG_VERSION"));
+    tracing::info!("Synerix v{} starting up", env!("CARGO_PKG_VERSION"));
 
     // Load configuration
     let settings = Settings::load()?;
@@ -45,7 +46,7 @@ async fn main() -> Result<(), AppError> {
     // Spawn config file watcher (polls mtime + SIGHUP on unix)
     let config_path = dirs_next::config_dir()
         .unwrap_or_else(|| std::path::PathBuf::from("."))
-        .join("syncode")
+        .join("synerix")
         .join("config.toml");
     let _config_reload_rx = config::spawn_config_watcher(config_path, 0);
 
@@ -72,8 +73,8 @@ async fn main() -> Result<(), AppError> {
     let result = app::run(settings, metrics).await;
 
     match &result {
-        Ok(()) => tracing::info!("Syncode exited normally"),
-        Err(e) => tracing::error!("Syncode exited with error: {}", e),
+        Ok(()) => tracing::info!("Synerix exited normally"),
+        Err(e) => tracing::error!("Synerix exited with error: {}", e),
     }
 
     result

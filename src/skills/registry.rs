@@ -18,7 +18,7 @@ impl SkillRegistry {
     }
 
     /// Load all skills from a directory (recursively scans *.md files)
-    pub fn load_from_dir(path: &Path) -> Result<Self, AppError> {
+    pub async fn load_from_dir(path: &Path) -> Result<Self, AppError> {
         let mut skills = Vec::new();
 
         if !path.exists() {
@@ -26,9 +26,9 @@ impl SkillRegistry {
             return Ok(Self { skills });
         }
 
-        for entry in walk_dir(path) {
+        for entry in walk_dir(path).await {
             if entry.extension().map_or(false, |ext| ext == "md") {
-                match load_skill_file(&entry) {
+                match load_skill_file(&entry).await {
                     Ok(skill) => {
                         tracing::info!("Loaded skill: {}", skill.name);
                         skills.push(skill);
@@ -92,16 +92,18 @@ impl SkillRegistry {
 }
 
 /// Simple recursive directory walker
-fn walk_dir(path: &Path) -> Vec<std::path::PathBuf> {
+async fn walk_dir(path: &Path) -> Vec<std::path::PathBuf> {
     let mut result = Vec::new();
-    if let Ok(entries) = std::fs::read_dir(path) {
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.is_dir() {
-                result.extend(walk_dir(&path));
-            } else {
-                result.push(path);
-            }
+    let mut read_dir = match tokio::fs::read_dir(path).await {
+        Ok(rd) => rd,
+        Err(_) => return result,
+    };
+    while let Ok(Some(entry)) = read_dir.next_entry().await {
+        let path = entry.path();
+        if path.is_dir() {
+            result.extend(Box::pin(walk_dir(&path)).await);
+        } else {
+            result.push(path);
         }
     }
     result

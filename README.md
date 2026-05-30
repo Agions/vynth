@@ -1,8 +1,8 @@
-# Syncode
+# Synerix
 
-> AI 配对编程终端 — 让 AI 与你的代码同步
+> AI 编码终端 — 让 AI 与你的代码同步
 
-[![CI](https://gitee.com/Agions/syncode/badges/master/pipeline.svg)](https://gitee.com/Agions/syncode/pipelines)
+[![CI](https://gitee.com/Agions/synerix/badges/master/pipeline.svg)](https://gitee.com/Agions/synerix/pipelines)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/Rust-1.75+-orange.svg)](https://www.rust-lang.org)
 [![Install](https://img.shields.io/badge/install-curl%20%7C%20cargo-brightgreen.svg)](#安装)
@@ -33,7 +33,7 @@
 ### curl 一键安装 (推荐)
 
 ```bash
-curl -fsSL https://gitee.com/Agions/syncode/raw/main/install.sh | bash
+curl -fsSL https://gitee.com/Agions/synerix/raw/main/install.sh | bash
 ```
 
 支持 Linux (x86_64/aarch64) 和 macOS (x86_64/arm64)。自动检测平台，下载预编译二进制，若无预编译版本则自动从源码构建。
@@ -41,7 +41,7 @@ curl -fsSL https://gitee.com/Agions/syncode/raw/main/install.sh | bash
 自定义安装目录：
 
 ```bash
-INSTALL_DIR=~/.local/bin curl -fsSL https://gitee.com/Agions/syncode/raw/main/install.sh | bash
+INSTALL_DIR=~/.local/bin curl -fsSL https://gitee.com/Agions/synerix/raw/main/install.sh | bash
 ```
 
 ### Cargo 安装
@@ -52,7 +52,7 @@ cargo install --path .
 
 # 或本地构建
 cargo build --release
-./target/release/syncode
+./target/release/synerix
 ```
 
 ## 卸载
@@ -61,39 +61,39 @@ cargo build --release
 
 ```bash
 # 卸载二进制（保留配置）
-curl -fsSL https://gitee.com/Agions/syncode/raw/main/uninstall.sh | bash
+curl -fsSL https://gitee.com/Agions/synerix/raw/main/uninstall.sh | bash
 
 # 完全卸载（包括配置和数据）
-curl -fsSL https://gitee.com/Agions/syncode/raw/main/uninstall.sh | bash -s -- --all
+curl -fsSL https://gitee.com/Agions/synerix/raw/main/uninstall.sh | bash -s -- --all
 
 # 仅删除配置
-curl -fsSL https://gitee.com/Agions/syncode/raw/main/uninstall.sh | bash -s -- --config-only
+curl -fsSL https://gitee.com/Agions/synerix/raw/main/uninstall.sh | bash -s -- --config-only
 ```
 
 ### Cargo 卸载
 
 ```bash
-cargo uninstall syncode
+cargo uninstall synerix
 ```
 
 ### 手动清理
 
 ```bash
 # 删除二进制
-rm -f /usr/local/bin/syncode
-rm -f ~/.local/bin/syncode
+rm -f /usr/local/bin/synerix
+rm -f ~/.local/bin/synerix
 
 # 删除配置目录
-rm -rf ~/.config/syncode/
+rm -rf ~/.config/synerix/
 
 # 删除缓存和数据
-rm -rf ~/.cache/syncode/
-rm -rf ~/.local/share/syncode/
+rm -rf ~/.cache/synerix/
+rm -rf ~/.local/share/synerix/
 ```
 
 ## 配置
 
-配置文件路径：`~/.config/syncode/config.toml`
+配置文件路径：`~/.config/synerix/config.toml`
 
 ```toml
 [llm]
@@ -113,9 +113,9 @@ atomic_writes = true
 ```
 
 环境变量覆盖：
-- `SYNCODE_API_KEY` — LLM API 密钥
-- `SYNCODE_BASE_URL` — API 基础 URL
-- `SYNCODE_MODEL` — 模型标识符
+- `SYNERIX_API_KEY` — LLM API 密钥
+- `SYNERIX_BASE_URL` — API 基础 URL
+- `SYNERIX_MODEL` — 模型标识符
 
 ### MCP 服务器配置
 
@@ -150,12 +150,12 @@ timeout_secs = 60
 # 本地目录
 [[skill_sources]]
 type = "local"
-location = "~/.config/syncode/skills"
+location = "~/.config/synerix/skills"
 
 # Git 仓库（自动克隆+更新）
 [[skill_sources]]
 type = "git"
-location = "https://gitee.com/Agions/syncode-skills.git"
+location = "https://gitee.com/Agions/synerix-skills.git"
 branch = "main"
 include = ["**/*.md"]
 
@@ -181,7 +181,7 @@ max_turns = 8
 tags = ["security"]
 ```
 
-**方式二：YAML 文件（~/.config/syncode/agents/*.yaml）**
+**方式二：YAML 文件（~/.config/synerix/agents/*.yaml）**
 
 ```yaml
 name: performance-analyst
@@ -250,10 +250,10 @@ steps:
 
 ```bash
 # 使用内置工作流
-syncode --workflow workflows/code-review.yaml --var task="实现用户登录"
+synerix --workflow workflows/code-review.yaml --var task="实现用户登录"
 
 # 使用自定义工作流
-syncode --workflow my-workflow.yaml --var task="重构认证模块"
+synerix --workflow my-workflow.yaml --var task="重构认证模块"
 ```
 
 ## 键位映射

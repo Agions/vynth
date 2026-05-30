@@ -1,13 +1,13 @@
 [package]
-name = "syncode"
-version = "1.3.0"
+name = "synerix"
+version = "0.0.1"
 edition = "2021"
-description = "Sync your code with AI — A high-performance AI pair programming terminal"
+description = "AI coding terminal — A high-performance AI pair programming terminal"
 license = "MIT"
 rust-version = "1.75"
 
 [[bin]]
-name = "syncode"
+name = "synerix"
 path = "src/main.rs"
 
 [dependencies]

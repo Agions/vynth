@@ -39,14 +39,14 @@ pub enum SkillSourceType {
 }
 
 /// Load skills from multiple external sources
-pub fn load_external_skills(
+pub async fn load_external_skills(
     sources: &[SkillSource],
     cache_dir: &Path,
 ) -> Result<Vec<SkillDef>, AppError> {
     let mut all_skills = Vec::new();
 
     for source in sources {
-        match load_from_source(source, cache_dir) {
+        match load_from_source(source, cache_dir).await {
             Ok(skills) => {
                 tracing::info!(
                     "Loaded {} skills from {} ({})",
@@ -73,43 +73,42 @@ fn source_type_name(t: &SkillSourceType) -> &'static str {
     }
 }
 
-fn load_from_source(source: &SkillSource, cache_dir: &Path) -> Result<Vec<SkillDef>, AppError> {
+async fn load_from_source(
+    source: &SkillSource,
+    cache_dir: &Path,
+) -> Result<Vec<SkillDef>, AppError> {
     match source.source_type {
-        SkillSourceType::Local => load_from_local(
-            Path::new(&source.location),
-            &source.include,
-            &source.exclude,
-        ),
+        SkillSourceType::Local => {
+            load_from_local(
+                Path::new(&source.location),
+                &source.include,
+                &source.exclude,
+            )
+            .await
+        }
         SkillSourceType::Git => {
             let target_dir = cache_dir.join("git").join(dir_name(&source.location));
-            clone_or_update_git(&source.location, source.branch.as_deref(), &target_dir)?;
-            load_from_local(&target_dir, &source.include, &source.exclude)
+            clone_or_update_git(&source.location, source.branch.as_deref(), &target_dir).await?;
+            load_from_local(&target_dir, &source.include, &source.exclude).await
         }
         SkillSourceType::Url => {
             let target_file = cache_dir.join("url").join(url_filename(&source.location));
-            download_url(&source.location, &target_file)?;
-            let skill = load_skill_file(&target_file)?;
+            download_url(&source.location, &target_file).await?;
+            let skill = load_skill_file(&target_file).await?;
             Ok(vec![skill])
         }
     }
 }
 
 /// Load skills from a local directory (recursive)
-fn load_from_local(
+async fn load_from_local(
     dir: &Path,
     include: &[String],
     exclude: &[String],
 ) -> Result<Vec<SkillDef>, AppError> {
     let mut skills = Vec::new();
 
-    if !dir.exists() {
-        return Err(AppError::Config(format!(
-            "Skill directory not found: {}",
-            dir.display()
-        )));
-    }
-
-    for entry in walk_dir(dir) {
+    for entry in walk_dir(dir).await {
         let ext = entry.extension().and_then(|e| e.to_str()).unwrap_or("");
 
         if ext != "md" {
@@ -128,7 +127,7 @@ fn load_from_local(
             continue;
         }
 
-        match load_skill_file(&entry) {
+        match load_skill_file(&entry).await {
             Ok(skill) => skills.push(skill),
             Err(e) => {
                 tracing::warn!("Failed to load skill {}: {}", entry.display(), e);
@@ -140,7 +139,11 @@ fn load_from_local(
 }
 
 /// Clone or update a git repository
-fn clone_or_update_git(url: &str, branch: Option<&str>, target: &Path) -> Result<(), AppError> {
+async fn clone_or_update_git(
+    url: &str,
+    branch: Option<&str>,
+    target: &Path,
+) -> Result<(), AppError> {
     if target.exists() {
         // Update existing clone
         let output = std::process::Command::new("git")
@@ -150,7 +153,7 @@ fn clone_or_update_git(url: &str, branch: Option<&str>, target: &Path) -> Result
 
         if !output.status.success() {
             tracing::warn!("git pull failed for {}, re-cloning", target.display());
-            std::fs::remove_dir_all(target).ok();
+            tokio::fs::remove_dir_all(target).await.ok();
         } else {
             return Ok(());
         }
@@ -158,7 +161,8 @@ fn clone_or_update_git(url: &str, branch: Option<&str>, target: &Path) -> Result
 
     // Create parent directories
     if let Some(parent) = target.parent() {
-        std::fs::create_dir_all(parent)
+        tokio::fs::create_dir_all(parent)
+            .await
             .map_err(|e| AppError::Config(format!("Failed to create cache dir: {}", e)))?;
     }
 
@@ -187,14 +191,15 @@ fn clone_or_update_git(url: &str, branch: Option<&str>, target: &Path) -> Result
 }
 
 /// Download a file from URL
-fn download_url(url: &str, target: &Path) -> Result<(), AppError> {
+async fn download_url(url: &str, target: &Path) -> Result<(), AppError> {
     if target.exists() {
         tracing::info!("Using cached download: {}", target.display());
         return Ok(());
     }
 
     if let Some(parent) = target.parent() {
-        std::fs::create_dir_all(parent)
+        tokio::fs::create_dir_all(parent)
+            .await
             .map_err(|e| AppError::Config(format!("Failed to create cache dir: {}", e)))?;
     }
 
@@ -275,16 +280,18 @@ fn url_filename(url: &str) -> String {
 }
 
 /// Recursively walk a directory
-fn walk_dir(path: &Path) -> Vec<PathBuf> {
+async fn walk_dir(path: &Path) -> Vec<PathBuf> {
     let mut results = Vec::new();
-    if let Ok(entries) = std::fs::read_dir(path) {
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.is_dir() {
-                results.extend(walk_dir(&path));
-            } else {
-                results.push(path);
-            }
+    let mut read_dir = match tokio::fs::read_dir(path).await {
+        Ok(rd) => rd,
+        Err(_) => return results,
+    };
+    while let Ok(Some(entry)) = read_dir.next_entry().await {
+        let path = entry.path();
+        if path.is_dir() {
+            results.extend(Box::pin(walk_dir(&path)).await);
+        } else {
+            results.push(path);
         }
     }
     results
@@ -307,8 +314,8 @@ mod tests {
     fn test_dir_name() {
         assert_eq!(dir_name("https://github.com/user/skills.git"), "skills");
         assert_eq!(
-            dir_name("https://gitee.com/Agions/syncode-skills"),
-            "syncode-skills"
+            dir_name("https://gitee.com/Agions/synerix-skills"),
+            "synerix-skills"
         );
     }
 
@@ -324,18 +331,18 @@ mod tests {
     fn test_skill_source_deserialize() {
         let yaml = r#"
 type: local
-location: ~/.config/syncode/skills
+location: ~/.config/synerix/skills
 "#;
         let source: SkillSource = serde_yaml::from_str(yaml).unwrap();
         assert!(matches!(source.source_type, SkillSourceType::Local));
-        assert_eq!(source.location, "~/.config/syncode/skills");
+        assert_eq!(source.location, "~/.config/synerix/skills");
     }
 
     #[test]
     fn test_skill_source_git() {
         let yaml = r#"
 type: git
-location: https://gitee.com/Agions/syncode-skills.git
+location: https://gitee.com/Agions/synerix-skills.git
 branch: main
 include:
   - "**/*.md"

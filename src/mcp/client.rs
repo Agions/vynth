@@ -1,20 +1,38 @@
 //! MCP Client — single server connection
+//!
+//! Performance: caches compiled glob patterns for tool permission checks
+//! to avoid recompilation on every tool call.
 
 use crate::config::McpServerConfig;
 use crate::error::AppError;
 use crate::mcp::transport::{McpTransport, StdioTransport};
 use crate::mcp::types::*;
 
-/// Single MCP Server connection
+/// Single MCP Server connection with cached permission patterns
 pub struct McpClient {
     config: McpServerConfig,
     transport: Option<Box<dyn McpTransport>>,
     tools: Vec<McpToolDef>,
+    /// Pre-compiled glob patterns for tool permission checks
+    /// (None = allow all, empty = deny all)
+    allowed_patterns: Option<Vec<glob::Pattern>>,
 }
 
 impl McpClient {
     /// Connect to an MCP server
     pub async fn connect(config: McpServerConfig) -> Result<Self, AppError> {
+        // Pre-compile glob patterns once at connection time
+        let allowed_patterns = if config.allowed_tools.is_empty() {
+            None // None = allow all
+        } else {
+            let patterns: Vec<glob::Pattern> = config
+                .allowed_tools
+                .iter()
+                .filter_map(|p| glob::Pattern::new(p).ok())
+                .collect();
+            Some(patterns)
+        };
+
         let transport: Box<dyn McpTransport> = match &config.transport {
             crate::config::McpTransport::Stdio { command, args } => {
                 Box::new(StdioTransport::connect(command, args).await?)
@@ -31,6 +49,7 @@ impl McpClient {
             config,
             transport: Some(transport),
             tools: Vec::new(),
+            allowed_patterns,
         };
 
         // Discover tools
@@ -71,7 +90,7 @@ impl McpClient {
         tool_name: &str,
         args: serde_json::Value,
     ) -> Result<McpToolResult, AppError> {
-        // Permission check
+        // Permission check (uses pre-compiled patterns)
         if !self.is_tool_allowed(tool_name) {
             return Err(AppError::McpPermissionDenied {
                 server: self.config.name.clone(),
@@ -122,15 +141,14 @@ impl McpClient {
     }
 
     /// Check if a tool name is allowed by this server's permission config
+    ///
+    /// Uses pre-compiled glob patterns (O(n) match, no recompilation)
+    #[inline]
     fn is_tool_allowed(&self, tool_name: &str) -> bool {
-        if self.config.allowed_tools.is_empty() {
-            return true; // Empty = allow all
+        match &self.allowed_patterns {
+            None => true, // Empty config = allow all
+            Some(patterns) => patterns.iter().any(|p| p.matches(tool_name)),
         }
-
-        self.config
-            .allowed_tools
-            .iter()
-            .any(|pattern| glob::Pattern::new(pattern).map_or(false, |p| p.matches(tool_name)))
     }
 
     /// Get list of discovered tools

@@ -1,10 +1,10 @@
 //! Phase 3 tests — Theme, Diff Renderer, Syntax Highlighting, Input
 
-use syncode::tui::diff_renderer::{
+use synerix::tui::diff_renderer::{
     parse_diff, render_diff, render_side_by_side, render_unified, DiffViewMode,
 };
-use syncode::tui::syntax::highlight_line;
-use syncode::tui::theme::Theme;
+use synerix::tui::syntax::highlight_line;
+use synerix::tui::theme::Theme;
 // ── Theme System ──────────────────────────────────────────
 
 #[test]
@@ -76,7 +76,7 @@ fn test_parse_diff_basic() {
     let has_add = hunks[0]
         .lines
         .iter()
-        .any(|l| matches!(l.kind, syncode::app::DiffLineKind::Add));
+        .any(|l| matches!(l.kind, synerix::app::DiffLineKind::Add));
     assert!(has_add, "Should have an added line");
 }
 
@@ -207,12 +207,12 @@ fn test_highlight_empty_line() {
 
 #[test]
 fn test_app_input_buffer_insert() {
-    let settings = syncode::config::Settings::load().unwrap();
+    let settings = synerix::config::Settings::load().unwrap();
     let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
-    let mut app = syncode::app::App::new_with_channel(settings, tx, _rx);
+    let mut app = synerix::app::App::new_with_channel(settings, tx, _rx);
 
     // Switch to insert mode
-    app.mode = syncode::app::InputMode::Insert;
+    app.mode = synerix::app::InputMode::Insert;
 
     // Simulate typing
     app.input_buffer.push('h');
@@ -228,9 +228,9 @@ fn test_app_input_buffer_insert() {
 
 #[test]
 fn test_app_submit_message() {
-    let settings = syncode::config::Settings::load().unwrap();
+    let settings = synerix::config::Settings::load().unwrap();
     let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
-    let mut app = syncode::app::App::new_with_channel(settings, tx, _rx);
+    let mut app = synerix::app::App::new_with_channel(settings, tx, _rx);
 
     app.input_buffer = "test message".to_string();
     app.input_cursor = 12;
@@ -240,7 +240,7 @@ fn test_app_submit_message() {
     assert_eq!(app.chat_state.messages[0].content, "test message");
     assert_eq!(
         app.chat_state.messages[0].role,
-        syncode::app::MessageRole::User
+        synerix::app::MessageRole::User
     );
     assert!(app.input_buffer.is_empty());
     assert_eq!(app.input_cursor, 0);
@@ -248,9 +248,9 @@ fn test_app_submit_message() {
 
 #[test]
 fn test_app_submit_empty_message() {
-    let settings = syncode::config::Settings::load().unwrap();
+    let settings = synerix::config::Settings::load().unwrap();
     let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
-    let mut app = syncode::app::App::new_with_channel(settings, tx, _rx);
+    let mut app = synerix::app::App::new_with_channel(settings, tx, _rx);
 
     app.input_buffer = "".to_string();
     app.submit_message();
@@ -261,9 +261,9 @@ fn test_app_submit_empty_message() {
 
 #[test]
 fn test_app_chat_scroll() {
-    let settings = syncode::config::Settings::load().unwrap();
+    let settings = synerix::config::Settings::load().unwrap();
     let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
-    let mut app = syncode::app::App::new_with_channel(settings, tx, _rx);
+    let mut app = synerix::app::App::new_with_channel(settings, tx, _rx);
 
     assert_eq!(app.chat_state.scroll_offset, 0);
 

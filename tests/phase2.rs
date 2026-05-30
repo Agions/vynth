@@ -1,21 +1,21 @@
 //! Phase 2 integration tests — Agent Loop, Tools, Sandbox
 
 use std::path::PathBuf;
-use syncode::sandbox::command_preview::RiskLevel;
-use syncode::sandbox::CommandPreview;
-use syncode::tools::builtin;
-use syncode::tools::trait_def::{Tool, ToolContext, ToolResult};
+use synerix::sandbox::command_preview::RiskLevel;
+use synerix::sandbox::CommandPreview;
+use synerix::tools::builtin;
+use synerix::tools::trait_def::{Tool, ToolContext, ToolResult};
 
 fn test_ctx() -> ToolContext {
     ToolContext {
-        working_dir: PathBuf::from("/tmp/syncode_test"),
-        sandbox_mode: syncode::config::SandboxMode::Auto,
+        working_dir: PathBuf::from("/tmp/synerix_test"),
+        sandbox_mode: synerix::config::SandboxMode::Auto,
         approval_handler: None,
     }
 }
 
 fn setup_test_dir() -> PathBuf {
-    let dir = PathBuf::from("/tmp/syncode_test");
+    let dir = PathBuf::from("/tmp/synerix_test");
     std::fs::create_dir_all(&dir).unwrap();
     dir
 }
@@ -77,7 +77,7 @@ async fn test_file_write() {
     let test_file = dir.join("write_test.txt");
 
     let tool = builtin::FileWriteTool;
-    let args = serde_json::json!({"path": "write_test.txt", "content": "hello syncode"});
+    let args = serde_json::json!({"path": "write_test.txt", "content": "hello synerix"});
     let ctx = test_ctx();
 
     let result = tool.execute(args, &ctx).await.unwrap();
@@ -85,7 +85,7 @@ async fn test_file_write() {
     assert!(result.output.contains("1 lines"));
 
     let content = std::fs::read_to_string(&test_file).unwrap();
-    assert_eq!(content, "hello syncode");
+    assert_eq!(content, "hello synerix");
 
     std::fs::remove_file(&test_file).unwrap();
 }
@@ -302,15 +302,15 @@ fn test_command_preview_display() {
 
 #[test]
 fn test_atomic_write_basic() {
-    let dir = std::env::temp_dir().join("syncode_atomic_test");
+    let dir = std::env::temp_dir().join("synerix_atomic_test");
     std::fs::create_dir_all(&dir).unwrap();
     let path = dir.join("atomic.txt");
 
-    syncode::sandbox::atomic_write(&path, b"atomic content").unwrap();
+    synerix::sandbox::atomic_write(&path, b"atomic content").unwrap();
     assert_eq!(std::fs::read_to_string(&path).unwrap(), "atomic content");
 
     // Overwrite
-    syncode::sandbox::atomic_write(&path, b"new content").unwrap();
+    synerix::sandbox::atomic_write(&path, b"new content").unwrap();
     assert_eq!(std::fs::read_to_string(&path).unwrap(), "new content");
 
     std::fs::remove_dir_all(&dir).unwrap();
@@ -318,7 +318,7 @@ fn test_atomic_write_basic() {
 
 #[test]
 fn test_atomic_write_with_backup() {
-    let dir = std::env::temp_dir().join("syncode_backup_test");
+    let dir = std::env::temp_dir().join("synerix_backup_test");
     std::fs::create_dir_all(&dir).unwrap();
     let path = dir.join("backup.txt");
 
@@ -326,10 +326,10 @@ fn test_atomic_write_with_backup() {
     std::fs::write(&path, "original").unwrap();
 
     // Atomic write with backup
-    syncode::sandbox::atomic_write_with_backup(&path, b"modified").unwrap();
+    synerix::sandbox::atomic_write_with_backup(&path, b"modified").unwrap();
     assert_eq!(std::fs::read_to_string(&path).unwrap(), "modified");
 
-    let bak = path.with_extension("syncode.bak");
+    let bak = path.with_extension("synerix.bak");
     assert_eq!(std::fs::read_to_string(&bak).unwrap(), "original");
 
     std::fs::remove_dir_all(&dir).unwrap();
@@ -339,8 +339,8 @@ fn test_atomic_write_with_backup() {
 
 #[test]
 fn test_all_tools_have_valid_schemas() {
-    let mut registry = syncode::tools::ToolRegistry::new();
-    syncode::tools::builtin::register_builtins(&mut registry);
+    let mut registry = synerix::tools::ToolRegistry::new();
+    synerix::tools::builtin::register_builtins(&mut registry);
 
     for name in registry.list_names() {
         let tool = registry.get(name).unwrap();
@@ -365,8 +365,8 @@ fn test_all_tools_have_valid_schemas() {
 
 #[test]
 fn test_context_trim_on_overflow() {
-    use syncode::agent::context::{ContextManager, TokenBudget};
-    use syncode::llm::types::ChatMessage;
+    use synerix::agent::context::{ContextManager, TokenBudget};
+    use synerix::llm::types::ChatMessage;
 
     // Small budget to trigger trimming
     let budget = TokenBudget {

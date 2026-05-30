@@ -51,7 +51,8 @@ impl Tool for FileReadTool {
 
         let full_path = ctx.working_dir.join(path);
 
-        let content = std::fs::read_to_string(&full_path)
+        let content = tokio::fs::read_to_string(&full_path)
+            .await
             .map_err(|e| AppError::ExecutionFailed(format!("Failed to read {}: {}", path, e)))?;
 
         let lines: Vec<&str> = content.lines().collect();

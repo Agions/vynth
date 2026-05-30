@@ -81,6 +81,10 @@ async fn watch_loop(
 }
 
 /// Get the modification time of a file, returning None if it doesn't exist
+///
+/// NOTE: Uses synchronous `std::fs::metadata` intentionally. This is called
+/// in a polling loop where the overhead is negligible, and avoiding async
+/// keeps the logic simple.
 fn get_mtime(path: &PathBuf) -> Option<SystemTime> {
     std::fs::metadata(path).ok().and_then(|m| m.modified().ok())
 }

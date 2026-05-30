@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Syncode uninstaller
-# Usage: curl -fsSL https://gitee.com/Agions/syncode/raw/main/uninstall.sh | bash
+# Synerix uninstaller
+# Usage: curl -fsSL https://gitee.com/Agions/synerix/raw/main/uninstall.sh | bash
 #   or: bash uninstall.sh [--all]
 
-BINARY="syncode"
-CONFIG_DIR="${HOME}/.config/syncode"
-CACHE_DIR="${HOME}/.cache/syncode"
-DATA_DIR="${HOME}/.local/share/syncode"
+BINARY="synerix"
+CONFIG_DIR="${HOME}/.config/synerix"
+CACHE_DIR="${HOME}/.cache/synerix"
+DATA_DIR="${HOME}/.local/share/synerix"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -87,7 +87,7 @@ remove_data() {
 print_summary() {
     echo ""
     echo "  ╔═══════════════════════════════════════╗"
-    echo "  ║     Syncode 卸载完成                   ║"
+    echo "  ║     Synerix 卸载完成                   ║"
     echo "  ╚═══════════════════════════════════════╝"
     echo ""
     echo "  已清理："
@@ -97,14 +97,14 @@ print_summary() {
     echo "    • 数据目录 (${DATA_DIR})"
     echo ""
     echo "  如需重新安装："
-    echo "    curl -fsSL https://gitee.com/Agions/syncode/raw/main/install.sh | bash"
+    echo "    curl -fsSL https://gitee.com/Agions/synerix/raw/main/install.sh | bash"
     echo ""
 }
 
 main() {
     echo ""
     echo "  ╔═══════════════════════════════════════╗"
-    echo "  ║     Syncode — AI 配对编程终端卸载器     ║"
+    echo "  ║     Synerix — AI Coding Terminal       ║"
     echo "  ╚═══════════════════════════════════════╝"
     echo ""
 
@@ -159,7 +159,7 @@ main() {
         echo "    • ${DATA_DIR}"
         echo ""
         echo "  To remove everything:"
-        echo "    curl -fsSL https://gitee.com/Agions/syncode/raw/main/uninstall.sh | bash -s -- --all"
+        echo "    curl -fsSL https://gitee.com/Agions/synerix/raw/main/uninstall.sh | bash -s -- --all"
         echo ""
     fi
 }

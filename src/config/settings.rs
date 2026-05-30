@@ -201,6 +201,10 @@ fn default_agent_turns() -> usize {
 
 impl Settings {
     /// Load settings from config file, with environment variable overrides
+    ///
+    /// NOTE: Uses synchronous `std::fs::read_to_string` intentionally.
+    /// Config loading happens once at startup and the file is small,
+    /// so async I/O is unnecessary here.
     pub fn load() -> Result<Self, AppError> {
         let config_path = Self::config_path();
 
@@ -216,11 +220,11 @@ impl Settings {
         }
     }
 
-    /// Default config path: ~/.config/syncode/config.toml
+    /// Default config path: ~/.config/synerix/config.toml
     fn config_path() -> PathBuf {
         dirs_next::config_dir()
             .unwrap_or_else(|| PathBuf::from("."))
-            .join("syncode")
+            .join("synerix")
             .join("config.toml")
     }
 
@@ -256,13 +260,13 @@ impl Settings {
 
     /// Override settings with environment variables
     fn apply_env_overrides(&mut self) {
-        if let Ok(key) = std::env::var("SYNCODE_API_KEY") {
+        if let Ok(key) = std::env::var("SYNERIX_API_KEY") {
             self.llm.api_key = key;
         }
-        if let Ok(url) = std::env::var("SYNCODE_BASE_URL") {
+        if let Ok(url) = std::env::var("SYNERIX_BASE_URL") {
             self.llm.base_url = Some(url);
         }
-        if let Ok(model) = std::env::var("SYNCODE_MODEL") {
+        if let Ok(model) = std::env::var("SYNERIX_MODEL") {
             self.llm.model = model;
         }
     }

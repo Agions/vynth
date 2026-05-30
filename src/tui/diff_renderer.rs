@@ -36,9 +36,11 @@ pub struct RenderDiffLine {
 
 /// Parse a raw unified-diff string into [`DiffHunk`]s with line numbers.
 pub fn parse_diff(raw: &str) -> Vec<DiffHunk> {
-    let mut hunks: Vec<DiffHunk> = Vec::new();
-    let mut current_header = String::new();
-    let mut current_lines: Vec<DiffLine> = Vec::new();
+    // Pre-allocate with reasonable estimates to reduce re-allocations.
+    let estimated_hunks = raw.matches("\n@@").count().max(1);
+    let mut hunks: Vec<DiffHunk> = Vec::with_capacity(estimated_hunks);
+    let mut current_header = String::with_capacity(128);
+    let mut current_lines: Vec<DiffLine> = Vec::with_capacity(32);
     let mut _old_line: usize = 0;
     let mut _new_line: usize = 0;
 
@@ -211,10 +213,7 @@ pub fn render_side_by_side(diff_text: &str, col_width: usize) -> Text<'static> {
                     let right = format_side(&dl.content, col_width);
                     let mut spans = Vec::new();
                     spans.push(Span::styled(left, Style::default().fg(Color::Gray)));
-                    spans.push(Span::styled(
-                        "│".to_string(),
-                        Style::default().fg(Color::DarkGray),
-                    ));
+                    spans.push(Span::styled("│", Style::default().fg(Color::DarkGray)));
                     spans.push(Span::styled(right, Style::default().fg(Color::Gray)));
                     lines.push(Line::from(spans));
                     idx += 1;
@@ -249,10 +248,7 @@ pub fn render_side_by_side(diff_text: &str, col_width: usize) -> Text<'static> {
                         } else {
                             spans.push(Span::raw(" ".repeat(col_width)));
                         }
-                        spans.push(Span::styled(
-                            "│".to_string(),
-                            Style::default().fg(Color::DarkGray),
-                        ));
+                        spans.push(Span::styled("│", Style::default().fg(Color::DarkGray)));
                         if i < adds.len() {
                             let highlighted = syntax::highlight_line(&adds[i].content, &ext);
                             let text: String =
@@ -277,10 +273,7 @@ pub fn render_side_by_side(diff_text: &str, col_width: usize) -> Text<'static> {
                     let right = format_side(&text, col_width);
                     let mut spans = Vec::new();
                     spans.push(Span::raw(" ".repeat(col_width)));
-                    spans.push(Span::styled(
-                        "│".to_string(),
-                        Style::default().fg(Color::DarkGray),
-                    ));
+                    spans.push(Span::styled("│", Style::default().fg(Color::DarkGray)));
                     spans.push(Span::styled(
                         right,
                         Style::default()
@@ -304,14 +297,18 @@ pub fn render_side_by_side(diff_text: &str, col_width: usize) -> Text<'static> {
     Text::from(lines)
 }
 
-/// Truncate or pad `text` to exactly `width` chars.
+/// Truncate or pad `text` to exactly `width` chars (single allocation).
 fn format_side(text: &str, width: usize) -> String {
-    let t: String = text.chars().take(width).collect();
-    if t.len() < width {
-        format!("{}{}", t, " ".repeat(width - t.len()))
-    } else {
-        t
+    let mut s = String::with_capacity(width * 4);
+    let mut char_count = 0;
+    for ch in text.chars().take(width) {
+        s.push(ch);
+        char_count += 1;
     }
+    for _ in char_count..width {
+        s.push(' ');
+    }
+    s
 }
 
 // ---------------------------------------------------------------------------

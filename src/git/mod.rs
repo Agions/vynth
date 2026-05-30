@@ -1,4 +1,4 @@
-//! Git integration for Syncode
+//! Git integration for Synerix
 //!
 //! Provides types and functions for interacting with git repositories,
 //! including status, diff, log, branching, staging, and committing.

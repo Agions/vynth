@@ -1,4 +1,4 @@
-//! Unified error types for Syncode
+//! Unified error types for Synerix
 
 use thiserror::Error;
 

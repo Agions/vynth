@@ -4,7 +4,7 @@ use std::io::{Read, Write};
 use std::net::TcpListener;
 use std::sync::Arc;
 use std::thread;
-use syncode::llm::LlmAdapter;
+use synerix::llm::LlmAdapter;
 
 // ── Mock LLM Server ───────────────────────────────────────
 
@@ -68,14 +68,14 @@ async fn test_mock_llm_simple_chat() {
     let mock = MockLlm::start();
     std::thread::sleep(std::time::Duration::from_millis(50));
 
-    let adapter = syncode::llm::adapter::OpenAICompatAdapter::new(
+    let adapter = synerix::llm::adapter::OpenAICompatAdapter::new(
         &mock.base_url(),
         "test-key",
         "mock-model",
         4096,
     );
 
-    let messages = vec![syncode::llm::types::ChatMessage::user("Hello")];
+    let messages = vec![synerix::llm::types::ChatMessage::user("Hello")];
     let response = adapter.chat(&messages, &[]).await.unwrap();
 
     assert!(response.content.contains("Hello!"));
@@ -87,14 +87,14 @@ async fn test_mock_llm_streaming() {
     let mock = MockLlm::start();
     std::thread::sleep(std::time::Duration::from_millis(50));
 
-    let adapter = syncode::llm::adapter::OpenAICompatAdapter::new(
+    let adapter = synerix::llm::adapter::OpenAICompatAdapter::new(
         &mock.base_url(),
         "test-key",
         "mock-model",
         4096,
     );
 
-    let messages = vec![syncode::llm::types::ChatMessage::user("Hello")];
+    let messages = vec![synerix::llm::types::ChatMessage::user("Hello")];
     let stream = adapter.chat_stream(&messages, &[]).await.unwrap();
 
     use futures::StreamExt;
@@ -102,8 +102,8 @@ async fn test_mock_llm_streaming() {
     let mut full_text = String::new();
 
     for chunk in chunks {
-        if let Ok(syncode::llm::types::StreamChunk {
-            delta: syncode::llm::types::ChunkDelta::Text { content },
+        if let Ok(synerix::llm::types::StreamChunk {
+            delta: synerix::llm::types::ChunkDelta::Text { content },
         }) = chunk
         {
             full_text.push_str(&content);
@@ -120,7 +120,7 @@ async fn test_mock_llm_tool_call() {
     std::thread::sleep(std::time::Duration::from_millis(50));
 
     // Test that the adapter can be constructed and make requests
-    let adapter = syncode::llm::adapter::OpenAICompatAdapter::new(
+    let adapter = synerix::llm::adapter::OpenAICompatAdapter::new(
         &mock.base_url(),
         "test-key",
         "mock-model",
@@ -129,7 +129,7 @@ async fn test_mock_llm_tool_call() {
 
     // The mock returns tool_calls only when request body contains "shell_exec"
     // In a real test we'd send tool schemas, but here we just verify the adapter works
-    let messages = vec![syncode::llm::types::ChatMessage::user("Hello")];
+    let messages = vec![synerix::llm::types::ChatMessage::user("Hello")];
     let response = adapter.chat(&messages, &[]).await.unwrap();
 
     // Mock returns simple text for non-tool requests
@@ -138,8 +138,8 @@ async fn test_mock_llm_tool_call() {
 
 #[tokio::test]
 async fn test_tool_registry_integration() {
-    let mut registry = syncode::tools::ToolRegistry::new();
-    syncode::tools::builtin::register_builtins(&mut registry);
+    let mut registry = synerix::tools::ToolRegistry::new();
+    synerix::tools::builtin::register_builtins(&mut registry);
 
     // Verify all tools are registered
     assert_eq!(registry.list_names().len(), 5);
@@ -155,19 +155,19 @@ async fn test_tool_registry_integration() {
 #[tokio::test]
 async fn test_file_tool_roundtrip() {
     use std::path::PathBuf;
-    use syncode::tools::trait_def::Tool;
+    use synerix::tools::trait_def::Tool;
 
-    let dir = PathBuf::from("/tmp/syncode_e2e_test");
+    let dir = PathBuf::from("/tmp/synerix_e2e_test");
     std::fs::create_dir_all(&dir).unwrap();
 
-    let ctx = syncode::tools::trait_def::ToolContext {
+    let ctx = synerix::tools::trait_def::ToolContext {
         working_dir: dir.clone(),
-        sandbox_mode: syncode::config::SandboxMode::Auto,
+        sandbox_mode: synerix::config::SandboxMode::Auto,
         approval_handler: None,
     };
 
     // Write a file
-    let write_tool = syncode::tools::builtin::FileWriteTool;
+    let write_tool = synerix::tools::builtin::FileWriteTool;
     let result = write_tool
         .execute(
             serde_json::json!({"path": "e2e_test.txt", "content": "E2E test content"}),
@@ -178,7 +178,7 @@ async fn test_file_tool_roundtrip() {
     assert!(!result.is_error);
 
     // Read it back
-    let read_tool = syncode::tools::builtin::FileReadTool;
+    let read_tool = synerix::tools::builtin::FileReadTool;
     let result = read_tool
         .execute(serde_json::json!({"path": "e2e_test.txt"}), &ctx)
         .await
@@ -187,7 +187,7 @@ async fn test_file_tool_roundtrip() {
     assert!(result.output.contains("E2E test content"));
 
     // Patch it
-    let patch_tool = syncode::tools::builtin::PatchTool;
+    let patch_tool = synerix::tools::builtin::PatchTool;
     let result = patch_tool
         .execute(
             serde_json::json!({"path": "e2e_test.txt", "old_text": "E2E", "new_text": "End-to-End"}),
@@ -209,17 +209,17 @@ async fn test_file_tool_roundtrip() {
 
 #[tokio::test]
 async fn test_session_persistence() {
-    let store = syncode::session::SessionStore::memory().unwrap();
+    let store = synerix::session::SessionStore::memory().unwrap();
 
     // Create session
-    let session = syncode::session::Session::new("E2E Test", "mock-model");
+    let session = synerix::session::Session::new("E2E Test", "mock-model");
     store.create_session(&session).unwrap();
 
     // Add messages
-    let msg1 = syncode::session::StoredMessage::user(&session.id, "Hello");
+    let msg1 = synerix::session::StoredMessage::user(&session.id, "Hello");
     store.save_message(&msg1).unwrap();
 
-    let msg2 = syncode::session::StoredMessage::assistant(&session.id, "Hi there!");
+    let msg2 = synerix::session::StoredMessage::assistant(&session.id, "Hi there!");
     store.save_message(&msg2).unwrap();
 
     // Reload
@@ -235,9 +235,9 @@ async fn test_session_persistence() {
 
 #[test]
 fn test_config_roundtrip() {
-    let settings = syncode::config::Settings::load().unwrap();
+    let settings = synerix::config::Settings::load().unwrap();
     let toml = toml::to_string(&settings).unwrap();
-    let parsed: syncode::config::Settings = toml::from_str(&toml).unwrap();
+    let parsed: synerix::config::Settings = toml::from_str(&toml).unwrap();
 
     assert_eq!(parsed.llm.model, settings.llm.model);
     assert_eq!(parsed.ui.theme, settings.ui.theme);
@@ -246,7 +246,7 @@ fn test_config_roundtrip() {
 
 #[test]
 fn test_keymap_profiles() {
-    use syncode::config::keymap::{KeyBindings, KeymapProfile};
+    use synerix::config::keymap::{KeyBindings, KeymapProfile};
 
     // All profiles should be constructable
     let _vim = KeyBindings::new(KeymapProfile::Vim);
