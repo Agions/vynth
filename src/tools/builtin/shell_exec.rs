@@ -103,3 +103,105 @@ impl Tool for ShellExecTool {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_ctx(dir: &std::path::Path) -> ToolContext {
+        ToolContext {
+            working_dir: dir.to_path_buf(),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn test_tool_name() {
+        let tool = ShellExecTool;
+        assert_eq!(tool.name(), "shell_exec");
+    }
+
+    #[test]
+    fn test_tool_schema() {
+        let tool = ShellExecTool;
+        let schema = tool.schema();
+        assert_eq!(schema["name"], "shell_exec");
+        assert!(schema["parameters"]["properties"]["command"].is_object());
+    }
+
+    #[test]
+    fn test_requires_approval_safe_commands() {
+        let tool = ShellExecTool;
+        assert!(!tool.requires_approval(&json!({"command": "ls -la"})));
+        assert!(!tool.requires_approval(&json!({"command": "echo hello"})));
+        assert!(!tool.requires_approval(&json!({"command": "cargo build"})));
+    }
+
+    #[test]
+    fn test_requires_approval_dangerous_commands() {
+        let tool = ShellExecTool;
+        assert!(tool.requires_approval(&json!({"command": "rm -rf /tmp/data"})));
+        assert!(tool.requires_approval(&json!({"command": "rm -r /"})));
+        assert!(tool.requires_approval(&json!({"command": "chmod -R 777 /var"})));
+    }
+
+    #[tokio::test]
+    async fn test_execute_simple_command() {
+        let dir = tempfile::tempdir().unwrap();
+        let tool = ShellExecTool;
+        let args = json!({"command": "echo hello"});
+        let result = tool.execute(args, &test_ctx(dir.path())).await.unwrap();
+        assert!(!result.is_error);
+        assert!(result.output.contains("hello"));
+    }
+
+    #[tokio::test]
+    async fn test_execute_command_with_stderr() {
+        let dir = tempfile::tempdir().unwrap();
+        let tool = ShellExecTool;
+        let args = json!({"command": "echo error >&2"});
+        let result = tool.execute(args, &test_ctx(dir.path())).await.unwrap();
+        assert!(!result.is_error);
+        assert!(result.output.contains("[stderr]"));
+    }
+
+    #[tokio::test]
+    async fn test_execute_failing_command() {
+        let dir = tempfile::tempdir().unwrap();
+        let tool = ShellExecTool;
+        let args = json!({"command": "false"});
+        let result = tool.execute(args, &test_ctx(dir.path())).await.unwrap();
+        assert!(result.is_error);
+    }
+
+    #[tokio::test]
+    async fn test_execute_missing_command() {
+        let dir = tempfile::tempdir().unwrap();
+        let tool = ShellExecTool;
+        let args = json!({});
+        let result = tool.execute(args, &test_ctx(dir.path())).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_execute_with_working_dir() {
+        let dir = tempfile::tempdir().unwrap();
+        let tool = ShellExecTool;
+        let args = json!({"command": "pwd"});
+        let result = tool.execute(args, &test_ctx(dir.path())).await.unwrap();
+        assert!(!result.is_error);
+        assert!(result.output.contains(dir.path().to_str().unwrap()));
+    }
+
+    #[tokio::test]
+    async fn test_execute_multiline_output() {
+        let dir = tempfile::tempdir().unwrap();
+        let tool = ShellExecTool;
+        let args = json!({"command": "printf 'line1\nline2\nline3\n'"});
+        let result = tool.execute(args, &test_ctx(dir.path())).await.unwrap();
+        assert!(!result.is_error);
+        assert!(result.output.contains("line1"));
+        assert!(result.output.contains("line2"));
+        assert!(result.output.contains("line3"));
+    }
+}
