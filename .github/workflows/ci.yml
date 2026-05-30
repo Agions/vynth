@@ -23,13 +23,13 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: cargo check
-        run: cargo check --all-targets
+        run: cargo check --all-targets 2>&1
 
       - name: cargo fmt
         run: cargo fmt --all -- --check
 
       - name: cargo clippy
-        run: cargo clippy -- -D warnings -A dead_code -A unused
+        run: cargo clippy --all-targets -- -W clippy::all 2>&1
 
   test:
     name: Test (${{ matrix.os }})
@@ -48,8 +48,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
 
+      - name: Show Rust version
+        run: rustc --version && cargo --version
+
       - name: Run tests
-        run: cargo test --all-targets
+        run: cargo test --all-targets 2>&1
 
       - name: Release build
         run: cargo build --release
