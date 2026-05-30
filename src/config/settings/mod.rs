@@ -208,7 +208,7 @@ mod tests {
     #[test]
     fn test_default_settings() {
         let settings = Settings::defaults();
-        assert_eq!(settings.llm.model, "deepseek-chat");
+        assert_eq!(settings.llm.model, "deepseek-v4-flash");
         assert_eq!(settings.llm.temperature, 0.7);
         assert_eq!(settings.ui.theme, "dark");
         assert_eq!(settings.ui.keymap, "default");
@@ -226,7 +226,7 @@ mod tests {
 [llm]
 provider = "deepseek"
 api_key = "sk-test"
-model = "deepseek-chat"
+model = "deepseek-v4-flash"
 context_window = 128000
 max_output_tokens = 8192
 
@@ -239,7 +239,7 @@ mode = "auto"
 "#;
         let settings: Settings = toml::from_str(toml).unwrap();
         assert_eq!(settings.llm.api_key, "sk-test");
-        assert_eq!(settings.llm.model, "deepseek-chat");
+        assert_eq!(settings.llm.model, "deepseek-v4-flash");
         assert_eq!(settings.ui.theme, "light");
         assert_eq!(settings.ui.keymap, "vim");
         assert_eq!(settings.sandbox.mode, SandboxMode::Auto);
@@ -251,7 +251,7 @@ mode = "auto"
 [llm]
 provider = "deepseek"
 api_key = "sk-test"
-model = "deepseek-chat"
+model = "deepseek-v4-flash"
 context_window = 128000
 max_output_tokens = 8192
 
@@ -276,7 +276,7 @@ transport = { type = "stdio", command = "mcp-fs", args = [] }
 [llm]
 provider = "deepseek"
 api_key = "sk-test"
-model = "deepseek-chat"
+model = "deepseek-v4-flash"
 context_window = 128000
 max_output_tokens = 8192
 
@@ -301,7 +301,7 @@ max_turns = 5
 [llm]
 provider = "mimo"
 api_key = "key"
-model = "mimo-7b"
+model = "mimo-v2.5-pro"
 context_window = 32000
 max_output_tokens = 4096
 

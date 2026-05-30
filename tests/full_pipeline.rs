@@ -38,7 +38,7 @@ fn test_config_from_custom_toml_string() {
 [llm]
 provider = "deepseek"
 api_key = "sk-test-pipeline"
-model = "deepseek-reasoner"
+model = "deepseek-v4-pro"
 context_window = 64000
 max_output_tokens = 4096
 temperature = 0.3
@@ -65,7 +65,7 @@ tags = ["test", "pipeline"]
 "#;
     let settings: synerix::config::Settings = toml::from_str(toml).unwrap();
 
-    assert_eq!(settings.llm.model, "deepseek-reasoner");
+    assert_eq!(settings.llm.model, "deepseek-v4-pro");
     assert_eq!(settings.llm.context_window, 64000);
     assert_eq!(settings.llm.temperature, 0.3);
     assert_eq!(settings.ui.theme, "light");

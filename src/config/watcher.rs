@@ -275,7 +275,7 @@ keymap = "vim"
             version: 42,
         };
         assert_eq!(reload.version, 42);
-        assert_eq!(reload.settings.llm.model, "deepseek-chat");
+        assert_eq!(reload.settings.llm.model, "deepseek-v4-flash");
     }
 
     #[tokio::test]

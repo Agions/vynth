@@ -155,7 +155,7 @@ cat > ~/.config/synerix/config.toml << 'EOF'
 [llm]
 provider = "deepseek"       # deepseek | mimo | custom
 api_key = "your-api-key"
-model = "deepseek-chat"
+model = "deepseek-v4-flash"
 context_window = 128000
 max_output_tokens = 8192
 
@@ -257,11 +257,18 @@ steps:
 
 ### LLM 提供商
 
-| 提供商 | 模型 | 说明 |
-|--------|------|------|
-| `deepseek` | deepseek-chat | DeepSeek V4（默认） |
-| `mimo` | mimo-v2.5 | 小米 MiMo |
-| `custom` | 任意 | 任意 OpenAI 兼容 API |
+| 提供商 | 默认模型 | 可用模型 | 说明 |
+|--------|----------|----------|------|
+| `deepseek` | deepseek-v4-flash | deepseek-v4-flash, deepseek-v4-pro | DeepSeek V4（默认） |
+| `mimo` | mimo-v2.5-pro | mimo-v2.5-pro | 小米 MiMo |
+| `custom` | — | 任意 | 任意 OpenAI 兼容 API |
+
+**DeepSeek 模型：**
+- `deepseek-v4-flash` — 快速对话模型（默认，原 deepseek-chat）
+- `deepseek-v4-pro` — 旗舰推理模型（原 deepseek-reasoner）
+
+**MiMo 模型：**
+- `mimo-v2.5-pro` — 小米 MiMo 旗舰模型
 
 ### 环境变量覆盖
 

@@ -5,7 +5,7 @@
 #[test]
 fn test_settings_defaults() {
     let settings = synerix::config::Settings::load().unwrap();
-    assert_eq!(settings.llm.model, "deepseek-chat");
+    assert_eq!(settings.llm.model, "deepseek-v4-flash");
     assert_eq!(settings.llm.context_window, 128_000);
     assert_eq!(settings.ui.theme, "dark");
     assert_eq!(settings.ui.keymap, "default");
@@ -103,7 +103,7 @@ fn test_builtin_skills() {
 fn test_session_store_memory() {
     let store = synerix::session::SessionStore::memory().unwrap();
 
-    let session = synerix::session::Session::new("Test Session", "deepseek-chat");
+    let session = synerix::session::Session::new("Test Session", "deepseek-v4-flash");
     store.create_session(&session).unwrap();
 
     let sessions = store.list_sessions().unwrap();
@@ -115,7 +115,7 @@ fn test_session_store_memory() {
 fn test_message_storage() {
     let store = synerix::session::SessionStore::memory().unwrap();
 
-    let session = synerix::session::Session::new("Chat Test", "deepseek-chat");
+    let session = synerix::session::Session::new("Chat Test", "deepseek-v4-flash");
     store.create_session(&session).unwrap();
 
     let msg = synerix::session::StoredMessage::user(&session.id, "Hello");

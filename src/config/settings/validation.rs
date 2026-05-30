@@ -45,7 +45,7 @@ impl Settings {
                 provider: Provider::DeepSeek,
                 api_key: String::new(),
                 base_url: None,
-                model: "deepseek-chat".to_string(),
+                model: "deepseek-v4-flash".to_string(),
                 context_window: 128_000,
                 max_output_tokens: 8192,
                 temperature: 0.7,
@@ -89,7 +89,7 @@ mod tests {
     #[test]
     fn defaults_returns_correct_values() {
         let s = Settings::defaults();
-        assert_eq!(s.llm.model, "deepseek-chat");
+        assert_eq!(s.llm.model, "deepseek-v4-flash");
         assert_eq!(s.llm.context_window, 128_000);
         assert_eq!(s.llm.max_output_tokens, 8192);
         assert_eq!(s.llm.temperature, 0.7);

@@ -51,6 +51,16 @@ jobs:
       - name: Show Rust version
         run: rustc --version && cargo --version
 
+      - name: Install ripgrep
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq ripgrep
+          elif [ "$RUNNER_OS" = "macOS" ]; then
+            brew install ripgrep
+          fi
+          rg --version
+
       - name: Run tests
         run: cargo test --all-targets 2>&1
 
