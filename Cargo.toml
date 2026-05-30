@@ -1,6 +1,6 @@
 [package]
 name = "syncode"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2021"
 description = "Sync your code with AI — A high-performance AI pair programming terminal"
 license = "MIT"
