@@ -104,11 +104,21 @@ Rust 零成本抽象，为速度而生：
 
 ## 📦 安装
 
-```bash
-# curl 一键安装（推荐）
-curl -fsSL https://raw.githubusercontent.com/Agions/synerix/main/install.sh | bash
+**GitHub（推荐，全球加速）：**
 
-# 自定义安装目录
+```bash
+curl -fsSL https://raw.githubusercontent.com/Agions/synerix/main/install.sh | bash
+```
+
+**Gitee（国内加速）：**
+
+```bash
+curl -fsSL https://gitee.com/Agions/synerix/raw/main/install.sh | bash
+```
+
+自定义安装目录：
+
+```bash
 INSTALL_DIR=~/.local/bin curl -fsSL https://raw.githubusercontent.com/Agions/synerix/main/install.sh | bash
 ```
 
