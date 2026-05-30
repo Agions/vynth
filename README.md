@@ -1,44 +1,44 @@
 # Syncode
 
-> AI Pair Programming Terminal — Sync your code with AI
+> AI 配对编程终端 — 让 AI 与你的代码同步
 
 [![CI](https://gitee.com/Agions/syncode/badges/master/pipeline.svg)](https://gitee.com/Agions/syncode/pipelines)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/Rust-1.75+-orange.svg)](https://www.rust-lang.org)
 
-A high-performance, single-process TUI application that fuses Claude Code's interaction model, Codex CLI's sandbox mechanism, and OpenCode's extensible architecture.
+一款高性能、单进程 TUI 应用，融合了 Claude Code 的交互模型、Codex CLI 的沙箱机制和 OpenCode 的可扩展架构。
 
-## Features
+## 功能特性
 
-| Feature | Description |
-|---------|-------------|
-| **Agentic Loop** | Streaming inference → tool dispatch → multi-turn reasoning |
-| **LLM Integration** | DeepSeek V4, MiMo-v2.5, any OpenAI-compatible API |
-| **5 Built-in Tools** | file_read/write, shell_exec, search (ripgrep), patch |
-| **TUI Interface** | ratatui 5-zone layout with Tokyo Night theme |
-| **Diff Highlighting** | syntect syntax highlighting, unified + side-by-side views |
-| **Vim/Emacs Keybindings** | Full modal Vim + non-modal Emacs profiles |
-| **Mouse Support** | Click-to-focus, scroll wheel, sidebar tab switch |
-| **Skills System** | YAML/MD skill files with auto-matching |
-| **MCP Protocol** | Native client with stdio/HTTP transport |
-| **Sandbox Security** | Command risk classification, atomic writes, approval flow |
-| **Config Hot-Reload** | mtime polling + SIGHUP signal |
-| **Session Persistence** | SQLite (WAL mode) with full CRUD |
+| 功能 | 说明 |
+|------|------|
+| **智能体循环** | 流式推理 → 工具分发 → 多轮推理 |
+| **LLM 集成** | DeepSeek V4、MiMo-v2.5 及任意 OpenAI 兼容 API |
+| **5 个内置工具** | 文件读写、Shell 执行、搜索 (ripgrep)、补丁应用 |
+| **TUI 界面** | ratatui 五区布局，Tokyo Night 主题 |
+| **Diff 高亮** | syntect 语法高亮，统一视图 + 并排视图 |
+| **Vim/Emacs 键位** | 完整 Vim 模式编辑 + Emacs 非模式编辑 |
+| **鼠标支持** | 点击聚焦、滚轮滚动、侧边栏标签切换 |
+| **技能系统** | YAML/MD 技能文件，自动匹配加载 |
+| **MCP 协议** | 原生客户端，支持 stdio/HTTP 传输 |
+| **沙箱安全** | 命令风险分级、原子写入、审批流程 |
+| **配置热重载** | mtime 轮询 + SIGHUP 信号 |
+| **会话持久化** | SQLite (WAL 模式) 完整 CRUD |
 
-## Quick Start
+## 快速开始
 
 ```bash
-# Install from source
+# 从源码安装
 cargo install --path .
 
-# Or build locally
+# 或本地构建
 cargo build --release
 ./target/release/syncode
 ```
 
-## Configuration
+## 配置
 
-Config file: `~/.config/syncode/config.toml`
+配置文件路径：`~/.config/syncode/config.toml`
 
 ```toml
 [llm]
@@ -57,130 +57,130 @@ mode = "confirm"            # auto | confirm | preview_only
 atomic_writes = true
 ```
 
-Environment variable overrides:
-- `SYNCODE_API_KEY` — LLM API key
-- `SYNCODE_BASE_URL` — API base URL
-- `SYNCODE_MODEL` — Model identifier
+环境变量覆盖：
+- `SYNCODE_API_KEY` — LLM API 密钥
+- `SYNCODE_BASE_URL` — API 基础 URL
+- `SYNCODE_MODEL` — 模型标识符
 
-## Keybindings
+## 键位映射
 
-### Vim Profile
+### Vim 模式
 
-| Mode | Key | Action |
-|------|-----|--------|
-| Normal | `i` / `a` / `A` | Enter Insert mode |
-| Normal | `:` / `/` | Command / Search mode |
-| Normal | `j` / `k` | Scroll down / up |
-| Normal | `G` | Scroll to bottom |
-| Normal | `dd` | Clear line |
-| Normal | `yy` / `p` | Yank / Paste |
-| Insert | `Esc` | Back to Normal |
-| Insert | `Ctrl+w` | Delete word |
-| Insert | `Ctrl+k` / `Ctrl+u` | Kill to end / start |
+| 模式 | 按键 | 功能 |
+|------|------|------|
+| 普通 | `i` / `a` / `A` | 进入插入模式 |
+| 普通 | `:` / `/` | 命令模式 / 搜索模式 |
+| 普通 | `j` / `k` | 向下 / 向上滚动 |
+| 普通 | `G` | 滚动到底部 |
+| 普通 | `dd` | 清除当前行 |
+| 普通 | `yy` / `p` | 复制 / 粘贴 |
+| 插入 | `Esc` | 返回普通模式 |
+| 插入 | `Ctrl+w` | 删除单词 |
+| 插入 | `Ctrl+k` / `Ctrl+u` | 删除到行尾 / 行首 |
 
-### Emacs Profile
+### Emacs 模式
 
-| Key | Action |
-|-----|--------|
-| `Ctrl+n` / `Ctrl+p` | Scroll down / up |
-| `Ctrl+f` / `Ctrl+b` | Cursor right / left |
-| `Ctrl+a` / `Ctrl+e` | Home / End |
-| `Ctrl+k` / `Ctrl+y` | Kill / Yank |
+| 按键 | 功能 |
+|------|------|
+| `Ctrl+n` / `Ctrl+p` | 向下 / 向上滚动 |
+| `Ctrl+f` / `Ctrl+b` | 光标右移 / 左移 |
+| `Ctrl+a` / `Ctrl+e` | 跳到行首 / 行尾 |
+| `Ctrl+k` / `Ctrl+y` | 删除 / 粘贴 |
 
-## Architecture
+## 架构
 
 ```
 src/
-├── main.rs           # Entry point + startup instrumentation
-├── app.rs            # App state machine + event dispatch
-├── error.rs          # Unified error types (thiserror)
-├── lib.rs            # Library crate re-exports
-├── telemetry.rs      # Startup metrics
+├── main.rs           # 入口 + 启动计时
+├── app.rs            # 应用状态机 + 事件分发
+├── error.rs          # 统一错误类型 (thiserror)
+├── lib.rs            # 库 crate 导出
+├── telemetry.rs      # 启动指标
 ├── config/
-│   ├── settings.rs   # TOML config + env overrides
-│   ├── keymap.rs     # Vim/Emacs keybinding profiles
-│   └── watcher.rs    # Config hot-reload (mtime + SIGHUP)
+│   ├── settings.rs   # TOML 配置 + 环境变量覆盖
+│   ├── keymap.rs     # Vim/Emacs 键位配置
+│   └── watcher.rs    # 配置热重载 (mtime + SIGHUP)
 ├── tui/
-│   ├── theme.rs      # Tokyo Night dark/light themes
-│   ├── frame.rs      # 5-zone layout rendering
-│   ├── diff_renderer.rs  # syntect diff highlighting
-│   ├── syntax.rs     # Code highlighting engine
-│   ├── event.rs      # crossterm event source
-│   └── widgets/      # 7 composable UI components
+│   ├── theme.rs      # Tokyo Night 亮暗主题
+│   ├── frame.rs      # 五区布局渲染
+│   ├── diff_renderer.rs  # syntect Diff 高亮
+│   ├── syntax.rs     # 代码高亮引擎
+│   ├── event.rs      # crossterm 事件源
+│   └── widgets/      # 7 个可组合 UI 组件
 ├── llm/
-│   ├── adapter.rs    # LLM adapter trait + OpenAI compat
-│   ├── stream.rs     # SSE stream parser
-│   └── types.rs      # Unified LLM types
+│   ├── adapter.rs    # LLM 适配器 trait + OpenAI 兼容
+│   ├── stream.rs     # SSE 流解析器
+│   └── types.rs      # 统一 LLM 类型
 ├── agent/
-│   ├── agloop.rs     # Core agentic loop
-│   ├── context.rs    # Token budget + dynamic trimming
-│   └── prompt.rs     # System prompt builder
+│   ├── agloop.rs     # 核心智能体循环
+│   ├── context.rs    # Token 预算 + 动态裁剪
+│   └── prompt.rs     # 系统提示词构建
 ├── tools/
-│   ├── registry.rs   # Tool registry
-│   └── builtin/      # 5 built-in tools
+│   ├── registry.rs   # 工具注册中心
+│   └── builtin/      # 5 个内置工具
 ├── skills/
-│   ├── registry.rs   # Skill registry
-│   ├── loader.rs     # YAML frontmatter parser
-│   └── builtin/      # Built-in skills
+│   ├── registry.rs   # 技能注册中心
+│   ├── loader.rs     # YAML frontmatter 解析
+│   └── builtin/      # 内置技能
 ├── mcp/
-│   ├── client.rs     # MCP client (stdio)
-│   ├── manager.rs    # Multi-server manager
-│   └── transport.rs  # Transport trait
+│   ├── client.rs     # MCP 客户端 (stdio)
+│   ├── manager.rs    # 多服务器管理器
+│   └── transport.rs  # 传输 trait
 ├── sandbox/
-│   ├── command_preview.rs  # Risk classification
-│   ├── atomic_replace.rs   # Crash-safe writes
-│   └── approval.rs         # Approval flow
+│   ├── command_preview.rs  # 风险分级
+│   ├── atomic_replace.rs   # 崩溃安全写入
+│   └── approval.rs         # 审批流程
 └── session/
-    ├── store.rs      # SQLite persistence
-    └── model.rs      # Session/Message models
+    ├── store.rs      # SQLite 持久化
+    └── model.rs      # 会话/消息模型
 ```
 
-## Tech Stack
+## 技术栈
 
-| Component | Choice | Version |
-|-----------|--------|---------|
-| Language | Rust | 1.75+ |
+| 组件 | 选型 | 版本 |
+|------|------|------|
+| 语言 | Rust | 1.75+ |
 | TUI | ratatui + crossterm | 0.28 |
-| Async | tokio | 1.x |
-| HTTP | reqwest | 0.12 |
-| SQLite | rusqlite (bundled) | 0.31 |
-| Syntax | syntect | 5.x |
-| Error | thiserror | 2.x |
-| Config | toml | 0.8 |
-| Logging | tracing | 0.1 |
+| 异步运行时 | tokio | 1.x |
+| HTTP 客户端 | reqwest | 0.12 |
+| 数据库 | rusqlite (bundled) | 0.31 |
+| 语法高亮 | syntect | 5.x |
+| 错误处理 | thiserror | 2.x |
+| 配置解析 | toml | 0.8 |
+| 日志 | tracing | 0.1 |
 
-## Testing
+## 测试
 
 ```bash
-# Run all tests (115 tests)
+# 运行全部测试 (115 个测试)
 cargo test
 
-# Run specific test suite
-cargo test --test e2e          # End-to-end with mock LLM
-cargo test --test phase2       # Tools + sandbox
-cargo test --test phase3       # Theme + diff + syntax
-cargo test --test phase4       # Keybindings + mouse
+# 运行特定测试套件
+cargo test --test e2e          # 端到端测试 (Mock LLM)
+cargo test --test phase2       # 工具 + 沙箱
+cargo test --test phase3       # 主题 + Diff + 语法高亮
+cargo test --test phase4       # 键位 + 鼠标
 
-# Run with startup benchmark
+# 启动性能基准测试
 cargo run --features startup_bench
 ```
 
-## Development
+## 开发
 
 ```bash
-# Check
+# 类型检查
 cargo check
 
-# Format
+# 格式化
 cargo fmt
 
-# Lint
+# 静态分析
 cargo clippy -- -D warnings -A dead_code
 
-# Build release
+# Release 构建
 cargo build --release
 ```
 
-## License
+## 开源协议
 
 MIT
