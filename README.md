@@ -5,7 +5,7 @@
 [![CI](https://gitee.com/Agions/syncode/badges/master/pipeline.svg)](https://gitee.com/Agions/syncode/pipelines)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/Rust-1.75+-orange.svg)](https://www.rust-lang.org)
-[![Install](https://img.shields.io/badge/install-curl%20%7C%20brew-brightgreen.svg)](#安装)
+[![Install](https://img.shields.io/badge/install-curl%20%7C%20cargo-brightgreen.svg)](#安装)
 
 一款高性能、单进程 TUI 应用，融合了 Claude Code 的交互模型、Codex CLI 的沙箱机制和 OpenCode 的可扩展架构。
 
@@ -42,16 +42,6 @@ curl -fsSL https://gitee.com/Agions/syncode/raw/main/install.sh | bash
 
 ```bash
 INSTALL_DIR=~/.local/bin curl -fsSL https://gitee.com/Agions/syncode/raw/main/install.sh | bash
-```
-
-### Homebrew 安装 (macOS/Linux)
-
-```bash
-# 添加 tap
-brew tap Agions/tap https://gitee.com/Agions/homebrew-tap.git
-
-# 安装
-brew install syncode
 ```
 
 ### Cargo 安装
