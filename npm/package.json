@@ -1,0 +1,46 @@
+{
+  "name": "syncode",
+  "version": "1.2.1",
+  "description": "AI Pair Programming Terminal — sync your code with AI",
+  "license": "MIT",
+  "author": "Agions",
+  "homepage": "https://gitee.com/Agions/syncode",
+  "repository": {
+    "type": "git",
+    "url": "git+https://gitee.com/Agions/syncode.git"
+  },
+  "bugs": {
+    "url": "https://gitee.com/Agions/syncode/issues"
+  },
+  "keywords": [
+    "ai",
+    "pair-programming",
+    "terminal",
+    "tui",
+    "llm",
+    "rust",
+    "coding-agent"
+  ],
+  "bin": {
+    "syncode": "bin/syncode.js"
+  },
+  "files": [
+    "bin/",
+    "postinstall.js",
+    "README.md"
+  ],
+  "scripts": {
+    "postinstall": "node postinstall.js"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "os": [
+    "linux",
+    "darwin"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ]
+}

@@ -7,3 +7,5 @@ Cargo.lock
 .idea/
 .vscode/
 *.bak
+node_modules/
+npm-debug.log*
