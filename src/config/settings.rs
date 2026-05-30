@@ -271,3 +271,230 @@ impl Settings {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_default_settings() {
+        let settings = Settings::defaults();
+        assert_eq!(settings.llm.model, "deepseek-chat");
+        assert_eq!(settings.llm.temperature, 0.7);
+        assert_eq!(settings.ui.theme, "dark");
+        assert_eq!(settings.ui.keymap, "default");
+        assert!(settings.ui.diff_line_numbers);
+        assert_eq!(settings.ui.typing_delay_ms, 10);
+        assert_eq!(settings.sandbox.mode, SandboxMode::Confirm);
+        assert!(settings.sandbox.atomic_writes);
+        assert!(settings.mcp.is_empty());
+        assert!(settings.agents.is_empty());
+    }
+
+    #[test]
+    fn test_parse_toml_config() {
+        let toml = r#"
+[llm]
+provider = "deepseek"
+api_key = "sk-test"
+model = "deepseek-chat"
+context_window = 128000
+max_output_tokens = 8192
+
+[ui]
+theme = "light"
+keymap = "vim"
+
+[sandbox]
+mode = "auto"
+"#;
+        let settings: Settings = toml::from_str(toml).unwrap();
+        assert_eq!(settings.llm.api_key, "sk-test");
+        assert_eq!(settings.llm.model, "deepseek-chat");
+        assert_eq!(settings.ui.theme, "light");
+        assert_eq!(settings.ui.keymap, "vim");
+        assert_eq!(settings.sandbox.mode, SandboxMode::Auto);
+    }
+
+    #[test]
+    fn test_parse_toml_with_mcp() {
+        let toml = r#"
+[llm]
+provider = "deepseek"
+api_key = "sk-test"
+model = "deepseek-chat"
+context_window = 128000
+max_output_tokens = 8192
+
+[sandbox]
+
+[ui]
+
+[[mcp]]
+name = "filesystem"
+transport = { type = "stdio", command = "mcp-fs", args = [] }
+"#;
+        let settings: Settings = toml::from_str(toml).unwrap();
+        assert_eq!(settings.mcp.len(), 1);
+        assert_eq!(settings.mcp[0].name, "filesystem");
+        assert_eq!(settings.mcp[0].timeout_secs, 30); // default
+        assert!(settings.mcp[0].auto_reconnect); // default
+    }
+
+    #[test]
+    fn test_parse_toml_with_agents() {
+        let toml = r#"
+[llm]
+provider = "deepseek"
+api_key = "sk-test"
+model = "deepseek-chat"
+context_window = 128000
+max_output_tokens = 8192
+
+[sandbox]
+
+[ui]
+
+[[agents]]
+name = "reviewer"
+system_prompt = "You are a code reviewer"
+max_turns = 5
+"#;
+        let settings: Settings = toml::from_str(toml).unwrap();
+        assert_eq!(settings.agents.len(), 1);
+        assert_eq!(settings.agents[0].name, "reviewer");
+        assert_eq!(settings.agents[0].max_turns, 5);
+    }
+
+    #[test]
+    fn test_provider_variants() {
+        let toml = r#"
+[llm]
+provider = "mimo"
+api_key = "key"
+model = "mimo-7b"
+context_window = 32000
+max_output_tokens = 4096
+
+[sandbox]
+
+[ui]
+"#;
+        let settings: Settings = toml::from_str(toml).unwrap();
+        assert!(matches!(settings.llm.provider, Provider::MiMo));
+    }
+
+    #[test]
+    fn test_sandbox_mode_variants() {
+        let toml_auto = r#"
+[llm]
+provider = "deepseek"
+api_key = "k"
+model = "m"
+context_window = 1000
+max_output_tokens = 1000
+
+[sandbox]
+mode = "auto"
+
+[ui]
+"#;
+        let s: Settings = toml::from_str(toml_auto).unwrap();
+        assert_eq!(s.sandbox.mode, SandboxMode::Auto);
+
+        let toml_preview = toml_auto.replace("mode = \"auto\"", "mode = \"preview_only\"");
+        let s: Settings = toml::from_str(&toml_preview).unwrap();
+        assert_eq!(s.sandbox.mode, SandboxMode::PreviewOnly);
+    }
+
+    #[test]
+    fn test_mcp_transport_types() {
+        let toml = r#"
+[llm]
+provider = "deepseek"
+api_key = "k"
+model = "m"
+context_window = 1000
+max_output_tokens = 1000
+
+[sandbox]
+
+[ui]
+
+[[mcp]]
+name = "stdio-server"
+transport = { type = "stdio", command = "server", args = ["--port", "3000"] }
+
+[[mcp]]
+name = "http-server"
+transport = { type = "http", url = "http://localhost:8080" }
+"#;
+        let settings: Settings = toml::from_str(toml).unwrap();
+        assert_eq!(settings.mcp.len(), 2);
+        assert!(matches!(
+            settings.mcp[0].transport,
+            McpTransport::Stdio { .. }
+        ));
+        assert!(matches!(
+            settings.mcp[1].transport,
+            McpTransport::Http { .. }
+        ));
+    }
+
+    #[test]
+    fn test_default_temperature() {
+        assert_eq!(default_temperature(), 0.7);
+    }
+
+    #[test]
+    fn test_default_theme() {
+        assert_eq!(default_theme(), "dark");
+    }
+
+    #[test]
+    fn test_default_keymap() {
+        assert_eq!(default_keymap(), "default");
+    }
+
+    #[test]
+    fn test_default_sandbox_mode() {
+        assert_eq!(default_sandbox_mode(), SandboxMode::Confirm);
+    }
+
+    #[test]
+    fn test_default_mcp_timeout() {
+        assert_eq!(default_mcp_timeout(), 30);
+    }
+
+    #[test]
+    fn test_default_agent_turns() {
+        assert_eq!(default_agent_turns(), 10);
+    }
+
+    #[test]
+    fn test_skill_source_config() {
+        let toml = r#"
+[llm]
+provider = "deepseek"
+api_key = "k"
+model = "m"
+context_window = 1000
+max_output_tokens = 1000
+
+[sandbox]
+
+[ui]
+
+[[skill_sources]]
+type = "git"
+location = "https://github.com/example/skills"
+branch = "main"
+include = ["*.yaml"]
+exclude = ["test_*"]
+"#;
+        let settings: Settings = toml::from_str(toml).unwrap();
+        assert_eq!(settings.skill_sources.len(), 1);
+        assert_eq!(settings.skill_sources[0].source_type, "git");
+        assert_eq!(settings.skill_sources[0].branch, Some("main".into()));
+    }
+}
