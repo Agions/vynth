@@ -108,3 +108,166 @@ async fn walk_dir(path: &Path) -> Vec<std::path::PathBuf> {
     }
     result
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::skills::trait_def::{SkillDef, SkillTrigger};
+
+    fn test_skill(name: &str, keywords: Vec<&str>, threshold: f32) -> SkillDef {
+        SkillDef {
+            name: name.into(),
+            description: format!("Test skill {}", name),
+            trigger: SkillTrigger::AutoMatch {
+                keywords: keywords.into_iter().map(String::from).collect(),
+                threshold,
+            },
+            instructions: format!("Instructions for {}", name),
+            required_tools: vec![],
+            required_mcp: vec![],
+            source_path: None,
+        }
+    }
+
+    fn explicit_skill(name: &str) -> SkillDef {
+        SkillDef {
+            name: name.into(),
+            description: format!("Explicit skill {}", name),
+            trigger: SkillTrigger::Explicit,
+            instructions: format!("Instructions for {}", name),
+            required_tools: vec![],
+            required_mcp: vec![],
+            source_path: None,
+        }
+    }
+
+    #[test]
+    fn test_new_registry_is_empty() {
+        let registry = SkillRegistry::new();
+        assert!(registry.list_names().is_empty());
+    }
+
+    #[test]
+    fn test_get_by_name() {
+        let mut registry = SkillRegistry::new();
+        registry
+            .skills
+            .push(test_skill("code_review", vec!["review", "code"], 0.5));
+        registry
+            .skills
+            .push(test_skill("refactor", vec!["refactor", "clean"], 0.5));
+
+        assert!(registry.get("code_review").is_some());
+        assert!(registry.get("refactor").is_some());
+        assert!(registry.get("nonexistent").is_none());
+    }
+
+    #[test]
+    fn test_list_names() {
+        let mut registry = SkillRegistry::new();
+        registry.skills.push(test_skill("a", vec!["x"], 0.5));
+        registry.skills.push(test_skill("b", vec!["y"], 0.5));
+
+        let names = registry.list_names();
+        assert_eq!(names.len(), 2);
+        assert!(names.contains(&"a"));
+        assert!(names.contains(&"b"));
+    }
+
+    #[test]
+    fn test_match_skills_keyword_match() {
+        let mut registry = SkillRegistry::new();
+        registry
+            .skills
+            .push(test_skill("review", vec!["review", "code"], 0.5));
+
+        let matched = registry.match_skills("please review this code");
+        assert_eq!(matched.len(), 1);
+        assert_eq!(matched[0].name, "review");
+    }
+
+    #[test]
+    fn test_match_skills_no_match() {
+        let mut registry = SkillRegistry::new();
+        registry
+            .skills
+            .push(test_skill("review", vec!["review", "code"], 0.5));
+
+        let matched = registry.match_skills("hello world");
+        assert!(matched.is_empty());
+    }
+
+    #[test]
+    fn test_match_skills_threshold() {
+        let mut registry = SkillRegistry::new();
+        // Requires 100% keyword match
+        registry
+            .skills
+            .push(test_skill("strict", vec!["alpha", "beta"], 1.0));
+
+        // Only 50% match
+        let matched = registry.match_skills("alpha");
+        assert!(matched.is_empty());
+
+        // 100% match
+        let matched = registry.match_skills("alpha beta");
+        assert_eq!(matched.len(), 1);
+    }
+
+    #[test]
+    fn test_match_skills_explicit_excluded() {
+        let mut registry = SkillRegistry::new();
+        registry.skills.push(explicit_skill("manual_only"));
+
+        let matched = registry.match_skills("manual_only");
+        assert!(matched.is_empty());
+    }
+
+    #[test]
+    fn test_build_instructions_empty() {
+        let registry = SkillRegistry::new();
+        let instructions = registry.build_instructions(&[]);
+        assert!(instructions.is_empty());
+    }
+
+    #[test]
+    fn test_build_instructions_single() {
+        let mut registry = SkillRegistry::new();
+        registry
+            .skills
+            .push(test_skill("review", vec!["review"], 0.5));
+
+        let matched = registry.match_skills("review");
+        let instructions = registry.build_instructions(&matched);
+        assert!(instructions.contains("Active Skills"));
+        assert!(instructions.contains("review"));
+        assert!(instructions.contains("Instructions for review"));
+    }
+
+    #[test]
+    fn test_build_instructions_multiple() {
+        let mut registry = SkillRegistry::new();
+        registry.skills.push(test_skill("a", vec!["alpha"], 0.5));
+        registry.skills.push(test_skill("b", vec!["beta"], 0.5));
+
+        let matched = registry.match_skills("alpha beta");
+        let instructions = registry.build_instructions(&matched);
+        assert!(instructions.contains("a"));
+        assert!(instructions.contains("b"));
+    }
+
+    #[tokio::test]
+    async fn test_load_from_nonexistent_dir() {
+        let registry = SkillRegistry::load_from_dir(Path::new("/nonexistent/path"))
+            .await
+            .unwrap();
+        assert!(registry.list_names().is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_load_from_empty_dir() {
+        let dir = tempfile::tempdir().unwrap();
+        let registry = SkillRegistry::load_from_dir(dir.path()).await.unwrap();
+        assert!(registry.list_names().is_empty());
+    }
+}
