@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="1200" height="400">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00D4FF;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#7B61FF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FF6B9D;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#00D4FF;stop-opacity:0.15" />
+      <stop offset="100%" style="stop-color:#7B61FF;stop-opacity:0.05" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="400" rx="16" ry="16" fill="#0D1117"/>
+
+  <!-- Grid -->
+  <g opacity="0.04">
+    <line x1="0" y1="50" x2="1200" y2="50" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="100" x2="1200" y2="100" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="150" x2="1200" y2="150" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="200" x2="1200" y2="200" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="250" x2="1200" y2="250" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="300" x2="1200" y2="300" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="350" x2="1200" y2="350" stroke="#fff" stroke-width="1"/>
+    <line x1="100" y1="0" x2="100" y2="400" stroke="#fff" stroke-width="1"/>
+    <line x1="200" y1="0" x2="200" y2="400" stroke="#fff" stroke-width="1"/>
+    <line x1="300" y1="0" x2="300" y2="400" stroke="#fff" stroke-width="1"/>
+    <line x1="400" y1="0" x2="400" y2="400" stroke="#fff" stroke-width="1"/>
+    <line x1="500" y1="0" x2="500" y2="400" stroke="#fff" stroke-width="1"/>
+    <line x1="600" y1="0" x2="600" y2="400" stroke="#fff" stroke-width="1"/>
+    <line x1="700" y1="0" x2="700" y2="400" stroke="#fff" stroke-width="1"/>
+    <line x1="800" y1="0" x2="800" y2="400" stroke="#fff" stroke-width="1"/>
+    <line x1="900" y1="0" x2="900" y2="400" stroke="#fff" stroke-width="1"/>
+    <line x1="1000" y1="0" x2="1000" y2="400" stroke="#fff" stroke-width="1"/>
+    <line x1="1100" y1="0" x2="1100" y2="400" stroke="#fff" stroke-width="1"/>
+  </g>
+
+  <!-- Logo icon (scaled S+X) -->
+  <g transform="translate(80, 80) scale(0.5)">
+    <g filter="url(#glow)">
+      <path d="M160 160 L280 160 L280 200 L200 200 L200 240 L280 240 L280 352 L160 352 L160 312 L240 312 L240 272 L160 272 Z"
+            fill="url(#grad1)" opacity="0.95"/>
+      <path d="M300 160 L340 160 L392 240 L444 160 L484 160 L412 272 L484 384 L444 384 L392 304 L340 384 L300 384 L372 272 Z"
+            fill="url(#grad1)" opacity="0.95"/>
+    </g>
+  </g>
+
+  <!-- Synerix text -->
+  <text x="240" y="195" font-family="'Inter', 'SF Pro Display', -apple-system, sans-serif" font-size="100" font-weight="700" fill="white" letter-spacing="-2">
+    Synerix
+  </text>
+
+  <!-- Tagline -->
+  <text x="244" y="260" font-family="'JetBrains Mono', 'Fira Code', monospace" font-size="22" fill="#8B949E" letter-spacing="2">
+    AI-Native Coding Terminal
+  </text>
+
+  <!-- Version badge -->
+  <rect x="244" y="280" width="80" height="28" rx="14" fill="url(#grad1)" opacity="0.2"/>
+  <text x="264" y="300" font-family="'JetBrains Mono', monospace" font-size="14" fill="#00D4FF">
+    v0.0.1
+  </text>
+
+  <!-- Stats badges -->
+  <g transform="translate(340, 280)">
+    <rect width="60" height="28" rx="14" fill="#21262D"/>
+    <text x="12" y="19" font-family="'JetBrains Mono', monospace" font-size="12" fill="#7B61FF">Rust</text>
+  </g>
+  <g transform="translate(410, 280)">
+    <rect width="80" height="28" rx="14" fill="#21262D"/>
+    <text x="12" y="19" font-family="'JetBrains Mono', monospace" font-size="12" fill="#00D4FF">1149 tests</text>
+  </g>
+  <g transform="translate(500, 280)">
+    <rect width="60" height="28" rx="14" fill="#21262D"/>
+    <text x="12" y="19" font-family="'JetBrains Mono', monospace" font-size="12" fill="#FF6B9D">3.8 MB</text>
+  </g>
+
+  <!-- Terminal prompt -->
+  <g transform="translate(750, 100)" opacity="0.6">
+    <rect width="380" height="200" rx="8" fill="#161B22" stroke="#30363D" stroke-width="1"/>
+    <!-- Title bar -->
+    <rect width="380" height="32" rx="8" fill="#21262D"/>
+    <rect y="24" width="380" height="8" fill="#21262D"/>
+    <circle cx="16" cy="16" r="5" fill="#FF5F56"/>
+    <circle cx="36" cy="16" r="5" fill="#FFBD2E"/>
+    <circle cx="56" cy="16" r="5" fill="#27C93F"/>
+    <text x="160" y="21" font-family="sans-serif" font-size="12" fill="#8B949E" text-anchor="middle">synerix</text>
+
+    <!-- Terminal content -->
+    <text x="16" y="60" font-family="'JetBrains Mono', monospace" font-size="13" fill="#00D4FF">$</text>
+    <text x="30" y="60" font-family="'JetBrains Mono', monospace" font-size="13" fill="#E6EDF3">synerix</text>
+    <text x="16" y="82" font-family="'JetBrains Mono', monospace" font-size="12" fill="#8B949E">Synerix v0.0.1 starting up</text>
+    <text x="16" y="100" font-family="'JetBrains Mono', monospace" font-size="12" fill="#27C93F">✓</text>
+    <text x="30" y="100" font-family="'JetBrains Mono', monospace" font-size="12" fill="#8B949E">Config loaded (0ms)</text>
+    <text x="16" y="118" font-family="'JetBrains Mono', monospace" font-size="12" fill="#27C93F">✓</text>
+    <text x="30" y="118" font-family="'JetBrains Mono', monospace" font-size="12" fill="#8B949E">TUI initialized (2ms)</text>
+    <text x="16" y="136" font-family="'JetBrains Mono', monospace" font-size="12" fill="#27C93F">✓</text>
+    <text x="30" y="136" font-family="'JetBrains Mono', monospace" font-size="12" fill="#8B949E">1149 tests passed</text>
+    <text x="16" y="160" font-family="'JetBrains Mono', monospace" font-size="13" fill="#00D4FF">❯</text>
+    <rect x="28" y="148" width="8" height="16" fill="#00D4FF" opacity="0.8">
+      <animate attributeName="opacity" values="0.8;0;0.8" dur="1s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+
+  <!-- Corner accents -->
+  <path d="M24 16 L16 16 L16 24" stroke="url(#grad1)" stroke-width="2" fill="none" opacity="0.3"/>
+  <path d="M1176 384 L1184 384 L1184 376" stroke="url(#grad1)" stroke-width="2" fill="none" opacity="0.3"/>
+</svg>

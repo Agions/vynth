@@ -1,34 +1,94 @@
-# Synerix
+<p align="center">
+  <img src="assets/banner.svg" alt="Synerix" width="100%">
+</p>
 
-> AI 编码终端 — 让 AI 与你的代码同步
+<p align="center">
+  <strong>AI-Native Coding Terminal</strong> — 让 AI 与你的代码同步
+</p>
 
-[![CI](https://gitee.com/Agions/synerix/badges/master/pipeline.svg)](https://gitee.com/Agions/synerix/pipelines)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Rust](https://img.shields.io/badge/Rust-1.75+-orange.svg)](https://www.rust-lang.org)
-[![Install](https://img.shields.io/badge/install-curl%20%7C%20cargo-brightgreen.svg)](#安装)
+<p align="center">
+  <a href="https://gitee.com/Agions/synerix/actions"><img src="https://gitee.com/Agions/synerix/badges/master/pipeline.svg" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
+  <a href="https://www.rust-lang.org"><img src="https://img.shields.io/badge/Rust-1.75+-orange.svg?logo=rust" alt="Rust"></a>
+  <a href="#安装"><img src="https://img.shields.io/badge/tests-1149-brightgreen.svg" alt="Tests"></a>
+  <a href="#安装"><img src="https://img.shields.io/badge/size-3.8MB-blue.svg" alt="Size"></a>
+  <a href="#安装"><img src="https://img.shields.io/badge/startup-2ms-00D4FF.svg" alt="Startup"></a>
+</p>
 
-一款高性能、单进程 TUI 应用，融合了 Claude Code 的交互模型、Codex CLI 的沙箱机制和 OpenCode 的可扩展架构。
+---
 
-## 功能特性
+**Synerix** 是一款高性能、单进程的 AI 编码终端，融合了 Claude Code 的交互体验、Codex CLI 的沙箱安全机制和 OpenCode 的可扩展架构。用 Rust 编写，启动仅需 2ms，二进制仅 3.8MB。
 
-| 功能 | 说明 |
-|------|------|
-| **多智能体** | Agent Swarm 架构，Coder/Reviewer/Tester/Architect 角色 |
-| **工作流引擎** | YAML 定义多步骤流水线，依赖/分支/变量插值 |
-| **智能体循环** | 流式推理 → 工具分发 → 多轮推理 |
-| **LLM 集成** | DeepSeek V4、MiMo-v2.5 及任意 OpenAI 兼容 API |
-| **5 个内置工具** | 文件读写、Shell 执行、搜索 (ripgrep)、补丁应用 |
-| **TUI 界面** | ratatui 五区布局，Tokyo Night 主题 |
-| **Diff 高亮** | syntect 语法高亮，统一视图 + 并排视图 |
-| **Vim/Emacs 键位** | 完整 Vim 模式编辑 + Emacs 非模式编辑 |
-| **鼠标支持** | 点击聚焦、滚轮滚动、侧边栏标签切换 |
-| **技能系统** | YAML/MD 技能文件，自动匹配加载 |
-| **MCP 协议** | 原生客户端，支持 stdio/HTTP 传输 |
-| **沙箱安全** | 命令风险分级、原子写入、审批流程 |
-| **配置热重载** | mtime 轮询 + SIGHUP 信号 |
-| **会话持久化** | SQLite (WAL 模式) 完整 CRUD |
+<p align="center">
+  <img src="assets/logo.svg" alt="Synerix Logo" width="180">
+</p>
 
-## 安装
+## ✨ 核心特性
+
+<table>
+<tr>
+<td width="50%">
+
+### 🤖 多智能体协作
+- **Agent Swarm** 架构，5 种角色协同
+- Coder / Reviewer / Tester / Architect / Planner
+- 流式推理 → 工具分发 → 多轮推理
+- 并行工具执行，O(1) 累积器
+
+</td>
+<td width="50%">
+
+### 🔧 工作流引擎
+- YAML 定义多步骤 DAG 流水线
+- 依赖解析 + 条件分支 + 变量插值
+- 内置 code-review / refactor / debug 流程
+- 自动重试 + 超时控制
+
+</td>
+</tr>
+<tr>
+<td>
+
+### 🎨 极致 TUI
+- ratatui 五区布局，Tokyo Night 主题
+- 流式打字效果 + 思考动画
+- syntect 语法高亮 Diff 视图
+- Vim / Emacs / 默认键位
+
+</td>
+<td>
+
+### 🔒 安全沙箱
+- 命令风险分级 (安全/中等/危险)
+- 原子文件写入 (崩溃安全)
+- 审批流程 (自动/确认/仅预览)
+- MCP 权限隔离
+
+</td>
+</tr>
+<tr>
+<td>
+
+### 🧩 可扩展架构
+- **Skills** 技能系统 (YAML/MD)
+- **MCP** 协议原生支持 (stdio/HTTP)
+- **Plugins** 插件生命周期管理
+- **Custom Agents** 自定义智能体
+
+</td>
+<td>
+
+### ⚡ 极致性能
+- 启动 **2ms** (目标 <80ms)
+- 二进制 **3.8MB** (目标 ≤15MB)
+- Release: LTO + strip + codegen-units=1
+- Token 预算 + LRU 缓存 + 零拷贝
+
+</td>
+</tr>
+</table>
+
+## 📦 安装
 
 ### curl 一键安装 (推荐)
 
@@ -36,66 +96,44 @@
 curl -fsSL https://gitee.com/Agions/synerix/raw/main/install.sh | bash
 ```
 
-支持 Linux (x86_64/aarch64) 和 macOS (x86_64/arm64)。自动检测平台，下载预编译二进制，若无预编译版本则自动从源码构建。
+支持 Linux (x86_64 / aarch64) 和 macOS (x86_64 / arm64)。
 
-自定义安装目录：
+<details>
+<summary>自定义安装目录</summary>
 
 ```bash
 INSTALL_DIR=~/.local/bin curl -fsSL https://gitee.com/Agions/synerix/raw/main/install.sh | bash
 ```
+</details>
 
-### Cargo 安装
+<details>
+<summary>从源码构建</summary>
 
 ```bash
-# 从源码安装
-cargo install --path .
-
-# 或本地构建
+git clone https://gitee.com/Agions/synerix.git
+cd synerix
 cargo build --release
-./target/release/synerix
+# 二进制位于 target/release/synerix
 ```
+</details>
 
-## 卸载
-
-### curl 一键卸载
+### 卸载
 
 ```bash
-# 卸载二进制（保留配置）
+# 一键卸载（保留配置）
 curl -fsSL https://gitee.com/Agions/synerix/raw/main/uninstall.sh | bash
 
 # 完全卸载（包括配置和数据）
 curl -fsSL https://gitee.com/Agions/synerix/raw/main/uninstall.sh | bash -s -- --all
-
-# 仅删除配置
-curl -fsSL https://gitee.com/Agions/synerix/raw/main/uninstall.sh | bash -s -- --config-only
 ```
 
-### Cargo 卸载
+## 🚀 快速开始
+
+### 1. 配置 LLM
 
 ```bash
-cargo uninstall synerix
-```
-
-### 手动清理
-
-```bash
-# 删除二进制
-rm -f /usr/local/bin/synerix
-rm -f ~/.local/bin/synerix
-
-# 删除配置目录
-rm -rf ~/.config/synerix/
-
-# 删除缓存和数据
-rm -rf ~/.cache/synerix/
-rm -rf ~/.local/share/synerix/
-```
-
-## 配置
-
-配置文件路径：`~/.config/synerix/config.toml`
-
-```toml
+mkdir -p ~/.config/synerix
+cat > ~/.config/synerix/config.toml << 'EOF'
 [llm]
 provider = "deepseek"       # deepseek | mimo | custom
 api_key = "your-api-key"
@@ -110,16 +148,116 @@ keymap = "default"          # vim | emacs | default
 [sandbox]
 mode = "confirm"            # auto | confirm | preview_only
 atomic_writes = true
+EOF
 ```
 
-环境变量覆盖：
-- `SYNERIX_API_KEY` — LLM API 密钥
-- `SYNERIX_BASE_URL` — API 基础 URL
-- `SYNERIX_MODEL` — 模型标识符
+### 2. 启动 Synerix
 
-### MCP 服务器配置
+```bash
+synerix
+```
 
-在 `config.toml` 中配置 MCP 服务器：
+### 3. 开始编码
+
+```
+❯ 请帮我重构这个函数，提升可读性
+```
+
+## ⌨️ 键位映射
+
+<details>
+<summary>Vim 模式</summary>
+
+| 模式 | 按键 | 功能 |
+|------|------|------|
+| 普通 | `i` / `a` / `A` | 进入插入模式 |
+| 普通 | `:` / `/` | 命令模式 / 搜索模式 |
+| 普通 | `j` / `k` | 向下 / 向上滚动 |
+| 普通 | `G` / `gg` | 滚动到底部 / 顶部 |
+| 普通 | `dd` / `yy` / `p` | 清除行 / 复制 / 粘贴 |
+| 插入 | `Esc` | 返回普通模式 |
+| 插入 | `Ctrl+w` | 删除单词 |
+| 插入 | `Ctrl+k` / `Ctrl+u` | 删除到行尾 / 行首 |
+</details>
+
+<details>
+<summary>Emacs 模式</summary>
+
+| 按键 | 功能 |
+|------|------|
+| `Ctrl+n` / `Ctrl+p` | 向下 / 向上滚动 |
+| `Ctrl+f` / `Ctrl+b` | 光标右移 / 左移 |
+| `Ctrl+a` / `Ctrl+e` | 跳到行首 / 行尾 |
+| `Ctrl+k` / `Ctrl+y` | 删除 / 粘贴 |
+</details>
+
+## 🤖 多智能体与工作流
+
+### 内置智能体角色
+
+| 角色 | 职责 | 能力 |
+|------|------|------|
+| **Coder** | 编写和修改代码 | 读写文件、执行命令、运行测试 |
+| **Reviewer** | 代码审查 | 只读文件、搜索代码 |
+| **Tester** | 编写和运行测试 | 读写文件、执行命令 |
+| **Architect** | 架构设计 | 只读文件、搜索代码 |
+| **Planner** | 任务分解和规划 | 无工具权限 |
+
+### 内置工作流
+
+| 工作流 | 流程 | 说明 |
+|--------|------|------|
+| **code-review** | Coder → Reviewer → Tester | 自动化代码审查 |
+| **refactor** | Architect → Coder → Reviewer | 结构化重构 |
+| **debug** | Tester → Coder → Tester | 系统化调试 |
+
+### 自定义工作流
+
+```yaml
+name: my-workflow
+description: 自定义工作流
+version: "1.0"
+
+variables:
+  language: Rust
+
+steps:
+  - id: step1
+    agent_role: coder
+    prompt: "用 {{language}} 实现：{{task}}"
+    output_variable: code
+    timeout_secs: 300
+
+  - id: step2
+    agent_role: reviewer
+    prompt: "审查代码：{{code}}"
+    depends_on: [step1]
+    output_variable: feedback
+```
+
+```bash
+synerix --workflow my-workflow.yaml --var task="重构认证模块"
+```
+
+## 🔌 配置
+
+### LLM 提供商
+
+| 提供商 | 模型 | 说明 |
+|--------|------|------|
+| `deepseek` | deepseek-chat | DeepSeek V4 (默认) |
+| `mimo` | mimo-v2.5 | 小米 MiMo |
+| `custom` | 任意 | 任意 OpenAI 兼容 API |
+
+### 环境变量覆盖
+
+| 变量 | 说明 |
+|------|------|
+| `SYNERIX_API_KEY` | LLM API 密钥 |
+| `SYNERIX_BASE_URL` | API 基础 URL |
+| `SYNERIX_MODEL` | 模型标识符 |
+
+### MCP 服务器
 
 ```toml
 # stdio 传输（本地进程）
@@ -144,8 +282,6 @@ timeout_secs = 60
 
 ### 外部技能来源
 
-支持从多个位置加载技能：
-
 ```toml
 # 本地目录
 [[skill_sources]]
@@ -158,18 +294,9 @@ type = "git"
 location = "https://gitee.com/Agions/synerix-skills.git"
 branch = "main"
 include = ["**/*.md"]
-
-# 远程文件
-[[skill_sources]]
-type = "url"
-location = "https://example.com/skills/code-review.md"
 ```
 
 ### 自定义智能体
-
-支持两种方式定义自定义智能体：
-
-**方式一：内联定义（config.toml）**
 
 ```toml
 [[agents]]
@@ -181,155 +308,92 @@ max_turns = 8
 tags = ["security"]
 ```
 
-**方式二：YAML 文件（~/.config/synerix/agents/*.yaml）**
-
-```yaml
-name: performance-analyst
-description: 性能优化专家
-system_prompt: |
-  你是性能优化专家，专注于算法复杂度、
-  内存分配、数据库查询优化...
-tools:
-  - file_read
-  - search
-  - shell_exec
-max_turns: 12
-capabilities:
-  can_write_code: true
-  can_run_tests: true
-tags:
-  - performance
-```
-
-## 多智能体与工作流
-
-### 内置智能体角色
-
-| 角色 | 职责 | 能力 |
-|------|------|------|
-| **Coder** | 编写和修改代码 | 读写文件、执行命令、运行测试 |
-| **Reviewer** | 代码审查 | 只读文件、搜索代码 |
-| **Tester** | 编写和运行测试 | 读写文件、执行命令 |
-| **Architect** | 架构设计 | 只读文件、搜索代码 |
-| **Planner** | 任务分解和规划 | 无工具权限 |
-
-### 内置工作流
-
-| 工作流 | 流程 | 说明 |
-|--------|------|------|
-| **code-review** | Coder → Reviewer → Tester | 自动化代码审查 |
-| **refactor** | Architect → Coder → Reviewer | 结构化重构 |
-| **debug** | Tester → Coder → Tester | 系统化调试 |
-
-### 工作流 YAML 格式
-
-```yaml
-name: my-workflow
-description: 自定义工作流
-version: "1.0"
-
-variables:
-  language: Rust
-
-steps:
-  - id: step1
-    agent_role: coder
-    prompt: "用 {{language}} 实现：{{task}}"
-    output_variable: code
-    timeout_secs: 300
-
-  - id: step2
-    agent_role: reviewer
-    prompt: "审查代码：{{code}}"
-    depends_on: [step1]
-    condition: code
-    output_variable: feedback
-```
-
-### 工作流执行
-
-```bash
-# 使用内置工作流
-synerix --workflow workflows/code-review.yaml --var task="实现用户登录"
-
-# 使用自定义工作流
-synerix --workflow my-workflow.yaml --var task="重构认证模块"
-```
-
-## 键位映射
-
-### Vim 模式
-
-| 模式 | 按键 | 功能 |
-|------|------|------|
-| 普通 | `i` / `a` / `A` | 进入插入模式 |
-| 普通 | `:` / `/` | 命令模式 / 搜索模式 |
-| 普通 | `j` / `k` | 向下 / 向上滚动 |
-| 普通 | `G` | 滚动到底部 |
-| 普通 | `dd` | 清除当前行 |
-| 普通 | `yy` / `p` | 复制 / 粘贴 |
-| 插入 | `Esc` | 返回普通模式 |
-| 插入 | `Ctrl+w` | 删除单词 |
-| 插入 | `Ctrl+k` / `Ctrl+u` | 删除到行尾 / 行首 |
-
-### Emacs 模式
-
-| 按键 | 功能 |
-|------|------|
-| `Ctrl+n` / `Ctrl+p` | 向下 / 向上滚动 |
-| `Ctrl+f` / `Ctrl+b` | 光标右移 / 左移 |
-| `Ctrl+a` / `Ctrl+e` | 跳到行首 / 行尾 |
-| `Ctrl+k` / `Ctrl+y` | 删除 / 粘贴 |
-
-## 架构
+## 🏗️ 架构
 
 ```
 src/
-├── main.rs           # 入口 + 启动计时
-├── app.rs            # 应用状态机 + 事件分发
-├── error.rs          # 统一错误类型 (thiserror)
-├── lib.rs            # 库 crate 导出
-├── telemetry.rs      # 启动指标
-├── config/
-│   ├── settings.rs   # TOML 配置 + 环境变量覆盖
-│   ├── keymap.rs     # Vim/Emacs 键位配置
-│   └── watcher.rs    # 配置热重载 (mtime + SIGHUP)
-├── tui/
-│   ├── theme.rs      # Tokyo Night 亮暗主题
-│   ├── frame.rs      # 五区布局渲染
-│   ├── diff_renderer.rs  # syntect Diff 高亮
-│   ├── syntax.rs     # 代码高亮引擎
-│   ├── event.rs      # crossterm 事件源
-│   └── widgets/      # 7 个可组合 UI 组件
-├── llm/
-│   ├── adapter.rs    # LLM 适配器 trait + OpenAI 兼容
-│   ├── stream.rs     # SSE 流解析器
-│   └── types.rs      # 统一 LLM 类型
-├── agent/
-│   ├── agloop.rs     # 核心智能体循环
-│   ├── context.rs    # Token 预算 + 动态裁剪
-│   └── prompt.rs     # 系统提示词构建
-├── tools/
-│   ├── registry.rs   # 工具注册中心
-│   └── builtin/      # 5 个内置工具
-├── skills/
-│   ├── registry.rs   # 技能注册中心
-│   ├── loader.rs     # YAML frontmatter 解析
-│   └── builtin/      # 内置技能
-├── mcp/
-│   ├── client.rs     # MCP 客户端 (stdio)
-│   ├── manager.rs    # 多服务器管理器
-│   └── transport.rs  # 传输 trait
-├── sandbox/
+├── main.rs                 # 入口 + 启动计时
+├── app.rs                  # 应用状态机 + 事件分发
+├── error.rs                # 统一错误类型 (thiserror)
+├── config/                 # 配置层
+│   ├── settings/           # TOML 配置 + 环境变量覆盖
+│   ├── keymap/             # Vim/Emacs 键位配置
+│   └── watcher.rs          # 配置热重载 (mtime + SIGHUP)
+├── tui/                    # TUI 渲染层
+│   ├── theme.rs            # Tokyo Night 亮暗主题
+│   ├── frame.rs            # 五区布局渲染
+│   ├── diff_renderer.rs    # syntect Diff 高亮
+│   ├── syntax.rs           # 代码高亮引擎
+│   └── widgets/            # 7 个可组合 UI 组件
+├── llm/                    # LLM 适配层
+│   ├── adapter.rs          # LLM 适配器 trait
+│   ├── stream.rs           # SSE 流解析器
+│   └── types.rs            # 统一 LLM 类型
+├── agent/                  # 智能体层
+│   ├── agloop.rs           # 核心智能体循环
+│   ├── context.rs          # Token 预算 + 动态裁剪
+│   ├── prompt.rs           # 系统提示词构建
+│   └── multi/              # 多智能体协作
+├── tools/                  # 工具层
+│   ├── registry.rs         # 工具注册中心
+│   └── builtin/            # 5 个内置工具
+├── skills/                 # 技能层
+│   ├── registry.rs         # 技能注册中心
+│   ├── loader.rs           # YAML frontmatter 解析
+│   └── builtin/            # 内置技能
+├── mcp/                    # MCP 协议层
+│   ├── client.rs           # MCP 客户端
+│   ├── manager.rs          # 多服务器管理器
+│   └── transport.rs        # 传输 trait
+├── sandbox/                # 安全沙箱
 │   ├── command_preview.rs  # 风险分级
 │   ├── atomic_replace.rs   # 崩溃安全写入
 │   └── approval.rs         # 审批流程
-└── session/
-    ├── store.rs      # SQLite 持久化
-    └── model.rs      # 会话/消息模型
+├── workflow/               # 工作流引擎
+│   ├── definition.rs       # YAML 工作流定义
+│   ├── runner/             # 执行器
+│   └── builtin.rs          # 内置工作流
+└── session/                # 会话持久化
+    ├── store.rs            # SQLite 持久化
+    └── model.rs            # 会话/消息模型
 ```
 
-## 技术栈
+## 🧪 测试
+
+```bash
+# 运行全部测试 (1149 个测试)
+cargo test
+
+# 运行特定测试套件
+cargo test --lib                    # 单元测试
+cargo test --test e2e               # 端到端测试
+cargo test --test phase2            # 工具 + 沙箱
+cargo test --test phase3            # 主题 + Diff + 语法高亮
+cargo test --test phase4            # 键位 + 鼠标
+cargo test --test full_pipeline     # 完整流水线测试
+cargo test --test workflow_integration  # 工作流集成测试
+
+# 启动性能基准
+cargo run --features startup_bench
+```
+
+## 🛠️ 开发
+
+```bash
+# 类型检查
+cargo check
+
+# 格式化
+cargo fmt
+
+# 静态分析
+cargo clippy -- -D warnings -A dead_code
+
+# Release 构建 (LTO + strip)
+cargo build --release
+```
+
+## 📊 技术栈
 
 | 组件 | 选型 | 版本 |
 |------|------|------|
@@ -343,38 +407,44 @@ src/
 | 配置解析 | toml | 0.8 |
 | 日志 | tracing | 0.1 |
 
-## 测试
+## 📈 性能指标
 
-```bash
-# 运行全部测试 (115 个测试)
-cargo test
+| 指标 | 目标 | 实际 | 状态 |
+|------|------|------|------|
+| 启动速度 | <80ms | **2ms** | ✅ |
+| 二进制大小 | ≤15MB | **3.8MB** | ✅ |
+| 测试数量 | - | **1149** | ✅ |
+| 生产 unwrap | 0 | **0** | ✅ |
+| unsafe 代码 | 0 | **0** | ✅ |
+| 编译警告 | 0 | **0** | ✅ |
 
-# 运行特定测试套件
-cargo test --test e2e          # 端到端测试 (Mock LLM)
-cargo test --test phase2       # 工具 + 沙箱
-cargo test --test phase3       # 主题 + Diff + 语法高亮
-cargo test --test phase4       # 键位 + 鼠标
+## 🤝 贡献
 
-# 启动性能基准测试
-cargo run --features startup_bench
-```
+欢迎贡献！请遵循以下步骤：
 
-## 开发
+1. Fork 本仓库
+2. 创建功能分支 (`git checkout -b feature/amazing-feature`)
+3. 提交更改 (`git commit -m 'feat: add amazing feature'`)
+4. 推送到分支 (`git push origin feature/amazing-feature`)
+5. 创建 Pull Request
 
-```bash
-# 类型检查
-cargo check
+### 提交规范
 
-# 格式化
-cargo fmt
+- `feat:` 新功能
+- `fix:` Bug 修复
+- `docs:` 文档更新
+- `style:` 代码格式调整
+- `refactor:` 代码重构
+- `test:` 测试相关
+- `chore:` 构建/工具相关
 
-# 静态分析
-cargo clippy -- -D warnings -A dead_code
+## 📄 开源协议
 
-# Release 构建
-cargo build --release
-```
+本项目采用 [MIT License](LICENSE) 开源。
 
-## 开源协议
+---
 
-MIT
+<p align="center">
+  <strong>Synerix</strong> — AI-Native Coding Terminal<br>
+  <sub>用 Rust 编写，为速度而生</sub>
+</p>
