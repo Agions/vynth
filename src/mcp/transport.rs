@@ -36,8 +36,12 @@ impl StdioTransport {
             .spawn()
             .map_err(|e| AppError::McpTransport(format!("Failed to spawn MCP server: {}", e)))?;
 
-        let stdin = child.stdin.take().unwrap();
-        let stdout = child.stdout.take().unwrap();
+        let stdin = child.stdin.take().ok_or_else(|| {
+            AppError::McpTransport("Failed to get stdin handle from MCP server process".to_string())
+        })?;
+        let stdout = child.stdout.take().ok_or_else(|| {
+            AppError::McpTransport("Failed to get stdout handle from MCP server process".to_string())
+        })?;
 
         let (stdin_tx, mut stdin_rx) = tokio::sync::mpsc::channel::<String>(32);
         let (resp_tx, resp_rx) = tokio::sync::mpsc::channel::<JsonRpcResponse>(32);

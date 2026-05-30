@@ -5,8 +5,8 @@ use std::path::Path;
 use std::sync::{Arc, Mutex};
 
 use crate::error::AppError;
-use crate::session::model::{Session, StoredMessage, StoredRole};
 use crate::session::migration::run_migrations;
+use crate::session::model::{Session, StoredMessage, StoredRole};
 
 /// SQLite-backed session store
 pub struct SessionStore {
@@ -45,14 +45,20 @@ impl SessionStore {
     }
 
     fn run_migrations(&self) -> Result<(), AppError> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::MutexPoisoned(e.to_string()))?;
         run_migrations(&conn)?;
         Ok(())
     }
 
     /// Create a new session
     pub fn create_session(&self, session: &Session) -> Result<(), AppError> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::MutexPoisoned(e.to_string()))?;
         conn.execute(
             "INSERT INTO sessions (id, title, created_at, updated_at, model, total_tokens, message_count)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
@@ -71,7 +77,10 @@ impl SessionStore {
 
     /// List all sessions (most recent first)
     pub fn list_sessions(&self) -> Result<Vec<Session>, AppError> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::MutexPoisoned(e.to_string()))?;
         let mut stmt = conn.prepare(
             "SELECT id, title, created_at, updated_at, model, total_tokens, message_count
              FROM sessions ORDER BY updated_at DESC",
@@ -100,7 +109,10 @@ impl SessionStore {
 
     /// Save a message to a session
     pub fn save_message(&self, message: &StoredMessage) -> Result<(), AppError> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::MutexPoisoned(e.to_string()))?;
 
         let role_str = match message.role {
             StoredRole::System => "system",
@@ -141,7 +153,10 @@ impl SessionStore {
 
     /// Load all messages for a session
     pub fn load_messages(&self, session_id: &str) -> Result<Vec<StoredMessage>, AppError> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::MutexPoisoned(e.to_string()))?;
         let mut stmt = conn.prepare(
             "SELECT id, session_id, role, content, tool_calls, timestamp, tokens_used
              FROM messages WHERE session_id = ?1 ORDER BY timestamp ASC",

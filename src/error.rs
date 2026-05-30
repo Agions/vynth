@@ -59,6 +59,9 @@ pub enum AppError {
     #[error("Stream closed unexpectedly")]
     StreamClosed,
 
+    #[error("Mutex poisoned: {0}")]
+    MutexPoisoned(String),
+
     #[error("Token budget exceeded: used={used}, limit={limit}")]
     TokenBudgetExceeded { used: usize, limit: usize },
 
