@@ -353,10 +353,16 @@ fn test_session_message_roles() {
 
     // Save messages with different roles
     store
-        .save_message(&synerix::session::StoredMessage::user(&session.id, "user msg"))
+        .save_message(&synerix::session::StoredMessage::user(
+            &session.id,
+            "user msg",
+        ))
         .unwrap();
     store
-        .save_message(&synerix::session::StoredMessage::assistant(&session.id, "asst msg"))
+        .save_message(&synerix::session::StoredMessage::assistant(
+            &session.id,
+            "asst msg",
+        ))
         .unwrap();
 
     let messages = store.load_messages(&session.id).unwrap();
@@ -381,10 +387,7 @@ fn test_session_message_ordering() {
     let msgs = vec!["first", "second", "third", "fourth"];
     for content in &msgs {
         store
-            .save_message(&synerix::session::StoredMessage::user(
-                &session.id,
-                content,
-            ))
+            .save_message(&synerix::session::StoredMessage::user(&session.id, content))
             .unwrap();
     }
 
@@ -803,9 +806,7 @@ steps:
     assert!(!runner.evaluate_condition("missing_var"));
 
     // Set variable
-    runner
-        .variables
-        .insert("status".into(), "ready".into());
+    runner.variables.insert("status".into(), "ready".into());
     assert!(runner.evaluate_condition("status"));
     assert!(!runner.evaluate_condition("!status"));
     assert!(runner.evaluate_condition("status != 'error'"));
@@ -890,10 +891,9 @@ Say hello nicely.
 "#;
     std::fs::write(dir.path().join("hello.md"), skill_content).unwrap();
 
-    let skill_registry =
-        synerix::skills::SkillRegistry::load_from_dir(dir.path())
-            .await
-            .unwrap();
+    let skill_registry = synerix::skills::SkillRegistry::load_from_dir(dir.path())
+        .await
+        .unwrap();
     assert_eq!(skill_registry.list_names().len(), 1);
 
     // Step 2: Create session store
