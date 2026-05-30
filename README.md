@@ -1,68 +1,80 @@
 <p align="center">
-  <img src="assets/banner.svg" alt="Synerix" width="100%">
+  <img src="assets/banner.svg" alt="Synerix — AI-Native Coding Terminal" width="100%">
 </p>
 
 <p align="center">
-  <strong>AI-Native Coding Terminal</strong> — 让 AI 与你的代码同步
+  <strong>⚡ Synerix</strong> — 用 Rust 编写的高性能 AI 编码终端
 </p>
 
 <p align="center">
-  <a href="https://gitee.com/Agions/synerix/actions"><img src="https://gitee.com/Agions/synerix/badges/master/pipeline.svg" alt="CI"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
-  <a href="https://www.rust-lang.org"><img src="https://img.shields.io/badge/Rust-1.75+-orange.svg?logo=rust" alt="Rust"></a>
-  <a href="#安装"><img src="https://img.shields.io/badge/tests-1149-brightgreen.svg" alt="Tests"></a>
-  <a href="#安装"><img src="https://img.shields.io/badge/size-3.8MB-blue.svg" alt="Size"></a>
-  <a href="#安装"><img src="https://img.shields.io/badge/startup-2ms-00D4FF.svg" alt="Startup"></a>
+  <a href="https://github.com/Agions/synerix/actions/workflows/ci.yml"><img src="https://github.com/Agions/synerix/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-00D4FF.svg" alt="License: MIT"></a>
+  <a href="https://www.rust-lang.org"><img src="https://img.shields.io/badge/Rust-1.75+-FF6B3D.svg?logo=rust&logoColor=white" alt="Rust"></a>
+  <img src="https://img.shields.io/badge/tests-1149-00FF88.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/binary-3.8_MB-7B61FF.svg" alt="Size">
+  <img src="https://img.shields.io/badge/startup-2ms-FF6B9D.svg" alt="Startup">
+</p>
+
+<p align="center">
+  融合 <a href="https://docs.anthropic.com/en/docs/agents-and-tools/claude-code">Claude Code</a> 的交互体验、
+  <a href="https://github.com/openai/codex">Codex CLI</a> 的沙箱安全、
+  <a href="https://github.com/opencode-ai/opencode">OpenCode</a> 的可扩展架构<br>
+  多智能体协作 · MCP 协议 · 工作流引擎 · 安全沙箱 · 流式推理
 </p>
 
 ---
 
-**Synerix** 是一款高性能、单进程的 AI 编码终端，融合了 Claude Code 的交互体验、Codex CLI 的沙箱安全机制和 OpenCode 的可扩展架构。用 Rust 编写，启动仅需 2ms，二进制仅 3.8MB。
-
-<p align="center">
-  <img src="assets/logo.svg" alt="Synerix Logo" width="180">
-</p>
-
-## ✨ 核心特性
+## ✨ 特性一览
 
 <table>
 <tr>
 <td width="50%">
 
 ### 🤖 多智能体协作
-- **Agent Swarm** 架构，5 种角色协同
-- Coder / Reviewer / Tester / Architect / Planner
-- 流式推理 → 工具分发 → 多轮推理
-- 并行工具执行，O(1) 累积器
+Agent Swarm 架构，5 种角色协同工作：
+- **Coder** — 编写和修改代码
+- **Reviewer** — 代码审查
+- **Tester** — 编写和运行测试
+- **Architect** — 架构设计
+- **Planner** — 任务分解
+
+流式推理 → 工具分发 → 并行执行 → 多轮推理
 
 </td>
 <td width="50%">
 
 ### 🔧 工作流引擎
-- YAML 定义多步骤 DAG 流水线
-- 依赖解析 + 条件分支 + 变量插值
-- 内置 code-review / refactor / debug 流程
-- 自动重试 + 超时控制
+YAML 定义多步骤 DAG 流水线：
+- 依赖解析 + 条件分支
+- 变量插值 + 自动重试
+- 内置 code-review / refactor / debug
+- 自定义工作流一键执行
+
+```bash
+synerix --workflow workflows/code-review.yaml
+```
 
 </td>
 </tr>
 <tr>
 <td>
 
-### 🎨 极致 TUI
-- ratatui 五区布局，Tokyo Night 主题
+### 🎨 极致 TUI 体验
+ratatui 五区布局，Tokyo Night 暗色主题：
 - 流式打字效果 + 思考动画
 - syntect 语法高亮 Diff 视图
-- Vim / Emacs / 默认键位
+- **Vim** / **Emacs** / 默认键位
+- 完整鼠标支持
 
 </td>
 <td>
 
 ### 🔒 安全沙箱
-- 命令风险分级 (安全/中等/危险)
-- 原子文件写入 (崩溃安全)
-- 审批流程 (自动/确认/仅预览)
-- MCP 权限隔离
+多层安全机制保护你的代码：
+- 命令风险分级（安全/中等/危险）
+- 原子文件写入（崩溃安全）
+- 审批流程（自动/确认/仅预览）
+- MCP 工具权限隔离
 
 </td>
 </tr>
@@ -70,18 +82,20 @@
 <td>
 
 ### 🧩 可扩展架构
-- **Skills** 技能系统 (YAML/MD)
-- **MCP** 协议原生支持 (stdio/HTTP)
-- **Plugins** 插件生命周期管理
-- **Custom Agents** 自定义智能体
+插件化设计，按需扩展：
+- **Skills** — YAML/MD 技能文件自动匹配
+- **MCP** — 原生支持 stdio/HTTP 传输
+- **Plugins** — 完整生命周期管理
+- **Custom Agents** — TOML/YAML 自定义智能体
 
 </td>
 <td>
 
 ### ⚡ 极致性能
-- 启动 **2ms** (目标 <80ms)
-- 二进制 **3.8MB** (目标 ≤15MB)
-- Release: LTO + strip + codegen-units=1
+Rust 零成本抽象，为速度而生：
+- 启动 **2ms**（目标 <80ms）
+- 二进制 **3.8MB**（目标 ≤15MB）
+- LTO + strip + codegen-units=1
 - Token 预算 + LRU 缓存 + 零拷贝
 
 </td>
@@ -90,34 +104,27 @@
 
 ## 📦 安装
 
-### curl 一键安装 (推荐)
-
 ```bash
+# curl 一键安装（推荐）
 curl -fsSL https://gitee.com/Agions/synerix/raw/main/install.sh | bash
-```
 
-支持 Linux (x86_64 / aarch64) 和 macOS (x86_64 / arm64)。
-
-<details>
-<summary>自定义安装目录</summary>
-
-```bash
+# 自定义安装目录
 INSTALL_DIR=~/.local/bin curl -fsSL https://gitee.com/Agions/synerix/raw/main/install.sh | bash
 ```
-</details>
 
 <details>
 <summary>从源码构建</summary>
 
 ```bash
-git clone https://gitee.com/Agions/synerix.git
+git clone https://github.com/Agions/synerix.git
 cd synerix
 cargo build --release
 # 二进制位于 target/release/synerix
 ```
 </details>
 
-### 卸载
+<details>
+<summary>卸载</summary>
 
 ```bash
 # 一键卸载（保留配置）
@@ -126,6 +133,7 @@ curl -fsSL https://gitee.com/Agions/synerix/raw/main/uninstall.sh | bash
 # 完全卸载（包括配置和数据）
 curl -fsSL https://gitee.com/Agions/synerix/raw/main/uninstall.sh | bash -s -- --all
 ```
+</details>
 
 ## 🚀 快速开始
 
@@ -151,7 +159,7 @@ atomic_writes = true
 EOF
 ```
 
-### 2. 启动 Synerix
+### 2. 启动
 
 ```bash
 synerix
@@ -169,7 +177,7 @@ synerix
 <summary>Vim 模式</summary>
 
 | 模式 | 按键 | 功能 |
-|------|------|------|
+|:---:|------|------|
 | 普通 | `i` / `a` / `A` | 进入插入模式 |
 | 普通 | `:` / `/` | 命令模式 / 搜索模式 |
 | 普通 | `j` / `k` | 向下 / 向上滚动 |
@@ -235,17 +243,13 @@ steps:
     output_variable: feedback
 ```
 
-```bash
-synerix --workflow my-workflow.yaml --var task="重构认证模块"
-```
-
 ## 🔌 配置
 
 ### LLM 提供商
 
 | 提供商 | 模型 | 说明 |
 |--------|------|------|
-| `deepseek` | deepseek-chat | DeepSeek V4 (默认) |
+| `deepseek` | deepseek-chat | DeepSeek V4（默认） |
 | `mimo` | mimo-v2.5 | 小米 MiMo |
 | `custom` | 任意 | 任意 OpenAI 兼容 API |
 
@@ -361,7 +365,7 @@ src/
 ## 🧪 测试
 
 ```bash
-# 运行全部测试 (1149 个测试)
+# 运行全部测试（1149 个测试）
 cargo test
 
 # 运行特定测试套件
@@ -389,7 +393,7 @@ cargo fmt
 # 静态分析
 cargo clippy -- -D warnings -A dead_code
 
-# Release 构建 (LTO + strip)
+# Release 构建（LTO + strip）
 cargo build --release
 ```
 
@@ -410,10 +414,10 @@ cargo build --release
 ## 📈 性能指标
 
 | 指标 | 目标 | 实际 | 状态 |
-|------|------|------|------|
+|------|------|------|:----:|
 | 启动速度 | <80ms | **2ms** | ✅ |
 | 二进制大小 | ≤15MB | **3.8MB** | ✅ |
-| 测试数量 | - | **1149** | ✅ |
+| 测试数量 | — | **1149** | ✅ |
 | 生产 unwrap | 0 | **0** | ✅ |
 | unsafe 代码 | 0 | **0** | ✅ |
 | 编译警告 | 0 | **0** | ✅ |
@@ -430,13 +434,14 @@ cargo build --release
 
 ### 提交规范
 
-- `feat:` 新功能
-- `fix:` Bug 修复
-- `docs:` 文档更新
-- `style:` 代码格式调整
-- `refactor:` 代码重构
-- `test:` 测试相关
-- `chore:` 构建/工具相关
+| 前缀 | 说明 |
+|------|------|
+| `feat:` | 新功能 |
+| `fix:` | Bug 修复 |
+| `docs:` | 文档更新 |
+| `refactor:` | 代码重构 |
+| `test:` | 测试相关 |
+| `chore:` | 构建/工具相关 |
 
 ## 📄 开源协议
 
@@ -445,6 +450,7 @@ cargo build --release
 ---
 
 <p align="center">
+  <img src="assets/logo.svg" alt="Synerix" width="120"><br><br>
   <strong>Synerix</strong> — AI-Native Coding Terminal<br>
   <sub>用 Rust 编写，为速度而生</sub>
 </p>

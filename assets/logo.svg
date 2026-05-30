@@ -1,72 +1,94 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#00D4FF;stop-opacity:1" />
-      <stop offset="50%" style="stop-color:#7B61FF;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#FF6B9D;stop-opacity:1" />
+    <!-- Main gradient: cyan → violet → pink -->
+    <linearGradient id="grad-main" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00D4FF"/>
+      <stop offset="50%" style="stop-color:#7B61FF"/>
+      <stop offset="100%" style="stop-color:#FF6B9D"/>
     </linearGradient>
-    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#00D4FF;stop-opacity:0.3" />
-      <stop offset="100%" style="stop-color:#7B61FF;stop-opacity:0.1" />
+    <!-- Subtle glow -->
+    <linearGradient id="grad-glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00D4FF;stop-opacity:0.25"/>
+      <stop offset="100%" style="stop-color:#7B61FF;stop-opacity:0.08"/>
     </linearGradient>
-    <filter id="glow">
-      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-      <feMerge>
-        <feMergeNode in="coloredBlur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
+    <!-- Terminal green accent -->
+    <linearGradient id="grad-green" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#00FF88"/>
+      <stop offset="100%" style="stop-color:#00CC6A"/>
+    </linearGradient>
+    <filter id="glow-soft">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
-    <clipPath id="rounded">
-      <rect width="512" height="512" rx="96" ry="96"/>
+    <filter id="glow-strong">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="rounded-rect">
+      <rect width="512" height="512" rx="108" ry="108"/>
     </clipPath>
   </defs>
 
   <!-- Background -->
-  <rect width="512" height="512" rx="96" ry="96" fill="#0D1117"/>
+  <rect width="512" height="512" rx="108" ry="108" fill="#0D1117"/>
 
-  <!-- Subtle grid pattern -->
-  <g opacity="0.06" clip-path="url(#rounded)">
-    <line x1="0" y1="64" x2="512" y2="64" stroke="#fff" stroke-width="1"/>
-    <line x1="0" y1="128" x2="512" y2="128" stroke="#fff" stroke-width="1"/>
-    <line x1="0" y1="192" x2="512" y2="192" stroke="#fff" stroke-width="1"/>
-    <line x1="0" y1="256" x2="512" y2="256" stroke="#fff" stroke-width="1"/>
-    <line x1="0" y1="320" x2="512" y2="320" stroke="#fff" stroke-width="1"/>
-    <line x1="0" y1="384" x2="512" y2="384" stroke="#fff" stroke-width="1"/>
-    <line x1="0" y1="448" x2="512" y2="448" stroke="#fff" stroke-width="1"/>
-    <line x1="64" y1="0" x2="64" y2="512" stroke="#fff" stroke-width="1"/>
-    <line x1="128" y1="0" x2="128" y2="512" stroke="#fff" stroke-width="1"/>
-    <line x1="192" y1="0" x2="192" y2="512" stroke="#fff" stroke-width="1"/>
-    <line x1="256" y1="0" x2="256" y2="512" stroke="#fff" stroke-width="1"/>
-    <line x1="320" y1="0" x2="320" y2="512" stroke="#fff" stroke-width="1"/>
-    <line x1="384" y1="0" x2="384" y2="512" stroke="#fff" stroke-width="1"/>
-    <line x1="448" y1="0" x2="448" y2="512" stroke="#fff" stroke-width="1"/>
+  <!-- Subtle circuit-board grid -->
+  <g opacity="0.05" clip-path="url(#rounded-rect)">
+    <line x1="0" y1="85" x2="512" y2="85" stroke="#fff" stroke-width="0.8"/>
+    <line x1="0" y1="170" x2="512" y2="170" stroke="#fff" stroke-width="0.8"/>
+    <line x1="0" y1="256" x2="512" y2="256" stroke="#fff" stroke-width="0.8"/>
+    <line x1="0" y1="342" x2="512" y2="342" stroke="#fff" stroke-width="0.8"/>
+    <line x1="0" y1="427" x2="512" y2="427" stroke="#fff" stroke-width="0.8"/>
+    <line x1="85" y1="0" x2="85" y2="512" stroke="#fff" stroke-width="0.8"/>
+    <line x1="170" y1="0" x2="170" y2="512" stroke="#fff" stroke-width="0.8"/>
+    <line x1="256" y1="0" x2="256" y2="512" stroke="#fff" stroke-width="0.8"/>
+    <line x1="342" y1="0" x2="342" y2="512" stroke="#fff" stroke-width="0.8"/>
+    <line x1="427" y1="0" x2="427" y2="512" stroke="#fff" stroke-width="0.8"/>
+    <!-- Corner nodes -->
+    <circle cx="85" cy="85" r="3" fill="#fff"/>
+    <circle cx="427" cy="85" r="3" fill="#fff"/>
+    <circle cx="85" cy="427" r="3" fill="#fff"/>
+    <circle cx="427" cy="427" r="3" fill="#fff"/>
   </g>
 
-  <!-- Terminal cursor accent -->
-  <g filter="url(#glow)">
-    <!-- S letterform - geometric/modern -->
-    <path d="M160 160 L280 160 L280 200 L200 200 L200 240 L280 240 L280 352 L160 352 L160 312 L240 312 L240 272 L160 272 Z"
-          fill="url(#grad1)" opacity="0.95"/>
+  <!-- Outer glow ring -->
+  <circle cx="256" cy="240" r="160" fill="none" stroke="url(#grad-main)" stroke-width="1.5" opacity="0.2" filter="url(#glow-strong)"/>
 
-    <!-- X letterform - crossing lines -->
-    <path d="M300 160 L340 160 L392 240 L444 160 L484 160 L412 272 L484 384 L444 384 L392 304 L340 384 L300 384 L372 272 Z"
-          fill="url(#grad1)" opacity="0.95"/>
+  <!-- === Central Symbol: Terminal cursor ">" merged with "S" shape === -->
+  <g transform="translate(256, 230)" filter="url(#glow-soft)">
+    <!-- ">" cursor shape — stylized as a forward arrow / play button -->
+    <path d="M-60,-70 L40,0 L-60,70 Z" fill="url(#grad-main)" opacity="0.9">
+      <!-- Subtle animation hint via static design -->
+    </path>
 
-    <!-- Connecting arc between S and X -->
-    <path d="M284 256 Q292 256 296 256" stroke="url(#grad1)" stroke-width="3" fill="none" opacity="0.6"/>
-  </g>
+    <!-- "S" letterform — woven through the cursor -->
+    <path d="M-20,-80 C40,-80 60,-55 60,-35 C60,-15 40,-5 -10,5 C-40,15 -60,30 -60,50 C-60,70 -40,85 10,85 C50,85 70,65 70,45"
+          fill="none" stroke="url(#grad-main)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
 
-  <!-- Terminal prompt indicator -->
-  <g opacity="0.7">
-    <rect x="80" y="400" width="6" height="24" rx="3" fill="#00D4FF">
-      <animate attributeName="opacity" values="1;0;1" dur="1.2s" repeatCount="indefinite"/>
+    <!-- Blinking cursor line -->
+    <rect x="75" y="-85" width="5" height="60" rx="2.5" fill="url(#grad-green)" opacity="0.9">
+      <animate attributeName="opacity" values="0.9;0.2;0.9" dur="1.2s" repeatCount="indefinite"/>
     </rect>
-    <text x="100" y="422" font-family="'JetBrains Mono', 'Fira Code', monospace" font-size="18" fill="#8B949E">
-      synerix v0.0.1
-    </text>
   </g>
 
-  <!-- Subtle corner accents -->
-  <path d="M96 48 L48 48 L48 96" stroke="url(#grad1)" stroke-width="2" fill="none" opacity="0.4"/>
-  <path d="M416 464 L464 464 L464 416" stroke="url(#grad1)" stroke-width="2" fill="none" opacity="0.4"/>
+  <!-- === Bottom: "SYNERIX" text === -->
+  <text x="256" y="395" text-anchor="middle"
+        font-family="'SF Pro Display','Inter','Segoe UI',system-ui,-apple-system,sans-serif"
+        font-size="52" font-weight="700" letter-spacing="8" fill="white">
+    SYNERIX
+  </text>
+
+  <!-- Tagline -->
+  <text x="256" y="430" text-anchor="middle"
+        font-family="'JetBrains Mono','Fira Code','SF Mono',monospace"
+        font-size="14" letter-spacing="4" fill="#8B949E">
+    AI-NATIVE CODING TERMINAL
+  </text>
+
+  <!-- Version badge -->
+  <rect x="210" y="445" width="92" height="22" rx="11" fill="url(#grad-main)" opacity="0.15"/>
+  <text x="256" y="461" text-anchor="middle"
+        font-family="'JetBrains Mono',monospace" font-size="11" fill="#00D4FF">
+    v0.0.1
+  </text>
 </svg>
