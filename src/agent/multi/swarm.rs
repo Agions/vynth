@@ -194,3 +194,142 @@ impl AgentSwarm {
         Ok(agent.process_message(task))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_swarm() -> AgentSwarm {
+        AgentSwarm::new()
+    }
+
+    fn coder_config() -> AgentConfig {
+        AgentConfig::new(AgentRole::Coder, "coder")
+    }
+
+    fn reviewer_config() -> AgentConfig {
+        AgentConfig::new(AgentRole::Reviewer, "reviewer")
+    }
+
+    #[test]
+    fn test_new_swarm_is_empty() {
+        let swarm = test_swarm();
+        assert!(swarm.agent_ids().is_empty());
+    }
+
+    #[test]
+    fn test_spawn_agent() {
+        let mut swarm = test_swarm();
+        let id = swarm.spawn_agent(coder_config());
+        assert_eq!(id, "agent_0");
+        assert_eq!(swarm.agent_ids().len(), 1);
+    }
+
+    #[test]
+    fn test_spawn_multiple_agents() {
+        let mut swarm = test_swarm();
+        let id1 = swarm.spawn_agent(coder_config());
+        let id2 = swarm.spawn_agent(reviewer_config());
+        assert_eq!(id1, "agent_0");
+        assert_eq!(id2, "agent_1");
+        assert_eq!(swarm.agent_ids().len(), 2);
+    }
+
+    #[test]
+    fn test_agent_status_after_spawn() {
+        let mut swarm = test_swarm();
+        let id = swarm.spawn_agent(coder_config());
+        let status = swarm.agent_status(&id);
+        assert!(status.is_some());
+    }
+
+    #[test]
+    fn test_agent_status_nonexistent() {
+        let swarm = test_swarm();
+        assert!(swarm.agent_status("nonexistent").is_none());
+    }
+
+    #[test]
+    fn test_agent_role() {
+        let mut swarm = test_swarm();
+        let id = swarm.spawn_agent(coder_config());
+        let role = swarm.agent_role(&id);
+        assert!(role.is_some());
+        assert_eq!(role.unwrap(), AgentRole::Coder);
+    }
+
+    #[test]
+    fn test_agent_role_nonexistent() {
+        let swarm = test_swarm();
+        assert!(swarm.agent_role("nonexistent").is_none());
+    }
+
+    #[test]
+    fn test_remove_agent() {
+        let mut swarm = test_swarm();
+        let id = swarm.spawn_agent(coder_config());
+        assert_eq!(swarm.agent_ids().len(), 1);
+
+        let config = swarm.remove_agent(&id);
+        assert!(config.is_some());
+        assert!(swarm.agent_ids().is_empty());
+    }
+
+    #[test]
+    fn test_remove_nonexistent_agent() {
+        let mut swarm = test_swarm();
+        let config = swarm.remove_agent("nonexistent");
+        assert!(config.is_none());
+    }
+
+    #[test]
+    fn test_stop_agent() {
+        let mut swarm = test_swarm();
+        let id = swarm.spawn_agent(coder_config());
+        assert!(swarm.stop_agent(&id).is_ok());
+    }
+
+    #[test]
+    fn test_stop_nonexistent_agent() {
+        let swarm = test_swarm();
+        assert!(swarm.stop_agent("nonexistent").is_err());
+    }
+
+    #[test]
+    fn test_restart_agent() {
+        let mut swarm = test_swarm();
+        let id = swarm.spawn_agent(coder_config());
+        assert!(swarm.restart_agent(&id).is_ok());
+    }
+
+    #[test]
+    fn test_restart_nonexistent_agent() {
+        let swarm = test_swarm();
+        assert!(swarm.restart_agent("nonexistent").is_err());
+    }
+
+    #[tokio::test]
+    async fn test_run_task_not_found() {
+        let mut swarm = test_swarm();
+        let result = swarm.run_task("nonexistent", "hello").await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_run_task_basic() {
+        let mut swarm = test_swarm();
+        let id = swarm.spawn_agent(coder_config());
+        let result = swarm.run_task(&id, "hello").await;
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_set_event_channel() {
+        let mut swarm = test_swarm();
+        let (tx, _rx) = mpsc::unbounded_channel();
+        swarm.set_event_channel(tx);
+        // Spawn should now emit events
+        swarm.spawn_agent(coder_config());
+        // Can't easily check rx in sync test, but no panic = success
+    }
+}
