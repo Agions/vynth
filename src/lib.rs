@@ -17,3 +17,7 @@ pub mod mcp;
 pub mod sandbox;
 pub mod telemetry;
 pub mod workflow;
+pub mod command;
+pub mod project;
+pub mod plugins;
+pub mod git;

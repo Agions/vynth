@@ -67,6 +67,9 @@ bytes = "1"
 default = []
 startup_bench = []
 
+[dev-dependencies]
+tempfile = "3"
+
 [profile.release]
 opt-level = 3
 lto = true
