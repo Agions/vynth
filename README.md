@@ -264,8 +264,8 @@ steps:
 | `custom` | — | 任意 | 任意 OpenAI 兼容 API |
 
 **DeepSeek 模型：**
-- `deepseek-v4-flash` — 快速对话模型（默认，原 deepseek-chat）
-- `deepseek-v4-pro` — 旗舰推理模型（原 deepseek-reasoner）
+- `deepseek-v4-flash` — 快速对话模型（默认）
+- `deepseek-v4-pro` — 旗舰推理模型
 
 **MiMo 模型：**
 - `mimo-v2.5-pro` — 小米 MiMo 旗舰模型
