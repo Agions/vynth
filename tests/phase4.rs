@@ -281,7 +281,7 @@ fn test_source_file_count() {
     use std::process::Command;
     let output = Command::new("find")
         .args([
-            "/home/ubuntu/workspace/syncode/src",
+            "/home/ubuntu/workspace/synerix/src",
             "-name",
             "*.rs",
             "-type",

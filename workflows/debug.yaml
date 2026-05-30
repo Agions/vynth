@@ -1,7 +1,7 @@
 # Debug Workflow
 # 系统化调试：复现 → 修复 → 验证
 #
-# 用法: syncode --workflow workflows/debug.yaml --var task="登录页面崩溃问题"
+# 用法: synerix --workflow workflows/debug.yaml --var task="登录页面崩溃问题"
 
 name: debug
 description: 系统化调试流水线

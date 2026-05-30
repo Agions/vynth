@@ -284,7 +284,7 @@ fn test_project_file_count() {
 
     let output = Command::new("find")
         .args([
-            "/home/ubuntu/workspace/syncode/src",
+            "/home/ubuntu/workspace/synerix/src",
             "-name",
             "*.rs",
             "-type",

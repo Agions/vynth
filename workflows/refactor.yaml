@@ -1,7 +1,7 @@
 # Refactor Workflow
 # 结构化重构：架构设计 → 实现 → 验证
 #
-# 用法: syncode --workflow workflows/refactor.yaml --var task="重构认证模块"
+# 用法: synerix --workflow workflows/refactor.yaml --var task="重构认证模块"
 
 name: refactor
 description: 结构化重构流水线

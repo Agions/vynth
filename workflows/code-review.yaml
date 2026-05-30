@@ -1,7 +1,7 @@
 # Code Review Workflow
 # 自动化代码审查流水线：编码 → 审查 → 测试
 #
-# 用法: syncode --workflow workflows/code-review.yaml --var task="实现用户登录功能"
+# 用法: synerix --workflow workflows/code-review.yaml --var task="实现用户登录功能"
 
 name: code-review
 description: 自动化代码审查流水线

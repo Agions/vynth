@@ -12,7 +12,7 @@ A clear and concise description of what the bug is.
 
 ## Steps to Reproduce
 
-1. Run syncode with '...'
+1. Run synerix with '...'
 2. Type '...'
 3. See error
 

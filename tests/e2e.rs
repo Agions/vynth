@@ -260,7 +260,7 @@ fn test_full_source_stats() {
 
     let output = Command::new("find")
         .args([
-            "/home/ubuntu/workspace/syncode/src",
+            "/home/ubuntu/workspace/synerix/src",
             "-name",
             "*.rs",
             "-type",
@@ -278,7 +278,7 @@ fn test_full_source_stats() {
 
     let output = Command::new("find")
         .args([
-            "/home/ubuntu/workspace/syncode/tests",
+            "/home/ubuntu/workspace/synerix/tests",
             "-name",
             "*.rs",
             "-type",

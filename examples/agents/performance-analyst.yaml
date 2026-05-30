@@ -1,5 +1,5 @@
 # Custom Agent: Performance Analyst
-# Place in ~/.config/syncode/agents/performance-analyst.yaml
+# Place in ~/.config/synerix/agents/performance-analyst.yaml
 
 name: performance-analyst
 description: Performance optimization specialist

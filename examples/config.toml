@@ -50,7 +50,7 @@ location = "~/.config/synerix/skills"
 # Git repository
 [[skill_sources]]
 type = "git"
-location = "https://gitee.com/Agions/syncode-skills.git"
+location = "https://gitee.com/Agions/synerix-skills.git"
 branch = "main"
 include = ["**/*.md"]
 

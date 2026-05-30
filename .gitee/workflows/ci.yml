@@ -107,9 +107,9 @@ jobs:
       - name: Package release
         run: |
           cd target/release
-          tar czf syncode-${{ github.ref_name }}-linux-amd64.tar.gz syncode
+          tar czf synerix-${{ github.ref_name }}-linux-amd64.tar.gz synerix
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
         with:
-          name: syncode-${{ github.ref_name }}-linux-amd64
-          path: target/release/syncode-${{ github.ref_name }}-linux-amd64.tar.gz
+          name: synerix-${{ github.ref_name }}-linux-amd64
+          path: target/release/synerix-${{ github.ref_name }}-linux-amd64.tar.gz
