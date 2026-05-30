@@ -5,8 +5,7 @@
 [![CI](https://gitee.com/Agions/syncode/badges/master/pipeline.svg)](https://gitee.com/Agions/syncode/pipelines)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/Rust-1.75+-orange.svg)](https://www.rust-lang.org)
-[![npm](https://img.shields.io/npm/v/syncode.svg)](https://www.npmjs.com/package/syncode)
-[![Install](https://img.shields.io/badge/install-curl%20%7C%20npm%20%7C%20cargo-brightgreen.svg)](#安装)
+[![Install](https://img.shields.io/badge/install-curl%20%7C%20cargo-brightgreen.svg)](#安装)
 
 一款高性能、单进程 TUI 应用，融合了 Claude Code 的交互模型、Codex CLI 的沙箱机制和 OpenCode 的可扩展架构。
 
@@ -45,18 +44,6 @@ curl -fsSL https://gitee.com/Agions/syncode/raw/main/install.sh | bash
 INSTALL_DIR=~/.local/bin curl -fsSL https://gitee.com/Agions/syncode/raw/main/install.sh | bash
 ```
 
-### npm 安装
-
-```bash
-# 全局安装
-npm install -g syncode
-
-# 或直接运行（无需安装）
-npx syncode
-```
-
-支持 Linux (x86_64/aarch64) 和 macOS (x86_64/arm64)。自动下载预编译二进制。
-
 ### Cargo 安装
 
 ```bash
@@ -81,12 +68,6 @@ curl -fsSL https://gitee.com/Agions/syncode/raw/main/uninstall.sh | bash -s -- -
 
 # 仅删除配置
 curl -fsSL https://gitee.com/Agions/syncode/raw/main/uninstall.sh | bash -s -- --config-only
-```
-
-### npm 卸载
-
-```bash
-npm uninstall -g syncode
 ```
 
 ### Cargo 卸载

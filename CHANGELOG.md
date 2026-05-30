@@ -40,12 +40,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.2.1] - 2026-05-30
 
-### Added
-- npm installation method (`npm install -g syncode` / `npx syncode`)
-- npm package with auto-download postinstall script (Linux/macOS, x86_64/arm64)
-
 ### Removed
 - Homebrew installation method (removed `homebrew/syncode.rb`)
+- npm installation method (removed `npm/` directory)
 
 ## [1.0.0] - 2026-05-30
 
