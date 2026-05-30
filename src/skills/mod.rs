@@ -1,9 +1,11 @@
 //! Skills — YAML/MD skill tree
 
+pub mod builtin;
+pub mod external;
+pub mod loader;
 pub mod registry;
 pub mod trait_def;
-pub mod loader;
-pub mod builtin;
 
+pub use external::{SkillSource, SkillSourceType, load_external_skills};
 pub use registry::SkillRegistry;
 pub use trait_def::{SkillDef, SkillTrigger};

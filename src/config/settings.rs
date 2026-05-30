@@ -1,6 +1,7 @@
 //! Application settings
 
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 use crate::error::AppError;
@@ -19,6 +20,14 @@ pub struct Settings {
     pub mcp: Vec<McpServerConfig>,
     /// Skills directory
     pub skills_dir: Option<PathBuf>,
+    /// External skill sources (git repos, URLs, additional directories)
+    #[serde(default)]
+    pub skill_sources: Vec<SkillSourceConfig>,
+    /// Custom agents directory
+    pub agents_dir: Option<PathBuf>,
+    /// Custom agent definitions (inline in config)
+    #[serde(default)]
+    pub agents: Vec<InlineAgentConfig>,
 }
 
 /// LLM provider configuration
@@ -125,6 +134,21 @@ pub struct McpServerConfig {
     /// Allowed tool name patterns (glob). Empty = allow all.
     #[serde(default)]
     pub allowed_tools: Vec<String>,
+    /// Environment variables for the MCP server process
+    #[serde(default)]
+    pub env: HashMap<String, String>,
+    /// Working directory for the MCP server process
+    pub cwd: Option<PathBuf>,
+    /// Auto-reconnect on disconnect
+    #[serde(default = "default_true")]
+    pub auto_reconnect: bool,
+    /// Connection timeout in seconds
+    #[serde(default = "default_mcp_timeout")]
+    pub timeout_secs: u64,
+}
+
+fn default_mcp_timeout() -> u64 {
+    30
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -132,6 +156,49 @@ pub struct McpServerConfig {
 pub enum McpTransport {
     Stdio { command: String, args: Vec<String> },
     Http { url: String },
+}
+
+/// External skill source configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SkillSourceConfig {
+    /// Source type: local, git, url
+    #[serde(rename = "type")]
+    pub source_type: String,
+    /// Path or URL
+    pub location: String,
+    /// Optional branch for git sources
+    pub branch: Option<String>,
+    /// Include patterns
+    #[serde(default)]
+    pub include: Vec<String>,
+    /// Exclude patterns
+    #[serde(default)]
+    pub exclude: Vec<String>,
+}
+
+/// Inline custom agent definition in config
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InlineAgentConfig {
+    /// Agent name
+    pub name: String,
+    /// Description
+    #[serde(default)]
+    pub description: String,
+    /// System prompt
+    pub system_prompt: String,
+    /// Allowed tools
+    #[serde(default)]
+    pub tools: Vec<String>,
+    /// Max turns
+    #[serde(default = "default_agent_turns")]
+    pub max_turns: usize,
+    /// Tags
+    #[serde(default)]
+    pub tags: Vec<String>,
+}
+
+fn default_agent_turns() -> usize {
+    10
 }
 
 impl Settings {
@@ -183,6 +250,9 @@ impl Settings {
             },
             mcp: Vec::new(),
             skills_dir: None,
+            skill_sources: Vec::new(),
+            agents_dir: None,
+            agents: Vec::new(),
         }
     }
 

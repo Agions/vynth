@@ -1,0 +1,100 @@
+# Syncode Configuration Example
+# ~/.config/syncode/config.toml
+
+[llm]
+provider = "deepseek"       # deepseek | mimo | custom
+api_key = "your-api-key"
+model = "deepseek-chat"
+context_window = 128000
+max_output_tokens = 8192
+temperature = 0.7
+
+[ui]
+theme = "dark"              # dark | light
+keymap = "default"          # vim | emacs | default
+diff_line_numbers = true
+typing_delay_ms = 10
+
+[sandbox]
+mode = "confirm"            # auto | confirm | preview_only
+atomic_writes = true
+
+# ─── MCP Server Configuration ──────────────────────────────────────
+
+# stdio transport (local process)
+[[mcp]]
+name = "gitee"
+type = "stdio"
+command = "npx"
+args = ["-y", "@gitee/mcp-gitee"]
+auto_reconnect = true
+timeout_secs = 30
+
+[mcp.env]
+GITEE_TOKEN = "your-token-here"
+
+# HTTP transport (remote server)
+# [[mcp]]
+# name = "remote-tools"
+# type = "http"
+# url = "https://mcp.example.com/sse"
+# timeout_secs = 60
+
+# ─── External Skill Sources ────────────────────────────────────────
+
+# Local directory
+[[skill_sources]]
+type = "local"
+location = "~/.config/syncode/skills"
+
+# Git repository
+[[skill_sources]]
+type = "git"
+location = "https://gitee.com/Agions/syncode-skills.git"
+branch = "main"
+include = ["**/*.md"]
+
+# Remote skill file
+# [[skill_sources]]
+# type = "url"
+# location = "https://example.com/skills/code-review.md"
+
+# ─── Custom Agents (inline) ───────────────────────────────────────
+
+[[agents]]
+name = "security-auditor"
+description = "Security-focused code auditor"
+system_prompt = """
+You are a security auditor. Focus on:
+- SQL injection, XSS, CSRF vulnerabilities
+- Authentication/authorization flaws
+- Secrets and credentials in code
+- Dependency vulnerabilities
+Be thorough but concise. Provide severity ratings.
+"""
+tools = ["file_read", "search"]
+max_turns = 8
+tags = ["security", "audit"]
+
+[[agents]]
+name = "doc-writer"
+description = "Technical documentation writer"
+system_prompt = """
+You are a technical writer. Write clear, concise documentation:
+- Use simple language
+- Include code examples
+- Follow the project's existing doc style
+- Generate both inline comments and external docs
+"""
+tools = ["file_read", "file_write", "search"]
+max_turns = 10
+tags = ["docs"]
+
+# ─── Custom Agents Directory ──────────────────────────────────────
+
+# Load additional agents from YAML/TOML files
+agents_dir = "~/.config/syncode/agents"
+
+# ─── Skills Directory ─────────────────────────────────────────────
+
+skills_dir = "~/.config/syncode/skills"

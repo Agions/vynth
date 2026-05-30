@@ -2,11 +2,14 @@
 
 pub mod agloop;
 pub mod context;
+pub mod custom;
 pub mod multi;
 pub mod prompt;
 pub mod roles;
 
 pub use agloop::run_agent_loop;
 pub use context::{ContextManager, TokenBudget};
+pub use custom::{CustomAgentDef, CustomAgentRegistry};
 pub use multi::{AgentBus, AgentConfig, AgentId, AgentInstance, AgentMessage, AgentStatus, AgentSwarm, AgentSwarmEvent, MessageType};
 pub use prompt::{ProjectContext, build_role_prompt, build_system_prompt, build_tool_aware_prompt, default_system_prompt};
+pub use roles::{AgentCapabilities, AgentRole};

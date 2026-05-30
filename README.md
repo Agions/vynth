@@ -94,6 +94,90 @@ atomic_writes = true
 - `SYNCODE_BASE_URL` — API 基础 URL
 - `SYNCODE_MODEL` — 模型标识符
 
+### MCP 服务器配置
+
+在 `config.toml` 中配置 MCP 服务器：
+
+```toml
+# stdio 传输（本地进程）
+[[mcp]]
+name = "gitee"
+type = "stdio"
+command = "npx"
+args = ["-y", "@gitee/mcp-gitee"]
+auto_reconnect = true
+timeout_secs = 30
+
+[mcp.env]
+GITEE_TOKEN = "your-token"
+
+# HTTP 传输（远程服务器）
+[[mcp]]
+name = "remote-tools"
+type = "http"
+url = "https://mcp.example.com/sse"
+timeout_secs = 60
+```
+
+### 外部技能来源
+
+支持从多个位置加载技能：
+
+```toml
+# 本地目录
+[[skill_sources]]
+type = "local"
+location = "~/.config/syncode/skills"
+
+# Git 仓库（自动克隆+更新）
+[[skill_sources]]
+type = "git"
+location = "https://gitee.com/Agions/syncode-skills.git"
+branch = "main"
+include = ["**/*.md"]
+
+# 远程文件
+[[skill_sources]]
+type = "url"
+location = "https://example.com/skills/code-review.md"
+```
+
+### 自定义智能体
+
+支持两种方式定义自定义智能体：
+
+**方式一：内联定义（config.toml）**
+
+```toml
+[[agents]]
+name = "security-auditor"
+description = "安全审计专家"
+system_prompt = "你是安全审计专家，专注于漏洞检测..."
+tools = ["file_read", "search"]
+max_turns = 8
+tags = ["security"]
+```
+
+**方式二：YAML 文件（~/.config/syncode/agents/*.yaml）**
+
+```yaml
+name: performance-analyst
+description: 性能优化专家
+system_prompt: |
+  你是性能优化专家，专注于算法复杂度、
+  内存分配、数据库查询优化...
+tools:
+  - file_read
+  - search
+  - shell_exec
+max_turns: 12
+capabilities:
+  can_write_code: true
+  can_run_tests: true
+tags:
+  - performance
+```
+
 ## 多智能体与工作流
 
 ### 内置智能体角色

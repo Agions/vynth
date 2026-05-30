@@ -5,6 +5,27 @@ All notable changes to Syncode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-05-30
+
+### Added
+- **Custom Agent**: Define custom agents via YAML/TOML files or inline in config.toml
+  - `agents_dir` config option for loading from directory
+  - `[[agents]]` inline config section
+  - CustomAgentRegistry with tag-based filtering
+  - Support for custom system_prompt, tools, capabilities, env, tags
+- **External Skill Sources**: Load skills from multiple locations
+  - `[[skill_sources]]` config section
+  - Local directory, Git repository, URL sources
+  - Auto-clone and update for Git sources
+  - Include/exclude glob patterns
+- **MCP Configuration**: Enhanced MCP server config
+  - Environment variables (`[mcp.env]`)
+  - Working directory (`cwd`)
+  - Auto-reconnect on disconnect
+  - Connection timeout
+- Example config file (`examples/config.toml`)
+- Example custom agent (`examples/agents/performance-analyst.yaml`)
+
 ## [1.2.2] - 2026-05-30
 
 ### Changed

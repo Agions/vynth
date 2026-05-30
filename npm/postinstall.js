@@ -63,7 +63,7 @@ async function getLatestTag() {
     const json = JSON.parse(data.toString());
     if (json[0] && json[0].tag_name) return json[0].tag_name;
   } catch (_) { /* fall through */ }
-  return "v1.2.1";
+  return "v1.3.0";
 }
 
 function extractTarGz(archive, dest) {
