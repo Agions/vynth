@@ -85,3 +85,52 @@ impl ProjectContext {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_project_type_display() {
+        assert_eq!(format!("{}", ProjectType::Rust), "Rust");
+        assert_eq!(format!("{}", ProjectType::Node), "Node");
+        assert_eq!(format!("{}", ProjectType::Python), "Python");
+        assert_eq!(format!("{}", ProjectType::Go), "Go");
+        assert_eq!(format!("{}", ProjectType::Java), "Java");
+        assert_eq!(format!("{}", ProjectType::Flutter), "Flutter");
+        assert_eq!(format!("{}", ProjectType::Mixed), "Mixed");
+        assert_eq!(format!("{}", ProjectType::Unknown), "Unknown");
+    }
+
+    #[test]
+    fn test_project_type_equality() {
+        assert_eq!(ProjectType::Rust, ProjectType::Rust);
+        assert_ne!(ProjectType::Rust, ProjectType::Python);
+    }
+
+    #[test]
+    fn test_project_type_clone() {
+        let pt = ProjectType::Go;
+        let cloned = pt.clone();
+        assert_eq!(pt, cloned);
+    }
+
+    #[test]
+    fn test_project_context_from_info() {
+        let info = ProjectInfo {
+            root_dir: PathBuf::from("/test"),
+            project_type: ProjectType::Rust,
+            name: "myapp".into(),
+            languages: ["Rust".into()].into_iter().collect(),
+            has_git: true,
+            has_docker: false,
+            has_ci: true,
+            config_files: vec![],
+        };
+        let ctx = ProjectContext::from_info(info);
+        assert!(ctx.suggested_skills.contains(&"code_review".into()));
+        assert!(ctx.suggested_tools.contains(&"cargo".into()));
+        assert!(ctx.system_prompt_hint.contains("myapp"));
+        assert!(ctx.system_prompt_hint.contains("Rust"));
+    }
+}
