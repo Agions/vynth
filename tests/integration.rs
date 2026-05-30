@@ -1,7 +1,5 @@
 //! Integration tests for Synerix core components
 
-use std::sync::Arc;
-
 // ── Settings ──────────────────────────────────────────────
 
 #[test]

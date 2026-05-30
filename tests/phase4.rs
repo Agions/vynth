@@ -66,7 +66,7 @@ fn test_vim_normal_k_scroll_up() {
 }
 
 #[test]
-fn test_vim_normal_G_scroll_to_bottom() {
+fn test_vim_normal_g_scroll_to_bottom() {
     let mut kb = vim();
     let action = kb.resolve(&synerix::app::InputMode::Normal, key(KeyCode::Char('G')));
     assert!(matches!(action, Action::ScrollToBottom));
@@ -236,7 +236,7 @@ fn test_app_has_yank_buffer() {
 fn test_app_has_keybindings() {
     let settings = Settings::load().unwrap();
     let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
-    let app = synerix::app::App::new_with_channel(settings, tx, _rx);
+    let _app = synerix::app::App::new_with_channel(settings, tx, _rx);
     // Should have keybindings initialized
     assert!(true); // Just verify it doesn't panic
 }
@@ -246,7 +246,7 @@ fn test_app_has_keybindings() {
 #[test]
 fn test_startup_timer() {
     use synerix::telemetry::StartupTimer;
-    let mut timer = StartupTimer::new();
+    let timer = StartupTimer::new();
     std::thread::sleep(std::time::Duration::from_millis(10));
     let elapsed = timer.total_elapsed_ms();
     assert!(elapsed >= 10);
@@ -270,7 +270,10 @@ fn test_startup_metrics_display() {
 #[test]
 fn test_config_watcher_module_exists() {
     // Just verify the module compiles and types are accessible
-    use synerix::config::watcher;
+    let _reload = synerix::config::watcher::ConfigReload {
+        settings: synerix::config::Settings::load().unwrap(),
+        version: 1,
+    };
     assert!(true); // If we get here, the module exists
 }
 

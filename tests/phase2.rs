@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use synerix::sandbox::command_preview::RiskLevel;
 use synerix::sandbox::CommandPreview;
 use synerix::tools::builtin;
-use synerix::tools::trait_def::{Tool, ToolContext, ToolResult};
+use synerix::tools::trait_def::{Tool, ToolContext};
 
 fn test_ctx() -> ToolContext {
     ToolContext {
