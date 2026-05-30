@@ -104,4 +104,134 @@ impl McpManager {
     pub fn total_tool_count(&self) -> usize {
         self.clients.values().map(|c| c.tools().len()).sum()
     }
+
+    /// Test-only constructor that accepts pre-built clients
+    #[cfg(test)]
+    fn new_for_test(clients: HashMap<String, McpClient>) -> Self {
+        Self { clients }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_manager_with_servers(server_names: &[&str]) -> McpManager {
+        let clients: HashMap<String, McpClient> = server_names
+            .iter()
+            .map(|name| (name.to_string(), McpClient::new_for_test(name, vec![])))
+            .collect();
+        McpManager::new_for_test(clients)
+    }
+
+    // ── find_tool ─────────────────────────────────────────────
+
+    #[test]
+    fn find_tool_valid_format() {
+        let mgr = make_manager_with_servers(&["fs", "git"]);
+        let result = mgr.find_tool("mcp__fs__read_file");
+        assert_eq!(result, Some(("fs", "read_file")));
+    }
+
+    #[test]
+    fn find_tool_second_server() {
+        let mgr = make_manager_with_servers(&["fs", "git"]);
+        let result = mgr.find_tool("mcp__git__commit");
+        assert_eq!(result, Some(("git", "commit")));
+    }
+
+    #[test]
+    fn find_tool_unknown_server_returns_none() {
+        let mgr = make_manager_with_servers(&["fs"]);
+        assert_eq!(mgr.find_tool("mcp__unknown__tool"), None);
+    }
+
+    #[test]
+    fn find_tool_no_mcp_prefix_returns_none() {
+        let mgr = make_manager_with_servers(&["fs"]);
+        assert_eq!(mgr.find_tool("fs__read_file"), None);
+    }
+
+    #[test]
+    fn find_tool_no_double_underscore_after_server_returns_none() {
+        let mgr = make_manager_with_servers(&["fs"]);
+        assert_eq!(mgr.find_tool("mcp__fs_read_file"), None);
+    }
+
+    #[test]
+    fn find_tool_empty_tool_name() {
+        let mgr = make_manager_with_servers(&["fs"]);
+        // "mcp__fs__" → server="fs", tool=""
+        let result = mgr.find_tool("mcp__fs__");
+        assert_eq!(result, Some(("fs", "")));
+    }
+
+    #[test]
+    fn find_tool_tool_with_nested_underscores() {
+        let mgr = make_manager_with_servers(&["db"]);
+        let result = mgr.find_tool("mcp__db__read_file_v2");
+        assert_eq!(result, Some(("db", "read_file_v2")));
+    }
+
+    // ── server_count / total_tool_count ───────────────────────
+
+    #[test]
+    fn server_count_empty() {
+        let mgr = McpManager::new_for_test(HashMap::new());
+        assert_eq!(mgr.server_count(), 0);
+    }
+
+    #[test]
+    fn server_count_multiple() {
+        let mgr = make_manager_with_servers(&["a", "b", "c"]);
+        assert_eq!(mgr.server_count(), 3);
+    }
+
+    #[test]
+    fn total_tool_count_empty_clients() {
+        let mgr = make_manager_with_servers(&["fs"]);
+        // Test clients have no discovered tools
+        assert_eq!(mgr.total_tool_count(), 0);
+    }
+
+    // ── tool_schemas ──────────────────────────────────────────
+
+    #[test]
+    fn tool_schemas_empty_when_no_tools_discovered() {
+        let mgr = make_manager_with_servers(&["fs"]);
+        let schemas = mgr.tool_schemas();
+        assert!(schemas.is_empty());
+    }
+
+    // ── call_tool error handling ──────────────────────────────
+
+    #[tokio::test]
+    async fn call_tool_unknown_server_returns_error() {
+        let mgr = make_manager_with_servers(&["fs"]);
+        let result = mgr
+            .call_tool("missing", "tool", serde_json::json!({}))
+            .await;
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("MCP server not found"));
+        assert!(err.to_string().contains("missing"));
+    }
+
+    // ── health_check ──────────────────────────────────────────
+
+    #[tokio::test]
+    async fn health_check_reports_empty_tools() {
+        let mgr = make_manager_with_servers(&["server_a"]);
+        let unhealthy = mgr.health_check().await;
+        assert_eq!(unhealthy.len(), 1);
+        assert!(unhealthy[0].contains("server_a"));
+        assert!(unhealthy[0].contains("no tools discovered"));
+    }
+
+    #[tokio::test]
+    async fn health_check_empty_manager() {
+        let mgr = McpManager::new_for_test(HashMap::new());
+        let unhealthy = mgr.health_check().await;
+        assert!(unhealthy.is_empty());
+    }
 }

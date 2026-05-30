@@ -81,3 +81,76 @@ impl Settings {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn defaults_returns_correct_values() {
+        let s = Settings::defaults();
+        assert_eq!(s.llm.model, "deepseek-chat");
+        assert_eq!(s.llm.context_window, 128_000);
+        assert_eq!(s.llm.max_output_tokens, 8192);
+        assert_eq!(s.llm.temperature, 0.7);
+        assert_eq!(s.ui.theme, "dark");
+        assert_eq!(s.ui.keymap, "default");
+        assert!(s.ui.diff_line_numbers);
+        assert_eq!(s.ui.typing_delay_ms, 10);
+        assert_eq!(s.sandbox.mode, SandboxMode::Confirm);
+        assert!(s.sandbox.atomic_writes);
+        assert!(s.mcp.is_empty());
+        assert!(s.skills_dir.is_none());
+        assert!(s.skill_sources.is_empty());
+        assert!(s.agents_dir.is_none());
+        assert!(s.agents.is_empty());
+    }
+
+    #[test]
+    fn config_path_ends_with_synerix_config() {
+        let path = Settings::config_path();
+        assert!(path.ends_with("synerix/config.toml"));
+    }
+
+    #[test]
+    fn apply_env_overrides_api_key() {
+        let key = "test_api_key_12345";
+        std::env::set_var("SYNERIX_API_KEY", key);
+        let mut s = Settings::defaults();
+        s.apply_env_overrides();
+        assert_eq!(s.llm.api_key, key);
+        std::env::remove_var("SYNERIX_API_KEY");
+    }
+
+    #[test]
+    fn apply_env_overrides_base_url() {
+        std::env::set_var("SYNERIX_BASE_URL", "http://localhost:9999");
+        let mut s = Settings::defaults();
+        s.apply_env_overrides();
+        assert_eq!(s.llm.base_url, Some("http://localhost:9999".to_string()));
+        std::env::remove_var("SYNERIX_BASE_URL");
+    }
+
+    #[test]
+    fn apply_env_overrides_model() {
+        std::env::set_var("SYNERIX_MODEL", "custom-model-v2");
+        let mut s = Settings::defaults();
+        s.apply_env_overrides();
+        assert_eq!(s.llm.model, "custom-model-v2");
+        std::env::remove_var("SYNERIX_MODEL");
+    }
+
+    #[test]
+    fn apply_env_overrides_no_env_keeps_defaults() {
+        std::env::remove_var("SYNERIX_API_KEY");
+        std::env::remove_var("SYNERIX_BASE_URL");
+        std::env::remove_var("SYNERIX_MODEL");
+        let mut s = Settings::defaults();
+        let orig_key = s.llm.api_key.clone();
+        let orig_model = s.llm.model.clone();
+        s.apply_env_overrides();
+        assert_eq!(s.llm.api_key, orig_key);
+        assert_eq!(s.llm.model, orig_model);
+        assert!(s.llm.base_url.is_none());
+    }
+}

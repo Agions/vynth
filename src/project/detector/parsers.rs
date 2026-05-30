@@ -204,3 +204,142 @@ pub(super) fn detect_config_files(root: &Path) -> Vec<PathBuf> {
         .filter(|p| p.exists())
         .collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use tempfile::TempDir;
+
+    #[tokio::test]
+    async fn detect_languages_rust_by_extension() {
+        let dir = TempDir::new().unwrap();
+        fs::write(dir.path().join("main.rs"), "fn main() {}").unwrap();
+        let langs = detect_languages(dir.path()).await;
+        assert!(langs.contains("Rust"));
+    }
+
+    #[tokio::test]
+    async fn detect_languages_python_by_extension() {
+        let dir = TempDir::new().unwrap();
+        fs::write(dir.path().join("app.py"), "print('hi')").unwrap();
+        let langs = detect_languages(dir.path()).await;
+        assert!(langs.contains("Python"));
+    }
+
+    #[tokio::test]
+    async fn detect_languages_js_ts_by_extension() {
+        let dir = TempDir::new().unwrap();
+        fs::write(dir.path().join("index.ts"), "").unwrap();
+        fs::write(dir.path().join("app.jsx"), "").unwrap();
+        let langs = detect_languages(dir.path()).await;
+        assert!(langs.contains("JavaScript/TypeScript"));
+    }
+
+    #[tokio::test]
+    async fn detect_languages_go_by_extension() {
+        let dir = TempDir::new().unwrap();
+        fs::write(dir.path().join("main.go"), "").unwrap();
+        let langs = detect_languages(dir.path()).await;
+        assert!(langs.contains("Go"));
+    }
+
+    #[tokio::test]
+    async fn detect_languages_by_marker_file() {
+        let dir = TempDir::new().unwrap();
+        fs::write(dir.path().join("Cargo.toml"), "[package]").unwrap();
+        let langs = detect_languages(dir.path()).await;
+        assert!(langs.contains("Rust"));
+    }
+
+    #[tokio::test]
+    async fn detect_languages_empty_dir() {
+        let dir = TempDir::new().unwrap();
+        let langs = detect_languages(dir.path()).await;
+        assert!(langs.is_empty());
+    }
+
+    #[tokio::test]
+    async fn detect_languages_subdir() {
+        let dir = TempDir::new().unwrap();
+        let sub = dir.path().join("src");
+        fs::create_dir(&sub).unwrap();
+        fs::write(sub.join("lib.rs"), "").unwrap();
+        let langs = detect_languages(dir.path()).await;
+        assert!(langs.contains("Rust"));
+    }
+
+    #[test]
+    fn detect_project_type_rust() {
+        let dir = TempDir::new().unwrap();
+        fs::write(dir.path().join("Cargo.toml"), "[package]").unwrap();
+        let langs = HashSet::new();
+        assert_eq!(detect_project_type(dir.path(), &langs), ProjectType::Rust);
+    }
+
+    #[test]
+    fn detect_project_type_node() {
+        let dir = TempDir::new().unwrap();
+        fs::write(dir.path().join("package.json"), "{}").unwrap();
+        let langs = HashSet::new();
+        assert_eq!(detect_project_type(dir.path(), &langs), ProjectType::Node);
+    }
+
+    #[test]
+    fn detect_project_type_python() {
+        let dir = TempDir::new().unwrap();
+        fs::write(dir.path().join("pyproject.toml"), "").unwrap();
+        let langs = HashSet::new();
+        assert_eq!(detect_project_type(dir.path(), &langs), ProjectType::Python);
+    }
+
+    #[test]
+    fn detect_project_type_go() {
+        let dir = TempDir::new().unwrap();
+        fs::write(dir.path().join("go.mod"), "").unwrap();
+        let langs = HashSet::new();
+        assert_eq!(detect_project_type(dir.path(), &langs), ProjectType::Go);
+    }
+
+    #[test]
+    fn detect_project_type_mixed() {
+        let dir = TempDir::new().unwrap();
+        fs::write(dir.path().join("Cargo.toml"), "").unwrap();
+        fs::write(dir.path().join("package.json"), "").unwrap();
+        let langs = HashSet::new();
+        assert_eq!(detect_project_type(dir.path(), &langs), ProjectType::Mixed);
+    }
+
+    #[test]
+    fn detect_project_type_unknown() {
+        let dir = TempDir::new().unwrap();
+        let langs = HashSet::new();
+        assert_eq!(
+            detect_project_type(dir.path(), &langs),
+            ProjectType::Unknown
+        );
+    }
+
+    #[test]
+    fn detect_project_type_from_languages_fallback() {
+        let dir = TempDir::new().unwrap();
+        let mut langs = HashSet::new();
+        langs.insert("Python".to_string());
+        assert_eq!(detect_project_type(dir.path(), &langs), ProjectType::Python);
+    }
+
+    #[test]
+    fn detect_config_files_finds_cargo() {
+        let dir = TempDir::new().unwrap();
+        fs::write(dir.path().join("Cargo.toml"), "").unwrap();
+        let found = detect_config_files(dir.path());
+        assert!(found.iter().any(|p| p.ends_with("Cargo.toml")));
+    }
+
+    #[test]
+    fn detect_config_files_empty() {
+        let dir = TempDir::new().unwrap();
+        let found = detect_config_files(dir.path());
+        assert!(found.is_empty());
+    }
+}

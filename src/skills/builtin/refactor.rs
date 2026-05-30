@@ -41,3 +41,87 @@ Process:
         source_path: None,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn refactor_skill_name() {
+        let skill = refactor_skill();
+        assert_eq!(skill.name, "refactor");
+    }
+
+    #[test]
+    fn refactor_skill_description() {
+        let skill = refactor_skill();
+        assert!(skill.description.contains("refactoring"));
+    }
+
+    #[test]
+    fn refactor_skill_trigger_is_auto_match() {
+        let skill = refactor_skill();
+        match &skill.trigger {
+            SkillTrigger::AutoMatch {
+                keywords,
+                threshold,
+            } => {
+                assert!(keywords.contains(&"refactor".to_string()));
+                assert!(keywords.contains(&"clean up".to_string()));
+                assert!(keywords.contains(&"improve".to_string()));
+                assert!(keywords.contains(&"restructure".to_string()));
+                assert_eq!(keywords.len(), 4);
+                assert!((threshold - 0.3).abs() < f32::EPSILON);
+            }
+            _ => panic!("Expected AutoMatch trigger"),
+        }
+    }
+
+    #[test]
+    fn refactor_skill_instructions_contain_guidelines() {
+        let skill = refactor_skill();
+        assert!(skill.instructions.contains("Preserve behavior"));
+        assert!(skill.instructions.contains("Small steps"));
+        assert!(skill.instructions.contains("DRY"));
+        assert!(skill.instructions.contains("Naming"));
+        assert!(skill.instructions.contains("Dependencies"));
+    }
+
+    #[test]
+    fn refactor_skill_instructions_contain_process() {
+        let skill = refactor_skill();
+        assert!(skill.instructions.contains("code smells"));
+        assert!(skill.instructions.contains("refactoring plan"));
+        assert!(skill.instructions.contains("incrementally"));
+    }
+
+    #[test]
+    fn refactor_skill_required_tools() {
+        let skill = refactor_skill();
+        assert_eq!(skill.required_tools.len(), 4);
+        assert!(skill.required_tools.contains(&"file_read".to_string()));
+        assert!(skill.required_tools.contains(&"file_write".to_string()));
+        assert!(skill.required_tools.contains(&"search".to_string()));
+        assert!(skill.required_tools.contains(&"patch".to_string()));
+    }
+
+    #[test]
+    fn refactor_skill_no_required_mcp() {
+        let skill = refactor_skill();
+        assert!(skill.required_mcp.is_empty());
+    }
+
+    #[test]
+    fn refactor_skill_source_path_is_none() {
+        let skill = refactor_skill();
+        assert!(skill.source_path.is_none());
+    }
+
+    #[test]
+    fn refactor_skill_has_more_tools_than_code_review() {
+        let refactor = refactor_skill();
+        // Refactor needs file_write and patch in addition to file_read and search
+        assert!(refactor.required_tools.contains(&"file_write".to_string()));
+        assert!(refactor.required_tools.contains(&"patch".to_string()));
+    }
+}

@@ -75,3 +75,92 @@ fn split_frontmatter(content: &str) -> Result<(String, String), AppError> {
 fn serde_yaml_from_str<T: serde::de::DeserializeOwned>(s: &str) -> Result<T, String> {
     serde_yaml::from_str(s).map_err(|e| format!("Parse error: {}", e))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::skills::SkillTrigger;
+
+    #[test]
+    fn split_frontmatter_valid() {
+        let content = "---\nname: test\ndescription: desc\n---\n\n# Body\nSome content";
+        let (fm, body) = split_frontmatter(content).unwrap();
+        assert_eq!(fm, "name: test\ndescription: desc");
+        assert!(body.contains("# Body"));
+        assert!(body.contains("Some content"));
+    }
+
+    #[test]
+    fn split_frontmatter_no_opening_marker() {
+        let result = split_frontmatter("name: test\n---\nbody");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn split_frontmatter_no_closing_marker() {
+        let result = split_frontmatter("---\nname: test\nno closing here");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn split_frontmatter_empty_body() {
+        let content = "---\nname: test\n---";
+        let (fm, body) = split_frontmatter(content).unwrap();
+        assert_eq!(fm, "name: test");
+        assert!(body.trim().is_empty());
+    }
+
+    #[test]
+    fn split_frontmatter_with_extra_whitespace() {
+        let content = "  ---\nname: test\n---\n\nbody here  ";
+        let (fm, body) = split_frontmatter(content).unwrap();
+        assert_eq!(fm, "name: test");
+        assert!(body.contains("body here"));
+    }
+
+    #[test]
+    fn serde_yaml_from_str_valid_skill() {
+        let yaml = r#"
+name: code-review
+description: Perform a code review
+instructions: ""
+trigger:
+  type: Explicit
+"#;
+        let skill: SkillDef = serde_yaml_from_str(yaml).unwrap();
+        assert_eq!(skill.name, "code-review");
+        assert_eq!(skill.description, "Perform a code review");
+        assert!(matches!(skill.trigger, SkillTrigger::Explicit));
+        assert!(skill.required_tools.is_empty());
+    }
+
+    #[test]
+    fn serde_yaml_from_str_invalid() {
+        let result: Result<SkillDef, String> = serde_yaml_from_str("{{invalid");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn serde_yaml_from_str_auto_match_trigger() {
+        let yaml = r#"
+name: test
+description: test skill
+instructions: ""
+trigger:
+  type: auto_match
+  keywords: ["review", "code"]
+  threshold: 0.5
+"#;
+        let skill: SkillDef = serde_yaml_from_str(yaml).unwrap();
+        match skill.trigger {
+            SkillTrigger::AutoMatch {
+                keywords,
+                threshold,
+            } => {
+                assert_eq!(keywords.len(), 2);
+                assert_eq!(threshold, 0.5);
+            }
+            _ => panic!("Expected AutoMatch trigger"),
+        }
+    }
+}

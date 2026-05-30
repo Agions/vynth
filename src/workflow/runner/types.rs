@@ -36,7 +36,10 @@ mod tests {
         assert_eq!(StepStatus::Success, StepStatus::Success);
         assert_eq!(StepStatus::Skipped, StepStatus::Skipped);
         assert_eq!(StepStatus::TimedOut, StepStatus::TimedOut);
-        assert_eq!(StepStatus::Failed("x".into()), StepStatus::Failed("x".into()));
+        assert_eq!(
+            StepStatus::Failed("x".into()),
+            StepStatus::Failed("x".into())
+        );
         assert_ne!(StepStatus::Success, StepStatus::Failed("x".into()));
         assert_ne!(StepStatus::Skipped, StepStatus::TimedOut);
     }
@@ -44,7 +47,10 @@ mod tests {
     #[test]
     fn step_status_debug_format() {
         assert_eq!(format!("{:?}", StepStatus::Success), "Success");
-        assert_eq!(format!("{:?}", StepStatus::Failed("err".into())), "Failed(\"err\")");
+        assert_eq!(
+            format!("{:?}", StepStatus::Failed("err".into())),
+            "Failed(\"err\")"
+        );
         assert_eq!(format!("{:?}", StepStatus::Skipped), "Skipped");
         assert_eq!(format!("{:?}", StepStatus::TimedOut), "TimedOut");
     }

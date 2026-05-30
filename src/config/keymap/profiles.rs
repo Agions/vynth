@@ -311,3 +311,224 @@ impl KeyBindings {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_key(code: KeyCode) -> KeyEvent {
+        KeyEvent::new(code, KeyModifiers::NONE)
+    }
+
+    fn make_ctrl(code: KeyCode) -> KeyEvent {
+        KeyEvent::new(code, KeyModifiers::CONTROL)
+    }
+
+    #[test]
+    fn keymap_profile_default_is_default() {
+        let profile = KeymapProfile::default();
+        assert!(matches!(profile, KeymapProfile::Default));
+    }
+
+    #[test]
+    fn default_normal_mode_basic_keys() {
+        let mut kb = KeyBindings::new(KeymapProfile::Default);
+        assert_eq!(
+            kb.resolve(&InputMode::Normal, make_key(KeyCode::Char('i'))),
+            Action::EnterInsertMode
+        );
+        assert_eq!(
+            kb.resolve(&InputMode::Normal, make_key(KeyCode::Char(':'))),
+            Action::EnterCommandMode
+        );
+        assert_eq!(
+            kb.resolve(&InputMode::Normal, make_key(KeyCode::Char('/'))),
+            Action::EnterSearchMode
+        );
+        assert_eq!(
+            kb.resolve(&InputMode::Normal, make_key(KeyCode::Char('q'))),
+            Action::Quit
+        );
+        assert_eq!(
+            kb.resolve(&InputMode::Normal, make_key(KeyCode::Char('j'))),
+            Action::ScrollDown
+        );
+        assert_eq!(
+            kb.resolve(&InputMode::Normal, make_key(KeyCode::Char('k'))),
+            Action::ScrollUp
+        );
+        assert_eq!(
+            kb.resolve(&InputMode::Normal, make_key(KeyCode::Char('G'))),
+            Action::ScrollToBottom
+        );
+    }
+
+    #[test]
+    fn default_normal_ctrl_c_quits() {
+        let mut kb = KeyBindings::new(KeymapProfile::Default);
+        assert_eq!(
+            kb.resolve(&InputMode::Normal, make_ctrl(KeyCode::Char('c'))),
+            Action::Quit
+        );
+    }
+
+    #[test]
+    fn vim_normal_mode_keys() {
+        let mut kb = KeyBindings::new(KeymapProfile::Vim);
+        assert_eq!(
+            kb.resolve(&InputMode::Normal, make_key(KeyCode::Char('i'))),
+            Action::EnterInsertMode
+        );
+        assert_eq!(
+            kb.resolve(&InputMode::Normal, make_key(KeyCode::Char('a'))),
+            Action::EnterInsertModeAppend
+        );
+        assert_eq!(
+            kb.resolve(&InputMode::Normal, make_key(KeyCode::Char('o'))),
+            Action::EnterInsertModeOpenLineBelow
+        );
+        assert_eq!(
+            kb.resolve(&InputMode::Normal, make_key(KeyCode::Char('O'))),
+            Action::EnterInsertModeOpenLineAbove
+        );
+        assert_eq!(
+            kb.resolve(&InputMode::Normal, make_key(KeyCode::Char('h'))),
+            Action::MoveCursorLeft
+        );
+        assert_eq!(
+            kb.resolve(&InputMode::Normal, make_key(KeyCode::Char('l'))),
+            Action::MoveCursorRight
+        );
+        assert_eq!(
+            kb.resolve(&InputMode::Normal, make_key(KeyCode::Tab)),
+            Action::TabNext
+        );
+        assert_eq!(
+            kb.resolve(&InputMode::Normal, make_key(KeyCode::Char('p'))),
+            Action::Paste
+        );
+    }
+
+    #[test]
+    fn vim_double_key_dd() {
+        let mut kb = KeyBindings::new(KeymapProfile::Vim);
+        // First 'd' returns Noop and sets pending
+        assert_eq!(
+            kb.resolve(&InputMode::Normal, make_key(KeyCode::Char('d'))),
+            Action::Noop
+        );
+        // Second 'd' returns ClearLine
+        assert_eq!(
+            kb.resolve(&InputMode::Normal, make_key(KeyCode::Char('d'))),
+            Action::ClearLine
+        );
+    }
+
+    #[test]
+    fn vim_double_key_yy() {
+        let mut kb = KeyBindings::new(KeymapProfile::Vim);
+        assert_eq!(
+            kb.resolve(&InputMode::Normal, make_key(KeyCode::Char('y'))),
+            Action::Noop
+        );
+        assert_eq!(
+            kb.resolve(&InputMode::Normal, make_key(KeyCode::Char('y'))),
+            Action::YankLine
+        );
+    }
+
+    #[test]
+    fn vim_count_prefix() {
+        let mut kb = KeyBindings::new(KeymapProfile::Vim);
+        // '3' enters count pending
+        assert_eq!(
+            kb.resolve(&InputMode::Normal, make_key(KeyCode::Char('3'))),
+            Action::Noop
+        );
+        // 'j' with count returns ScrollDown
+        assert_eq!(
+            kb.resolve(&InputMode::Normal, make_key(KeyCode::Char('j'))),
+            Action::ScrollDown
+        );
+    }
+
+    #[test]
+    fn vim_insert_mode_keys() {
+        let mut kb = KeyBindings::new(KeymapProfile::Vim);
+        assert_eq!(
+            kb.resolve(&InputMode::Insert, make_key(KeyCode::Esc)),
+            Action::EnterNormalMode
+        );
+        assert_eq!(
+            kb.resolve(&InputMode::Insert, make_key(KeyCode::Enter)),
+            Action::SubmitMessage
+        );
+        assert_eq!(
+            kb.resolve(&InputMode::Insert, make_key(KeyCode::Backspace)),
+            Action::DeleteChar
+        );
+        assert_eq!(
+            kb.resolve(&InputMode::Insert, make_key(KeyCode::Char('x'))),
+            Action::InsertChar('x')
+        );
+    }
+
+    #[test]
+    fn emacs_editing_keys() {
+        let mut kb = KeyBindings::new(KeymapProfile::Emacs);
+        assert_eq!(
+            kb.resolve(&InputMode::Insert, make_ctrl(KeyCode::Char('n'))),
+            Action::ScrollDown
+        );
+        assert_eq!(
+            kb.resolve(&InputMode::Insert, make_ctrl(KeyCode::Char('p'))),
+            Action::ScrollUp
+        );
+        assert_eq!(
+            kb.resolve(&InputMode::Insert, make_ctrl(KeyCode::Char('a'))),
+            Action::MoveCursorHome
+        );
+        assert_eq!(
+            kb.resolve(&InputMode::Insert, make_ctrl(KeyCode::Char('e'))),
+            Action::MoveCursorEnd
+        );
+        assert_eq!(
+            kb.resolve(&InputMode::Insert, make_ctrl(KeyCode::Char('k'))),
+            Action::KillToEnd
+        );
+        assert_eq!(
+            kb.resolve(&InputMode::Insert, make_key(KeyCode::Enter)),
+            Action::SubmitMessage
+        );
+    }
+
+    #[test]
+    fn command_mode_esc_cancels() {
+        let mut kb = KeyBindings::new(KeymapProfile::Vim);
+        assert_eq!(
+            kb.resolve(&InputMode::Command, make_key(KeyCode::Esc)),
+            Action::Cancel
+        );
+        assert_eq!(
+            kb.resolve(&InputMode::Command, make_key(KeyCode::Enter)),
+            Action::SubmitMessage
+        );
+        assert_eq!(
+            kb.resolve(&InputMode::Command, make_ctrl(KeyCode::Char('c'))),
+            Action::Cancel
+        );
+    }
+
+    #[test]
+    fn vim_ctrl_d_u_scroll() {
+        let mut kb = KeyBindings::new(KeymapProfile::Vim);
+        assert_eq!(
+            kb.resolve(&InputMode::Normal, make_ctrl(KeyCode::Char('d'))),
+            Action::ScrollPageDown
+        );
+        assert_eq!(
+            kb.resolve(&InputMode::Normal, make_ctrl(KeyCode::Char('u'))),
+            Action::ScrollPageUp
+        );
+    }
+}

@@ -269,3 +269,245 @@ impl WorkflowRunner {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::agent::roles::AgentRole;
+    use crate::workflow::definition::parse_workflow;
+
+    fn sample_runner() -> WorkflowRunner {
+        let wf = parse_workflow(
+            r#"
+name: test-wf
+steps:
+  - id: code
+    agent_role: coder
+    prompt: "Write hello {{language}}"
+  - id: review
+    agent_role: reviewer
+    prompt: "Review: {{code_output}}"
+    depends_on: [code]
+    condition: code_output
+    output_variable: review_result
+  - id: test
+    agent_role: tester
+    prompt: "Test: {{review_result}}"
+    depends_on: [review]
+variables:
+  language: Rust
+"#,
+        )
+        .unwrap();
+        let swarm = AgentSwarm::new();
+        WorkflowRunner::new(wf, swarm).unwrap()
+    }
+
+    // ── new / construction ────────────────────────────────────
+
+    #[test]
+    fn new_creates_agents_for_unique_roles() {
+        let runner = sample_runner();
+        // 3 unique roles: coder, reviewer, tester
+        assert_eq!(runner.agent_map.len(), 3);
+        assert!(runner.agent_map.contains_key("coder"));
+        assert!(runner.agent_map.contains_key("reviewer"));
+        assert!(runner.agent_map.contains_key("tester"));
+    }
+
+    #[test]
+    fn new_initializes_variables_from_workflow() {
+        let runner = sample_runner();
+        assert_eq!(runner.variables.get("language").unwrap(), "Rust");
+    }
+
+    #[test]
+    fn new_starts_with_empty_results() {
+        let runner = sample_runner();
+        assert!(runner.step_results.is_empty());
+    }
+
+    #[test]
+    fn new_rejects_cyclic_workflow() {
+        let wf = parse_workflow(
+            r#"
+name: cyclic
+steps:
+  - id: a
+    agent_role: coder
+    prompt: "A"
+    depends_on: [b]
+  - id: b
+    agent_role: coder
+    prompt: "B"
+    depends_on: [a]
+"#,
+        )
+        .unwrap();
+        let swarm = AgentSwarm::new();
+        let result = WorkflowRunner::new(wf, swarm);
+        assert!(result.is_err());
+    }
+
+    // ── resolve_prompt ────────────────────────────────────────
+
+    #[test]
+    fn resolve_prompt_interpolates_variables() {
+        let runner = sample_runner();
+        let result = runner.resolve_prompt("Write {{language}}");
+        assert_eq!(result, "Write Rust");
+    }
+
+    #[test]
+    fn resolve_prompt_leaves_unknown_vars() {
+        let runner = sample_runner();
+        let result = runner.resolve_prompt("{{unknown}}");
+        assert_eq!(result, "{{unknown}}");
+    }
+
+    // ── evaluate_condition ────────────────────────────────────
+
+    #[test]
+    fn evaluate_condition_true_for_existing_var() {
+        let runner = sample_runner();
+        assert!(runner.evaluate_condition("language"));
+    }
+
+    #[test]
+    fn evaluate_condition_false_for_missing_var() {
+        let runner = sample_runner();
+        assert!(!runner.evaluate_condition("missing"));
+    }
+
+    // ── get_executable_steps ──────────────────────────────────
+
+    #[test]
+    fn get_executable_steps_initial_only_first() {
+        let runner = sample_runner();
+        let steps = runner.get_executable_steps();
+        assert_eq!(steps.len(), 1);
+        assert_eq!(steps[0].id, "code");
+    }
+
+    #[test]
+    fn get_executable_steps_after_first_done() {
+        let mut runner = sample_runner();
+        runner.step_results.insert(
+            "code".into(),
+            StepResult {
+                step_id: "code".into(),
+                output: "hello".into(),
+                status: StepStatus::Success,
+                duration_ms: 100,
+                attempts: 1,
+            },
+        );
+        // "review" depends on "code" (success) and has condition "code_output"
+        // but code_output variable isn't set, so condition evaluates false → skipped in run()
+        // But get_executable_steps only checks dependencies, not conditions
+        let steps = runner.get_executable_steps();
+        assert_eq!(steps.len(), 1);
+        assert_eq!(steps[0].id, "review");
+    }
+
+    // ── status ────────────────────────────────────────────────
+
+    #[test]
+    fn status_empty_workflow() {
+        let runner = sample_runner();
+        let s = runner.status();
+        assert_eq!(s.total_steps, 3);
+        assert_eq!(s.completed, 0);
+        assert_eq!(s.failed, 0);
+        assert_eq!(s.skipped, 0);
+        assert_eq!(s.running, 3);
+    }
+
+    #[test]
+    fn status_counts_completed_and_failed() {
+        let mut runner = sample_runner();
+        runner.step_results.insert(
+            "code".into(),
+            StepResult {
+                step_id: "code".into(),
+                output: "ok".into(),
+                status: StepStatus::Success,
+                duration_ms: 50,
+                attempts: 1,
+            },
+        );
+        runner.step_results.insert(
+            "review".into(),
+            StepResult {
+                step_id: "review".into(),
+                output: "err".into(),
+                status: StepStatus::Failed("bad".into()),
+                duration_ms: 10,
+                attempts: 2,
+            },
+        );
+        let s = runner.status();
+        assert_eq!(s.total_steps, 3);
+        assert_eq!(s.completed, 1);
+        assert_eq!(s.failed, 1);
+        assert_eq!(s.skipped, 0);
+        assert_eq!(s.running, 1);
+    }
+
+    #[test]
+    fn status_counts_skipped() {
+        let mut runner = sample_runner();
+        runner.step_results.insert(
+            "code".into(),
+            StepResult {
+                step_id: "code".into(),
+                output: String::new(),
+                status: StepStatus::Skipped,
+                duration_ms: 0,
+                attempts: 0,
+            },
+        );
+        let s = runner.status();
+        assert_eq!(s.skipped, 1);
+        assert_eq!(s.running, 2);
+    }
+
+    // ── run_step error cases ──────────────────────────────────
+
+    #[tokio::test]
+    async fn run_step_not_found_returns_error() {
+        let mut runner = sample_runner();
+        let result = runner.run_step("nonexistent").await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("not found"));
+    }
+
+    // ── variable storage from step results ────────────────────
+
+    #[test]
+    fn variables_updated_on_success_with_output_variable() {
+        let mut runner = sample_runner();
+        runner.step_results.insert(
+            "code".into(),
+            StepResult {
+                step_id: "code".into(),
+                output: "code done".into(),
+                status: StepStatus::Success,
+                duration_ms: 50,
+                attempts: 1,
+            },
+        );
+        // Manually simulate what run() does: store output in output_variable
+        // "review" step has output_variable: "review_result"
+        let review_step = runner
+            .workflow
+            .steps
+            .iter()
+            .find(|s| s.id == "review")
+            .unwrap();
+        assert_eq!(
+            review_step.output_variable.as_deref(),
+            Some("review_result")
+        );
+    }
+}

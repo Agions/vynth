@@ -163,10 +163,7 @@ impl McpClient {
 
     /// Test-only constructor for unit testing without a real subprocess
     #[cfg(test)]
-    fn new_for_test(
-        name: &str,
-        allowed_tools: Vec<String>,
-    ) -> Self {
+    pub(crate) fn new_for_test(name: &str, allowed_tools: Vec<String>) -> Self {
         use std::collections::HashMap;
 
         let config = McpServerConfig {
@@ -224,10 +221,7 @@ mod tests {
 
     #[test]
     fn is_tool_allowed_exact_match() {
-        let client = McpClient::new_for_test(
-            "test",
-            vec!["read_file".to_string()],
-        );
+        let client = McpClient::new_for_test("test", vec!["read_file".to_string()]);
         assert!(client.is_tool_allowed("read_file"));
         assert!(!client.is_tool_allowed("write_file"));
         assert!(!client.is_tool_allowed("read"));
@@ -236,10 +230,7 @@ mod tests {
 
     #[test]
     fn is_tool_allowed_star_glob() {
-        let client = McpClient::new_for_test(
-            "test",
-            vec!["read_*".to_string()],
-        );
+        let client = McpClient::new_for_test("test", vec!["read_*".to_string()]);
         assert!(client.is_tool_allowed("read_file"));
         assert!(client.is_tool_allowed("read_dir"));
         assert!(client.is_tool_allowed("read_"));
@@ -249,10 +240,7 @@ mod tests {
 
     #[test]
     fn is_tool_allowed_question_mark_glob() {
-        let client = McpClient::new_for_test(
-            "test",
-            vec!["tool_?".to_string()],
-        );
+        let client = McpClient::new_for_test("test", vec!["tool_?".to_string()]);
         assert!(client.is_tool_allowed("tool_a"));
         assert!(client.is_tool_allowed("tool_1"));
         assert!(!client.is_tool_allowed("tool_ab"));
@@ -278,10 +266,7 @@ mod tests {
 
     #[test]
     fn is_tool_allowed_no_match_denies() {
-        let client = McpClient::new_for_test(
-            "test",
-            vec!["specific_tool".to_string()],
-        );
+        let client = McpClient::new_for_test("test", vec!["specific_tool".to_string()]);
         assert!(!client.is_tool_allowed("other_tool"));
         assert!(!client.is_tool_allowed("specific"));
         assert!(!client.is_tool_allowed("specific_tool_extra"));
@@ -289,10 +274,7 @@ mod tests {
 
     #[test]
     fn is_tool_allowed_bracket_glob() {
-        let client = McpClient::new_for_test(
-            "test",
-            vec!["tool_[abc]".to_string()],
-        );
+        let client = McpClient::new_for_test("test", vec!["tool_[abc]".to_string()]);
         assert!(client.is_tool_allowed("tool_a"));
         assert!(client.is_tool_allowed("tool_b"));
         assert!(client.is_tool_allowed("tool_c"));

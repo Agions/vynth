@@ -111,7 +111,9 @@ mod tests {
         .unwrap();
 
         let title: String = conn
-            .query_row("SELECT title FROM sessions WHERE id='1'", [], |row| row.get(0))
+            .query_row("SELECT title FROM sessions WHERE id='1'", [], |row| {
+                row.get(0)
+            })
             .unwrap();
         assert_eq!(title, "Test");
     }
@@ -134,7 +136,9 @@ mod tests {
         .unwrap();
 
         let content: String = conn
-            .query_row("SELECT content FROM messages WHERE id='m1'", [], |row| row.get(0))
+            .query_row("SELECT content FROM messages WHERE id='m1'", [], |row| {
+                row.get(0)
+            })
             .unwrap();
         assert_eq!(content, "hello");
     }

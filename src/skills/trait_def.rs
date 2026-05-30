@@ -60,7 +60,10 @@ mod tests {
         let json = serde_json::to_string(&trigger).unwrap();
         let deserialized: SkillTrigger = serde_json::from_str(&json).unwrap();
         match deserialized {
-            SkillTrigger::AutoMatch { keywords, threshold } => {
+            SkillTrigger::AutoMatch {
+                keywords,
+                threshold,
+            } => {
                 assert_eq!(keywords, vec!["test", "deploy"]);
                 assert!((threshold - 0.8).abs() < f32::EPSILON);
             }

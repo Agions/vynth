@@ -120,3 +120,151 @@ impl AgentInstance {
             .unwrap_or_else(|| "(no response)".to_string())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::agent::multi::MessageType;
+    use crate::agent::roles::AgentRole;
+
+    fn make_instance(name: &str, role: AgentRole) -> AgentInstance {
+        let config = AgentConfig::new(role, name);
+        AgentInstance::new(format!("agent_{}", name), config)
+    }
+
+    // ── new / initialization ──────────────────────────────────
+
+    #[test]
+    fn new_creates_idle_instance() {
+        let inst = make_instance("test", AgentRole::Coder);
+        assert_eq!(inst.status, AgentStatus::Idle);
+        assert!(inst.result_buffer.is_empty());
+        assert_eq!(inst.id, "agent_test");
+    }
+
+    #[test]
+    fn new_sets_config_correctly() {
+        let inst = make_instance("reviewer1", AgentRole::Reviewer);
+        assert_eq!(inst.config.name, "reviewer1");
+        assert!(matches!(inst.config.role, AgentRole::Reviewer));
+    }
+
+    #[test]
+    fn new_context_starts_empty() {
+        let inst = make_instance("t", AgentRole::Tester);
+        assert!(inst.context.messages().is_empty());
+    }
+
+    // ── system_prompt ─────────────────────────────────────────
+
+    #[test]
+    fn system_prompt_uses_custom_when_set() {
+        let config =
+            AgentConfig::new(AgentRole::Coder, "c").with_system_prompt("Custom prompt here");
+        let inst = AgentInstance::new("id".into(), config);
+        assert_eq!(inst.system_prompt(), "Custom prompt here");
+    }
+
+    #[test]
+    fn system_prompt_falls_back_to_role() {
+        let inst = make_instance("c", AgentRole::Reviewer);
+        let prompt = inst.system_prompt();
+        assert!(prompt.contains("code reviewer"));
+    }
+
+    // ── process_message ───────────────────────────────────────
+
+    #[test]
+    fn process_message_returns_response() {
+        let mut inst = make_instance("worker", AgentRole::Coder);
+        let response = inst.process_message("hello");
+        assert!(response.contains("Processing: hello"));
+        assert!(response.contains("worker"));
+    }
+
+    #[test]
+    fn process_message_transitions_to_idle() {
+        let mut inst = make_instance("w", AgentRole::Coder);
+        inst.process_message("test");
+        assert_eq!(inst.status, AgentStatus::Idle);
+    }
+
+    #[test]
+    fn process_message_adds_user_and_assistant_messages() {
+        let mut inst = make_instance("w", AgentRole::Coder);
+        inst.process_message("hi");
+        let msgs = inst.context.messages();
+        assert!(msgs.len() >= 2);
+        // Last message should be assistant
+        let last = msgs.last().unwrap();
+        assert!(matches!(
+            last.role,
+            crate::llm::types::MessageRole::Assistant
+        ));
+    }
+
+    // ── stop ──────────────────────────────────────────────────
+
+    #[test]
+    fn stop_sets_done_status() {
+        let mut inst = make_instance("s", AgentRole::Coder);
+        inst.stop();
+        assert_eq!(inst.status, AgentStatus::Done);
+    }
+
+    #[test]
+    fn stop_clears_context() {
+        let mut inst = make_instance("s", AgentRole::Coder);
+        inst.process_message("something");
+        assert!(!inst.context.messages().is_empty());
+        inst.stop();
+        assert!(inst.context.messages().is_empty());
+    }
+
+    // ── restart ───────────────────────────────────────────────
+
+    #[test]
+    fn restart_sets_idle_status() {
+        let mut inst = make_instance("r", AgentRole::Coder);
+        inst.stop();
+        assert_eq!(inst.status, AgentStatus::Done);
+        inst.restart();
+        assert_eq!(inst.status, AgentStatus::Idle);
+    }
+
+    #[test]
+    fn restart_clears_context_and_buffer() {
+        let mut inst = make_instance("r", AgentRole::Coder);
+        inst.process_message("test");
+        inst.result_buffer.push("buf".into());
+        inst.restart();
+        assert!(inst.context.messages().is_empty());
+        assert!(inst.result_buffer.is_empty());
+    }
+
+    // ── collect_response (via process_message) ────────────────
+
+    #[test]
+    fn collect_response_returns_assistant_content() {
+        let mut inst = make_instance("c", AgentRole::Coder);
+        let response = inst.process_message("do something");
+        // The response should match what collect_response would find
+        assert!(response.contains("do something"));
+    }
+
+    // ── message channel ───────────────────────────────────────
+
+    #[test]
+    fn message_channel_is_open() {
+        let inst = make_instance("m", AgentRole::Coder);
+        // Sending should succeed (receiver is alive)
+        let msg = AgentMessage {
+            from: "a".into(),
+            to: inst.id.clone(),
+            content: "ping".into(),
+            msg_type: MessageType::Request,
+            task_id: None,
+        };
+        assert!(inst.message_tx.send(msg).is_ok());
+    }
+}
