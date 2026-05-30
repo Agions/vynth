@@ -1,7 +1,8 @@
-//! Event loop + input handling — keyboard, mouse, agent events, config reload.
+//! Event loop + agent/config event handling.
 
 use super::state::{
-    AgentEvent, AgentState, App, ChatMessage, FocusedPanel, InputMode, MessageRole, SidebarTab,
+    AgentEvent, AgentState, App, ChatMessage, FocusedPanel, InputMode, LayoutState, MessageRole,
+    SidebarTab,
 };
 use crate::config::keymap::Action;
 use crate::config::ConfigReload;
@@ -18,10 +19,8 @@ impl App {
         tracing::info!("Entering main event loop");
 
         loop {
-            // Render frame
             terminal.draw(|frame| self.draw_with_layout(frame))?;
 
-            // Wait for: user input, agent event, or config reload
             tokio::select! {
                 event = crate::tui::event::poll_event() => {
                     if let Some(event) = event {
@@ -52,7 +51,7 @@ impl App {
     async fn handle_input(&mut self, event: AppEvent) -> Result<(), AppError> {
         match event {
             AppEvent::Key(key) => {
-                // Global keybindings (Ctrl+C always quits)
+                // Ctrl+C always quits
                 if key.code == crossterm::event::KeyCode::Char('c')
                     && key
                         .modifiers
@@ -68,20 +67,11 @@ impl App {
                     return self.execute_action(action).await;
                 }
 
-                // Fallback to existing match arms
-                match self.mode {
-                    InputMode::Insert => self.handle_insert_key(key).await?,
-                    InputMode::Normal => self.handle_normal_key(key).await?,
-                    InputMode::Command => self.handle_command_key(key).await?,
-                    InputMode::Search => self.handle_search_key(key).await?,
-                }
+                // Delegate to mode-specific handler
+                self.handle_mode_key(key).await?;
             }
-            AppEvent::Resize(_, _) => {
-                // ratatui handles this automatically
-            }
-            AppEvent::Tick => {
-                // Periodic update (e.g., cursor blink)
-            }
+            AppEvent::Resize(_, _) => {}
+            AppEvent::Tick => {}
             AppEvent::Mouse(mouse) => {
                 self.handle_mouse(mouse);
             }
@@ -89,76 +79,90 @@ impl App {
         Ok(())
     }
 
-    /// Handle mouse click/scroll events
+    // ── Mouse handling ──────────────────────────────────────
+
     fn handle_mouse(&mut self, mouse: crossterm::event::MouseEvent) {
         use crossterm::event::{MouseButton, MouseEventKind};
 
         let x = mouse.column;
         let y = mouse.row;
         let layout = self.layout_state.clone();
-
         let in_rect = |r: &Rect| x >= r.x && x < r.x + r.width && y >= r.y && y < r.y + r.height;
 
         match mouse.kind {
             MouseEventKind::Down(MouseButton::Left) => {
-                if in_rect(&layout.sidebar_rect) {
-                    self.focused_panel = FocusedPanel::Sidebar;
-                    let tab_click_y = y.saturating_sub(layout.sidebar_rect.y);
-                    if tab_click_y <= 1 {
-                        let rel_x = x.saturating_sub(layout.sidebar_rect.x + 1) as usize;
-                        if rel_x < 6 {
-                            self.sidebar_state.active_tab = SidebarTab::Files;
-                        } else if rel_x < 15 {
-                            self.sidebar_state.active_tab = SidebarTab::Sessions;
-                        } else {
-                            self.sidebar_state.active_tab = SidebarTab::Skills;
-                        }
-                    } else {
-                        let content_row = tab_click_y.saturating_sub(2) as usize;
-                        self.select_sidebar_item(content_row);
-                    }
-                } else if in_rect(&layout.input_rect) {
-                    self.focused_panel = FocusedPanel::Input;
-                    self.mode = InputMode::Insert;
-                    let inner_x = x.saturating_sub(layout.input_rect.x + 1) as usize;
-                    let byte_pos = self
-                        .input_buffer
-                        .char_indices()
-                        .nth(inner_x)
-                        .map(|(i, _)| i)
-                        .unwrap_or(self.input_buffer.len());
-                    self.input_cursor = byte_pos;
-                } else if in_rect(&layout.chat_rect) {
-                    self.focused_panel = FocusedPanel::Chat;
-                    self.mode = InputMode::Insert;
-                } else if in_rect(&layout.diff_rect) {
-                    self.focused_panel = FocusedPanel::Diff;
-                } else if in_rect(&layout.status_rect) {
-                    // No action on status bar click
-                }
+                self.handle_mouse_click(x, y, &layout, &in_rect);
             }
             MouseEventKind::ScrollUp => {
-                if in_rect(&layout.chat_rect) {
-                    let max_scroll = self.chat_state.messages.len().saturating_sub(1);
-                    self.chat_state.scroll_offset =
-                        (self.chat_state.scroll_offset + 3).min(max_scroll);
-                } else if in_rect(&layout.diff_rect) {
-                    self.diff_state.scroll_offset += 3;
-                } else if in_rect(&layout.sidebar_rect) {
-                    self.sidebar_state.scroll_offset += 3;
-                }
+                self.handle_mouse_scroll_up(&layout, &in_rect);
             }
             MouseEventKind::ScrollDown => {
-                if in_rect(&layout.chat_rect) {
-                    self.chat_state.scroll_offset = self.chat_state.scroll_offset.saturating_sub(3);
-                } else if in_rect(&layout.diff_rect) {
-                    self.diff_state.scroll_offset = self.diff_state.scroll_offset.saturating_sub(3);
-                } else if in_rect(&layout.sidebar_rect) {
-                    self.sidebar_state.scroll_offset =
-                        self.sidebar_state.scroll_offset.saturating_sub(3);
-                }
+                self.handle_mouse_scroll_down(&layout, &in_rect);
             }
             _ => {}
+        }
+    }
+
+    fn handle_mouse_click(
+        &mut self,
+        x: u16,
+        y: u16,
+        layout: &LayoutState,
+        in_rect: &dyn Fn(&Rect) -> bool,
+    ) {
+        if in_rect(&layout.sidebar_rect) {
+            self.focused_panel = FocusedPanel::Sidebar;
+            let tab_click_y = y.saturating_sub(layout.sidebar_rect.y);
+            if tab_click_y <= 1 {
+                let rel_x = x.saturating_sub(layout.sidebar_rect.x + 1) as usize;
+                if rel_x < 6 {
+                    self.sidebar_state.active_tab = SidebarTab::Files;
+                } else if rel_x < 15 {
+                    self.sidebar_state.active_tab = SidebarTab::Sessions;
+                } else {
+                    self.sidebar_state.active_tab = SidebarTab::Skills;
+                }
+            } else {
+                let content_row = tab_click_y.saturating_sub(2) as usize;
+                self.select_sidebar_item(content_row);
+            }
+        } else if in_rect(&layout.input_rect) {
+            self.focused_panel = FocusedPanel::Input;
+            self.mode = InputMode::Insert;
+            let inner_x = x.saturating_sub(layout.input_rect.x + 1) as usize;
+            let byte_pos = self
+                .input_buffer
+                .char_indices()
+                .nth(inner_x)
+                .map(|(i, _)| i)
+                .unwrap_or(self.input_buffer.len());
+            self.input_cursor = byte_pos;
+        } else if in_rect(&layout.chat_rect) {
+            self.focused_panel = FocusedPanel::Chat;
+            self.mode = InputMode::Insert;
+        } else if in_rect(&layout.diff_rect) {
+            self.focused_panel = FocusedPanel::Diff;
+        }
+    }
+
+    fn handle_mouse_scroll_up(&mut self, layout: &LayoutState, in_rect: &dyn Fn(&Rect) -> bool) {
+        if in_rect(&layout.chat_rect) {
+            let max_scroll = self.chat_state.messages.len().saturating_sub(1);
+            self.chat_state.scroll_offset = (self.chat_state.scroll_offset + 3).min(max_scroll);
+        } else if in_rect(&layout.diff_rect) {
+            self.diff_state.scroll_offset += 3;
+        } else if in_rect(&layout.sidebar_rect) {
+            self.sidebar_state.scroll_offset += 3;
+        }
+    }
+
+    fn handle_mouse_scroll_down(&mut self, layout: &LayoutState, in_rect: &dyn Fn(&Rect) -> bool) {
+        if in_rect(&layout.chat_rect) {
+            self.chat_state.scroll_offset = self.chat_state.scroll_offset.saturating_sub(3);
+        } else if in_rect(&layout.diff_rect) {
+            self.diff_state.scroll_offset = self.diff_state.scroll_offset.saturating_sub(3);
+        } else if in_rect(&layout.sidebar_rect) {
+            self.sidebar_state.scroll_offset = self.sidebar_state.scroll_offset.saturating_sub(3);
         }
     }
 
@@ -183,164 +187,7 @@ impl App {
         }
     }
 
-    // ── Key handlers ──────────────────────────────────────────
-
-    async fn handle_insert_key(&mut self, key: crossterm::event::KeyEvent) -> Result<(), AppError> {
-        match key.code {
-            crossterm::event::KeyCode::Esc => {
-                self.mode = InputMode::Normal;
-            }
-            crossterm::event::KeyCode::Enter => {
-                self.submit_message();
-            }
-            crossterm::event::KeyCode::Backspace => {
-                if self.input_cursor > 0 {
-                    let prev = self.prev_char_pos();
-                    self.input_buffer.replace_range(prev..self.input_cursor, "");
-                    self.input_cursor = prev;
-                }
-            }
-            crossterm::event::KeyCode::Delete => {
-                if self.input_cursor < self.input_buffer.len() {
-                    let next = self.next_char_pos();
-                    self.input_buffer.replace_range(self.input_cursor..next, "");
-                }
-            }
-            crossterm::event::KeyCode::Left => {
-                if self.input_cursor > 0 {
-                    let prev = self.prev_char_pos();
-                    self.input_cursor = prev;
-                }
-            }
-            crossterm::event::KeyCode::Right => {
-                if self.input_cursor < self.input_buffer.len() {
-                    let next = self.next_char_pos();
-                    self.input_cursor = next;
-                }
-            }
-            crossterm::event::KeyCode::Home => {
-                self.input_cursor = 0;
-            }
-            crossterm::event::KeyCode::End => {
-                self.input_cursor = self.input_buffer.len();
-            }
-            crossterm::event::KeyCode::Char(c) => {
-                if !key
-                    .modifiers
-                    .contains(crossterm::event::KeyModifiers::CONTROL)
-                {
-                    self.input_buffer.insert(self.input_cursor, c);
-                    self.input_cursor += c.len_utf8();
-                }
-            }
-            _ => {}
-        }
-        Ok(())
-    }
-
-    async fn handle_normal_key(&mut self, key: crossterm::event::KeyEvent) -> Result<(), AppError> {
-        match key.code {
-            crossterm::event::KeyCode::Char('i') => {
-                self.mode = InputMode::Insert;
-            }
-            crossterm::event::KeyCode::Char(':') => {
-                self.mode = InputMode::Command;
-            }
-            crossterm::event::KeyCode::Char('/') => {
-                self.mode = InputMode::Search;
-            }
-            crossterm::event::KeyCode::Char('q') => {
-                self.should_quit = true;
-            }
-            crossterm::event::KeyCode::Char('j') => {
-                let max_scroll = self.chat_state.messages.len().saturating_sub(1);
-                if self.chat_state.scroll_offset < max_scroll {
-                    self.chat_state.scroll_offset += 1;
-                }
-            }
-            crossterm::event::KeyCode::Char('k') => {
-                self.chat_state.scroll_offset = self.chat_state.scroll_offset.saturating_sub(1);
-            }
-            crossterm::event::KeyCode::Char('G') => {
-                self.chat_state.scroll_offset = 0;
-            }
-            _ => {}
-        }
-        Ok(())
-    }
-
-    async fn handle_command_key(
-        &mut self,
-        key: crossterm::event::KeyEvent,
-    ) -> Result<(), AppError> {
-        match key.code {
-            crossterm::event::KeyCode::Esc => {
-                self.input_buffer.clear();
-                self.input_cursor = 0;
-                self.mode = InputMode::Normal;
-            }
-            crossterm::event::KeyCode::Enter => {
-                tracing::debug!("Command: {}", self.input_buffer);
-                self.input_buffer.clear();
-                self.input_cursor = 0;
-                self.mode = InputMode::Normal;
-            }
-            crossterm::event::KeyCode::Backspace => {
-                if self.input_cursor > 0 {
-                    let prev = self.prev_char_pos();
-                    self.input_buffer.replace_range(prev..self.input_cursor, "");
-                    self.input_cursor = prev;
-                }
-            }
-            crossterm::event::KeyCode::Char(c) => {
-                if !key
-                    .modifiers
-                    .contains(crossterm::event::KeyModifiers::CONTROL)
-                {
-                    self.input_buffer.insert(self.input_cursor, c);
-                    self.input_cursor += c.len_utf8();
-                }
-            }
-            _ => {}
-        }
-        Ok(())
-    }
-
-    async fn handle_search_key(&mut self, key: crossterm::event::KeyEvent) -> Result<(), AppError> {
-        match key.code {
-            crossterm::event::KeyCode::Esc => {
-                self.input_buffer.clear();
-                self.input_cursor = 0;
-                self.mode = InputMode::Normal;
-            }
-            crossterm::event::KeyCode::Enter => {
-                tracing::debug!("Search: {}", self.input_buffer);
-                self.input_buffer.clear();
-                self.input_cursor = 0;
-                self.mode = InputMode::Normal;
-            }
-            crossterm::event::KeyCode::Backspace => {
-                if self.input_cursor > 0 {
-                    let prev = self.prev_char_pos();
-                    self.input_buffer.replace_range(prev..self.input_cursor, "");
-                    self.input_cursor = prev;
-                }
-            }
-            crossterm::event::KeyCode::Char(c) => {
-                if !key
-                    .modifiers
-                    .contains(crossterm::event::KeyModifiers::CONTROL)
-                {
-                    self.input_buffer.insert(self.input_cursor, c);
-                    self.input_cursor += c.len_utf8();
-                }
-            }
-            _ => {}
-        }
-        Ok(())
-    }
-
-    // ── Agent & config events ─────────────────────────────────
+    // ── Agent & config events ──────────────────────────────
 
     /// Handle agent streaming events
     pub(crate) fn handle_agent_event(&mut self, event: AgentEvent) {
@@ -362,15 +209,16 @@ impl App {
                 output,
                 is_error,
             } => {
+                let preview_len = output
+                    .char_indices()
+                    .nth(100)
+                    .map(|(i, _)| i)
+                    .unwrap_or(output.len());
                 tracing::info!(
                     "Tool result: {} (error={}): {}",
                     name,
                     is_error,
-                    &output[..output
-                        .char_indices()
-                        .nth(100)
-                        .map(|(i, _)| i)
-                        .unwrap_or(output.len())]
+                    &output[..preview_len]
                 );
             }
             AgentEvent::Done => {
@@ -392,7 +240,7 @@ impl App {
         }
     }
 
-    /// Apply a config hot-reload — update live fields only
+    /// Apply a config hot-reload
     pub(crate) fn apply_config_reload(&mut self, reload: ConfigReload) {
         tracing::info!(
             version = reload.version,
@@ -403,23 +251,19 @@ impl App {
         );
 
         self.keybindings = Self::create_keybindings(&reload.settings);
-
         self.settings.ui.theme = reload.settings.ui.theme.clone();
         self.settings.ui.keymap = reload.settings.ui.keymap.clone();
         self.settings.sandbox.mode = reload.settings.sandbox.mode.clone();
         self.status_bar.sandbox_mode = format!("{:?}", self.settings.sandbox.mode);
-
         self.config_version = reload.version;
     }
 
-    // ── Drawing ───────────────────────────────────────────────
+    // ── Drawing ────────────────────────────────────────────
 
-    /// Draw the TUI frame
     pub(crate) fn draw(&self, frame: &mut ratatui::Frame) {
         crate::tui::frame::draw_frame(frame, self);
     }
 
-    /// Draw frame and store layout rects for mouse hit-testing
     pub(crate) fn draw_with_layout(&mut self, frame: &mut ratatui::Frame) {
         crate::tui::frame::draw_frame_with_layout(frame, self);
     }

@@ -105,7 +105,11 @@ mod tests {
         fn schema(&self) -> serde_json::Value {
             json!({"type": "object", "properties": {}})
         }
-        async fn execute(&self, _args: serde_json::Value, _ctx: &ToolContext) -> Result<ToolResult, AppError> {
+        async fn execute(
+            &self,
+            _args: serde_json::Value,
+            _ctx: &ToolContext,
+        ) -> Result<ToolResult, AppError> {
             Ok(ToolResult {
                 output: "ok".into(),
                 is_error: false,

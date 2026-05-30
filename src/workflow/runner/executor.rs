@@ -1,14 +1,17 @@
+//! Workflow execution engine — parallel step execution with DAG validation.
+
 use std::collections::{HashMap, HashSet};
-use std::time::Instant;
 
 use crate::agent::multi::{AgentConfig, AgentSwarm};
 use crate::agent::roles::AgentRole;
 use crate::error::AppError;
 use crate::workflow::definition::{WorkflowDef, WorkflowStep};
 
+use super::helpers;
+use super::retry::execute_step_with_retry;
 use super::types::{StepResult, StepStatus, WorkflowStatus};
 
-/// Workflow execution engine
+/// Workflow execution engine.
 pub struct WorkflowRunner {
     pub workflow: WorkflowDef,
     pub swarm: AgentSwarm,
@@ -18,11 +21,10 @@ pub struct WorkflowRunner {
 }
 
 impl WorkflowRunner {
+    /// Create a new runner, spawning one agent per unique role in the workflow.
     pub fn new(workflow: WorkflowDef, mut swarm: AgentSwarm) -> Result<Self, AppError> {
-        // Validate DAG before proceeding
         workflow.validate_dag()?;
 
-        // Create agents for each unique role in the workflow
         let mut agent_map = HashMap::new();
         let mut seen_roles = HashSet::new();
 
@@ -53,7 +55,7 @@ impl WorkflowRunner {
         })
     }
 
-    /// Run the entire workflow — executes independent steps in parallel
+    /// Run the entire workflow — executes independent steps in parallel.
     pub async fn run(&mut self) -> Result<WorkflowStatus, AppError> {
         let total = self.workflow.steps.len();
         let mut completed = 0;
@@ -67,7 +69,6 @@ impl WorkflowRunner {
                 break;
             }
 
-            // Execute all independent steps in parallel
             let mut futures = Vec::new();
             for step in &executable {
                 // Check condition before spawning
@@ -125,16 +126,13 @@ impl WorkflowRunner {
                 ));
             }
 
-            // Await all parallel steps
             let results = futures::future::join_all(futures).await;
 
             for result in results {
                 match result {
                     Ok(step_result) => {
-                        // Store output in variable if configured
                         if let StepStatus::Success = &step_result.status {
                             completed += 1;
-                            // Find the step to get output_variable
                             if let Some(step) = self
                                 .workflow
                                 .steps
@@ -172,7 +170,7 @@ impl WorkflowRunner {
         })
     }
 
-    /// Execute a single step (wrapper for backward compatibility)
+    /// Execute a single step by id.
     pub async fn run_step(&mut self, step_id: &str) -> Result<StepResult, AppError> {
         let step = self
             .workflow
@@ -221,116 +219,22 @@ impl WorkflowRunner {
         result
     }
 
-    /// Interpolate {{variables}} in a prompt template
+    /// Interpolate `{{variables}}` in a prompt template.
     pub fn resolve_prompt(&self, template: &str) -> String {
-        let mut result = template.to_string();
-        for (key, value) in &self.variables {
-            let placeholder = format!("{{{{{}}}}}", key);
-            result = result.replace(&placeholder, value);
-        }
-        result
+        helpers::resolve_prompt(template, &self.variables)
     }
 
-    /// Evaluate a condition expression. Supports:
-    /// - `var_name` — true if variable exists and is non-empty
-    /// - `!var_name` — true if variable is missing or empty
-    /// - `var_name != 'value'` — not equal
-    /// - `var_name == 'value'` — exact match
-    /// - `var_name contains 'value'` — substring match
-    /// - `var_name starts_with 'value'` — prefix match
+    /// Evaluate a condition expression against the current variables.
     pub fn evaluate_condition(&self, condition: &str) -> bool {
-        let trimmed = condition.trim();
-
-        // Negation: !var_name
-        if let Some(var_name) = trimmed.strip_prefix('!') {
-            return self
-                .variables
-                .get(var_name.trim())
-                .map(|v| v.is_empty())
-                .unwrap_or(true);
-        }
-
-        // No spaces → variable existence check
-        if !trimmed.contains(' ') {
-            return self
-                .variables
-                .get(trimmed)
-                .map(|v| !v.is_empty())
-                .unwrap_or(false);
-        }
-
-        // var_name != 'value'
-        if let Some(rest) = trimmed.strip_suffix('\'') {
-            if let Some(pos) = trimmed.find(" != '") {
-                let var_name = trimmed[..pos].trim();
-                let expected = &trimmed[pos + 5..rest.len()];
-                return self
-                    .variables
-                    .get(var_name)
-                    .map(|v| v != expected)
-                    .unwrap_or(true);
-            }
-        }
-
-        // var_name == 'value'
-        if let Some(pos) = trimmed.find(" == '") {
-            let var_name = trimmed[..pos].trim();
-            let expected = trimmed[pos + 5..].trim().trim_matches('\'');
-            return self
-                .variables
-                .get(var_name)
-                .map(|v| v == expected)
-                .unwrap_or(false);
-        }
-
-        // var_name contains 'value'
-        if let Some(pos) = trimmed.find(" contains '") {
-            let var_name = trimmed[..pos].trim();
-            let needle = trimmed[pos + 11..].trim().trim_matches('\'');
-            return self
-                .variables
-                .get(var_name)
-                .map(|v| v.contains(needle))
-                .unwrap_or(false);
-        }
-
-        // var_name starts_with 'value'
-        if let Some(pos) = trimmed.find(" starts_with '") {
-            let var_name = trimmed[..pos].trim();
-            let prefix = trimmed[pos + 14..].trim().trim_matches('\'');
-            return self
-                .variables
-                .get(var_name)
-                .map(|v| v.starts_with(prefix))
-                .unwrap_or(false);
-        }
-
-        // Fallback: treat as variable existence
-        self.variables
-            .get(trimmed)
-            .map(|v| !v.is_empty())
-            .unwrap_or(false)
+        helpers::evaluate_condition(condition, &self.variables)
     }
 
-    /// Get steps whose dependencies are all satisfied
+    /// Get steps whose dependencies are all satisfied.
     pub fn get_executable_steps(&self) -> Vec<WorkflowStep> {
-        self.workflow
-            .steps
-            .iter()
-            .filter(|step| {
-                // Not already executed
-                !self.step_results.contains_key(&step.id)
-                // All dependencies satisfied
-                && step
-                    .depends_on
-                    .iter()
-                    .all(|dep| self.step_results.get(dep).map(|r| r.status == StepStatus::Success).unwrap_or(false))
-            })
-            .cloned()
-            .collect()
+        helpers::get_executable_steps(&self.workflow.steps, &self.step_results)
     }
 
-    /// Get current workflow status
+    /// Get current workflow status.
     pub fn status(&self) -> WorkflowStatus {
         let total = self.workflow.steps.len();
         let completed = self
@@ -362,91 +266,6 @@ impl WorkflowRunner {
             skipped,
             running,
             timed_out,
-        }
-    }
-}
-
-/// Execute a step with retry logic and timeout.
-/// This is a free function to avoid borrowing issues with the swarm.
-pub(crate) async fn execute_step_with_retry(
-    step_id: String,
-    _agent_id: String,
-    _prompt: String,
-    _output_variable: Option<String>,
-    max_retries: u32,
-    retry_delay_ms: u64,
-    timeout_secs: u64,
-) -> Result<StepResult, AppError> {
-    let mut attempts = 0u32;
-    let max_attempts = max_retries + 1;
-
-    loop {
-        attempts += 1;
-        let start = Instant::now();
-
-        // Execute with timeout
-        let timeout_duration = std::time::Duration::from_secs(timeout_secs);
-        let result = tokio::time::timeout(timeout_duration, async {
-            // In real usage, this would call swarm.run_task() with the actual agent.
-            // For now, simulate step execution.
-            Ok::<String, AppError>(format!("[Step '{}' completed] (simulated)", step_id))
-        })
-        .await;
-
-        let duration = start.elapsed().as_millis() as u64;
-
-        match result {
-            Ok(Ok(output)) => {
-                return Ok(StepResult {
-                    step_id,
-                    output,
-                    status: StepStatus::Success,
-                    duration_ms: duration,
-                    attempts,
-                });
-            }
-            Ok(Err(e)) => {
-                if attempts <= max_retries {
-                    tracing::warn!(
-                        "Step '{}' failed (attempt {}/{}): {}. Retrying in {}ms...",
-                        step_id,
-                        attempts,
-                        max_attempts,
-                        e,
-                        retry_delay_ms
-                    );
-                    tokio::time::sleep(std::time::Duration::from_millis(retry_delay_ms)).await;
-                    continue;
-                }
-                return Ok(StepResult {
-                    step_id,
-                    output: format!("Error after {} attempts: {}", attempts, e),
-                    status: StepStatus::Failed(e.to_string()),
-                    duration_ms: duration,
-                    attempts,
-                });
-            }
-            Err(_) => {
-                // Timeout
-                if attempts <= max_retries {
-                    tracing::warn!(
-                        "Step '{}' timed out (attempt {}/{}). Retrying in {}ms...",
-                        step_id,
-                        attempts,
-                        max_attempts,
-                        retry_delay_ms
-                    );
-                    tokio::time::sleep(std::time::Duration::from_millis(retry_delay_ms)).await;
-                    continue;
-                }
-                return Ok(StepResult {
-                    step_id,
-                    output: format!("Timed out after {}s ({} attempts)", timeout_secs, attempts),
-                    status: StepStatus::TimedOut,
-                    duration_ms: duration,
-                    attempts,
-                });
-            }
         }
     }
 }

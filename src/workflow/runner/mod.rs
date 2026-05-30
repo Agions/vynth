@@ -1,10 +1,13 @@
 //! Workflow execution engine — parallel step execution with DAG validation
 
 mod executor;
+mod helpers;
+mod retry;
 mod types;
 
-pub use types::{StepResult, StepStatus, WorkflowStatus};
 pub use executor::WorkflowRunner;
+pub use helpers::{evaluate_condition, get_executable_steps, resolve_prompt};
+pub use types::{StepResult, StepStatus, WorkflowStatus};
 
 #[cfg(test)]
 mod tests {

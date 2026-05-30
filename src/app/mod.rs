@@ -7,6 +7,7 @@
 
 mod actions;
 mod event_loop;
+mod input;
 mod state;
 
 // Re-export all public types so external code sees the same API
