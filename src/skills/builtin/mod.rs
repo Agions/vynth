@@ -3,4 +3,5 @@
 pub mod code_review;
 pub mod refactor;
 
-// Built-in skills are compiled into the binary as fallbacks
+pub use code_review::code_review_skill;
+pub use refactor::refactor_skill;

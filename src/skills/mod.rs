@@ -6,3 +6,4 @@ pub mod loader;
 pub mod builtin;
 
 pub use registry::SkillRegistry;
+pub use trait_def::{SkillDef, SkillTrigger};

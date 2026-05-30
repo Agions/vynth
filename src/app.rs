@@ -37,6 +37,10 @@ pub struct App {
     pub settings: Settings,
     /// Should quit flag
     pub should_quit: bool,
+    /// Text input buffer
+    pub input_buffer: String,
+    /// Cursor position within input_buffer (byte offset)
+    pub input_cursor: usize,
     /// Agent event receiver
     agent_rx: tokio::sync::mpsc::UnboundedReceiver<AgentEvent>,
     /// Agent event sender (cloned for agent tasks)
@@ -57,6 +61,8 @@ pub struct ChatState {
     pub messages: Vec<ChatMessage>,
     pub streaming_text: String,
     pub is_streaming: bool,
+    /// Number of lines scrolled up from the bottom (0 = latest at bottom)
+    pub scroll_offset: usize,
 }
 
 /// A single chat message
@@ -72,6 +78,47 @@ pub enum MessageRole {
     Assistant,
     System,
     Tool,
+}
+
+impl App {
+    /// Create App with external channel (for testing)
+    pub fn new_with_channel(
+        settings: crate::config::Settings,
+        agent_tx: tokio::sync::mpsc::UnboundedSender<AgentEvent>,
+        agent_rx: tokio::sync::mpsc::UnboundedReceiver<AgentEvent>,
+    ) -> Self {
+        Self {
+            mode: InputMode::Normal,
+            chat_state: ChatState {
+                messages: Vec::new(),
+                streaming_text: String::new(),
+                is_streaming: false,
+                scroll_offset: 0,
+            },
+            sidebar_state: SidebarState {
+                active_tab: SidebarTab::Files,
+                file_tree: Vec::new(),
+            },
+            diff_state: DiffState {
+                visible: false,
+                content: String::new(),
+                hunks: Vec::new(),
+            },
+            status_bar: StatusBarState {
+                model_name: settings.llm.model.clone(),
+                tokens_used: 0,
+                tokens_total: settings.llm.context_window,
+                agent_state: AgentState::Idle,
+                sandbox_mode: format!("{:?}", settings.sandbox.mode),
+            },
+            input_buffer: String::new(),
+            input_cursor: 0,
+            settings,
+            should_quit: false,
+            agent_rx,
+            agent_tx,
+        }
+    }
 }
 
 /// Tool call display info
@@ -164,6 +211,7 @@ impl App {
                 messages: Vec::new(),
                 streaming_text: String::new(),
                 is_streaming: false,
+                scroll_offset: 0,
             },
             sidebar_state: SidebarState {
                 active_tab: SidebarTab::Files,
@@ -181,10 +229,27 @@ impl App {
                 tokens_total: 0,
                 sandbox_mode: "confirm".to_string(),
             },
+            input_buffer: String::new(),
+            input_cursor: 0,
             settings,
             should_quit: false,
             agent_rx,
             agent_tx,
+        }
+    }
+
+    /// Submit the current input buffer as a user message
+    pub fn submit_message(&mut self) {
+        let text = std::mem::take(&mut self.input_buffer);
+        self.input_cursor = 0;
+        if !text.is_empty() {
+            self.chat_state.messages.push(ChatMessage {
+                role: MessageRole::User,
+                content: text,
+                tool_calls: Vec::new(),
+            });
+            // Reset scroll to bottom on new message
+            self.chat_state.scroll_offset = 0;
         }
     }
 
@@ -262,14 +327,64 @@ impl App {
                 self.mode = InputMode::Normal;
             }
             crossterm::event::KeyCode::Enter => {
-                // Submit current input
-                // TODO: collect input buffer and send to agent
-                tracing::debug!("Enter pressed — submit input");
+                self.submit_message();
             }
-            _ => {
-                // Append to input buffer
-                // TODO: implement input buffer
+            crossterm::event::KeyCode::Backspace => {
+                if self.input_cursor > 0 {
+                    // Find the previous character boundary
+                    let prev = self.input_buffer[..self.input_cursor]
+                        .char_indices()
+                        .last()
+                        .map(|(i, _)| i)
+                        .unwrap_or(0);
+                    self.input_buffer.replace_range(prev..self.input_cursor, "");
+                    self.input_cursor = prev;
+                }
             }
+            crossterm::event::KeyCode::Delete => {
+                if self.input_cursor < self.input_buffer.len() {
+                    let next = self.input_buffer[self.input_cursor..]
+                        .char_indices()
+                        .nth(1)
+                        .map(|(i, _)| self.input_cursor + i)
+                        .unwrap_or(self.input_buffer.len());
+                    self.input_buffer.replace_range(self.input_cursor..next, "");
+                }
+            }
+            crossterm::event::KeyCode::Left => {
+                if self.input_cursor > 0 {
+                    let prev = self.input_buffer[..self.input_cursor]
+                        .char_indices()
+                        .last()
+                        .map(|(i, _)| i)
+                        .unwrap_or(0);
+                    self.input_cursor = prev;
+                }
+            }
+            crossterm::event::KeyCode::Right => {
+                if self.input_cursor < self.input_buffer.len() {
+                    let next = self.input_buffer[self.input_cursor..]
+                        .char_indices()
+                        .nth(1)
+                        .map(|(i, _)| self.input_cursor + i)
+                        .unwrap_or(self.input_buffer.len());
+                    self.input_cursor = next;
+                }
+            }
+            crossterm::event::KeyCode::Home => {
+                self.input_cursor = 0;
+            }
+            crossterm::event::KeyCode::End => {
+                self.input_cursor = self.input_buffer.len();
+            }
+            crossterm::event::KeyCode::Char(c) => {
+                // Ignore Ctrl+<char> combos (already handled globally)
+                if !key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) {
+                    self.input_buffer.insert(self.input_cursor, c);
+                    self.input_cursor += c.len_utf8();
+                }
+            }
+            _ => {}
         }
         Ok(())
     }
@@ -291,6 +406,21 @@ impl App {
             crossterm::event::KeyCode::Char('q') => {
                 self.should_quit = true;
             }
+            crossterm::event::KeyCode::Char('j') => {
+                // Scroll down (older messages)
+                let max_scroll = self.chat_state.messages.len().saturating_sub(1);
+                if self.chat_state.scroll_offset < max_scroll {
+                    self.chat_state.scroll_offset += 1;
+                }
+            }
+            crossterm::event::KeyCode::Char('k') => {
+                // Scroll up (newer messages)
+                self.chat_state.scroll_offset = self.chat_state.scroll_offset.saturating_sub(1);
+            }
+            crossterm::event::KeyCode::Char('G') => {
+                // Jump to bottom
+                self.chat_state.scroll_offset = 0;
+            }
             _ => {}
         }
         Ok(())
@@ -302,16 +432,36 @@ impl App {
     ) -> Result<(), AppError> {
         match key.code {
             crossterm::event::KeyCode::Esc => {
+                self.input_buffer.clear();
+                self.input_cursor = 0;
                 self.mode = InputMode::Normal;
             }
             crossterm::event::KeyCode::Enter => {
                 // Execute command
                 // TODO: parse and execute :commands
+                tracing::debug!("Command: {}", self.input_buffer);
+                self.input_buffer.clear();
+                self.input_cursor = 0;
                 self.mode = InputMode::Normal;
             }
-            _ => {
-                // Append to command buffer
+            crossterm::event::KeyCode::Backspace => {
+                if self.input_cursor > 0 {
+                    let prev = self.input_buffer[..self.input_cursor]
+                        .char_indices()
+                        .last()
+                        .map(|(i, _)| i)
+                        .unwrap_or(0);
+                    self.input_buffer.replace_range(prev..self.input_cursor, "");
+                    self.input_cursor = prev;
+                }
             }
+            crossterm::event::KeyCode::Char(c) => {
+                if !key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) {
+                    self.input_buffer.insert(self.input_cursor, c);
+                    self.input_cursor += c.len_utf8();
+                }
+            }
+            _ => {}
         }
         Ok(())
     }
@@ -322,15 +472,35 @@ impl App {
     ) -> Result<(), AppError> {
         match key.code {
             crossterm::event::KeyCode::Esc => {
+                self.input_buffer.clear();
+                self.input_cursor = 0;
                 self.mode = InputMode::Normal;
             }
             crossterm::event::KeyCode::Enter => {
                 // Execute search
+                tracing::debug!("Search: {}", self.input_buffer);
+                self.input_buffer.clear();
+                self.input_cursor = 0;
                 self.mode = InputMode::Normal;
             }
-            _ => {
-                // Append to search buffer
+            crossterm::event::KeyCode::Backspace => {
+                if self.input_cursor > 0 {
+                    let prev = self.input_buffer[..self.input_cursor]
+                        .char_indices()
+                        .last()
+                        .map(|(i, _)| i)
+                        .unwrap_or(0);
+                    self.input_buffer.replace_range(prev..self.input_cursor, "");
+                    self.input_cursor = prev;
+                }
             }
+            crossterm::event::KeyCode::Char(c) => {
+                if !key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) {
+                    self.input_buffer.insert(self.input_cursor, c);
+                    self.input_cursor += c.len_utf8();
+                }
+            }
+            _ => {}
         }
         Ok(())
     }
@@ -363,6 +533,7 @@ impl App {
                     });
                 }
                 self.chat_state.is_streaming = false;
+                self.chat_state.scroll_offset = 0;
                 self.status_bar.agent_state = AgentState::Idle;
             }
             AgentEvent::Error(msg) => {

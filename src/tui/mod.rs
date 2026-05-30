@@ -1,7 +1,9 @@
 //! TUI rendering layer
 
+pub mod diff_renderer;
 pub mod event;
 pub mod frame;
+pub mod syntax;
 pub mod theme;
 pub mod widgets;
 

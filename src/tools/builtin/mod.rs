@@ -9,6 +9,12 @@ pub mod patch;
 use std::sync::Arc;
 use crate::tools::registry::ToolRegistry;
 
+pub use file_read::FileReadTool;
+pub use file_write::FileWriteTool;
+pub use shell_exec::ShellExecTool;
+pub use search::SearchTool;
+pub use patch::PatchTool;
+
 /// Register all built-in tools
 pub fn register_builtins(registry: &mut ToolRegistry) {
     registry.register(Arc::new(file_read::FileReadTool));
