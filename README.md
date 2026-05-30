@@ -68,6 +68,48 @@ cargo build --release
 ./target/release/syncode
 ```
 
+## 卸载
+
+### curl 一键卸载
+
+```bash
+# 卸载二进制（保留配置）
+curl -fsSL https://gitee.com/Agions/syncode/raw/main/uninstall.sh | bash
+
+# 完全卸载（包括配置和数据）
+curl -fsSL https://gitee.com/Agions/syncode/raw/main/uninstall.sh | bash -s -- --all
+
+# 仅删除配置
+curl -fsSL https://gitee.com/Agions/syncode/raw/main/uninstall.sh | bash -s -- --config-only
+```
+
+### npm 卸载
+
+```bash
+npm uninstall -g syncode
+```
+
+### Cargo 卸载
+
+```bash
+cargo uninstall syncode
+```
+
+### 手动清理
+
+```bash
+# 删除二进制
+rm -f /usr/local/bin/syncode
+rm -f ~/.local/bin/syncode
+
+# 删除配置目录
+rm -rf ~/.config/syncode/
+
+# 删除缓存和数据
+rm -rf ~/.cache/syncode/
+rm -rf ~/.local/share/syncode/
+```
+
 ## 配置
 
 配置文件路径：`~/.config/syncode/config.toml`
