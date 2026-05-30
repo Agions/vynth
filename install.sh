@@ -97,7 +97,15 @@ build_from_source() {
     local tmp_dir="$2"
 
     if ! command -v cargo >/dev/null 2>&1; then
-        error "cargo not found. Install Rust first: https://rustup.rs"
+        warn "cargo not found, installing Rust via rustup..."
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y 2>&1
+        # shellcheck source=/dev/null
+        [ -f "$HOME/.cargo/env" ] && source "$HOME/.cargo/env"
+        export PATH="$HOME/.cargo/bin:$PATH"
+        if ! command -v cargo >/dev/null 2>&1; then
+            error "Rust installation failed. Please install manually: https://rustup.rs"
+        fi
+        ok "Rust installed successfully"
     fi
 
     info "Cloning source at ${tag}..."
