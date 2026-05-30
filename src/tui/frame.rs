@@ -7,8 +7,36 @@ use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 
 use crate::app::{AgentState, App, InputMode, SidebarTab};
 
-/// Draw the entire frame
+/// Draw the entire frame (read-only)
 pub fn draw_frame(frame: &mut ratatui::Frame, app: &App) {
+    let (sidebar_area, chat_area, diff_area, input_area, status_area) = compute_layout(frame);
+    draw_sidebar(frame, app, sidebar_area);
+    draw_chat(frame, app, chat_area);
+    draw_diff(frame, app, diff_area);
+    draw_input(frame, app, input_area);
+    draw_status_bar(frame, app, status_area);
+}
+
+/// Draw the entire frame and store layout rects in app for mouse hit-testing
+pub fn draw_frame_with_layout(frame: &mut ratatui::Frame, app: &mut App) {
+    let (sidebar_area, chat_area, diff_area, input_area, status_area) = compute_layout(frame);
+
+    // Store layout rects for mouse hit-testing
+    app.layout_state.sidebar_rect = sidebar_area;
+    app.layout_state.chat_rect = chat_area;
+    app.layout_state.diff_rect = diff_area;
+    app.layout_state.input_rect = input_area;
+    app.layout_state.status_rect = status_area;
+
+    draw_sidebar(frame, app, sidebar_area);
+    draw_chat(frame, app, chat_area);
+    draw_diff(frame, app, diff_area);
+    draw_input(frame, app, input_area);
+    draw_status_bar(frame, app, status_area);
+}
+
+/// Compute the layout areas (shared between read-only and mutable paths)
+fn compute_layout(frame: &mut ratatui::Frame) -> (Rect, Rect, Rect, Rect, Rect) {
     // Main horizontal split: sidebar | main area
     let h_chunks = Layout::default()
         .direction(Direction::Horizontal)
@@ -29,11 +57,7 @@ pub fn draw_frame(frame: &mut ratatui::Frame, app: &App) {
         ])
         .split(h_chunks[1]);
 
-    draw_sidebar(frame, app, h_chunks[0]);
-    draw_chat(frame, app, v_chunks[0]);
-    draw_diff(frame, app, v_chunks[1]);
-    draw_input(frame, app, v_chunks[2]);
-    draw_status_bar(frame, app, v_chunks[3]);
+    (h_chunks[0], v_chunks[0], v_chunks[1], v_chunks[2], v_chunks[3])
 }
 
 /// Draw sidebar panel with tab bar
@@ -93,9 +117,11 @@ fn draw_sidebar(frame: &mut ratatui::Frame, app: &App, area: Rect) {
             if app.sidebar_state.file_tree.is_empty() {
                 "  (no files loaded)".to_string()
             } else {
+                let scroll = app.sidebar_state.scroll_offset;
                 app.sidebar_state
                     .file_tree
                     .iter()
+                    .skip(scroll)
                     .map(|f| {
                         let indent = "  ".repeat(f.depth);
                         let icon = if f.is_dir { "📁" } else { "📄" };
@@ -121,7 +147,11 @@ fn draw_chat(frame: &mut ratatui::Frame, app: &App, area: Rect) {
     let block = Block::default()
         .title(" Chat ")
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(Color::DarkGray));
+        .border_style(Style::default().fg(if app.focused_panel == crate::app::FocusedPanel::Chat {
+            Color::Cyan
+        } else {
+            Color::DarkGray
+        }));
 
     let inner_height = area.height.saturating_sub(2) as usize; // subtract top/bottom border
     let mut lines: Vec<Line> = Vec::new();
@@ -223,7 +253,11 @@ fn draw_diff(frame: &mut ratatui::Frame, app: &App, area: Rect) {
     let block = Block::default()
         .title(" Diff Preview ")
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(Color::DarkGray));
+        .border_style(Style::default().fg(if app.focused_panel == crate::app::FocusedPanel::Diff {
+            Color::Cyan
+        } else {
+            Color::DarkGray
+        }));
 
     if app.diff_state.content.is_empty() {
         let paragraph = Paragraph::new("  (no pending changes)")
@@ -241,7 +275,10 @@ fn draw_diff(frame: &mut ratatui::Frame, app: &App, area: Rect) {
             col_width,
         );
 
-        let paragraph = Paragraph::new(diff_text).block(block);
+        // Apply scroll offset
+        let paragraph = Paragraph::new(diff_text)
+            .block(block)
+            .scroll((app.diff_state.scroll_offset as u16, 0));
         frame.render_widget(paragraph, area);
     }
 }

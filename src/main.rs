@@ -17,12 +17,16 @@ mod tools;
 mod skills;
 mod mcp;
 mod sandbox;
+mod telemetry;
 
 use config::Settings;
 use error::AppError;
+use telemetry::{StartupMetrics, StartupTimer};
 
 #[tokio::main]
 async fn main() -> Result<(), AppError> {
+    let mut timer = StartupTimer::new();
+
     // Initialize structured logging
     tracing_subscriber::fmt()
         .with_env_filter(
@@ -35,10 +39,37 @@ async fn main() -> Result<(), AppError> {
 
     // Load configuration
     let settings = Settings::load()?;
-    tracing::info!("Configuration loaded");
+    let config_load_ms = timer.mark();
+    tracing::info!("Configuration loaded ({}ms)", config_load_ms);
+
+    // Spawn config file watcher (polls mtime + SIGHUP on unix)
+    let config_path = dirs_next::config_dir()
+        .unwrap_or_else(|| std::path::PathBuf::from("."))
+        .join("syncode")
+        .join("config.toml");
+    let _config_reload_rx = config::spawn_config_watcher(config_path, 0);
+
+    // TUI init is done inside app::run (after App is constructed)
+    // DB open is lazy — no metrics to capture here yet
+    let db_open_ms: u64 = 0;
+
+    let total_ms = timer.total_elapsed_ms();
+
+    let metrics = StartupMetrics {
+        config_load_ms,
+        tui_init_ms: 0, // will be set during app::run when TUI is initialized
+        db_open_ms,
+        total_ms,
+    };
+
+    metrics.log();
+
+    if cfg!(feature = "startup_bench") {
+        metrics.eprint();
+    }
 
     // Run the application
-    let result = app::run(settings).await;
+    let result = app::run(settings, metrics).await;
 
     match &result {
         Ok(()) => tracing::info!("Syncode exited normally"),
