@@ -5,6 +5,18 @@ All notable changes to Syncode will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] - 2026-05-30
+
+### Changed
+- **Agent Loop**: HashMap O(1) tool accumulation, parallel tool execution, streaming token counter, per-tool timeout (120s)
+- **Multi-Agent**: AgentInstance with real LLM integration (`process_message_async`), parallel `coordinate()`, async AgentBus, agent lifecycle (stop/restart/remove), event emission (AgentSwarmEvent)
+- **Workflow Engine**: Parallel independent step execution, DAG cycle detection (DFS), retry policy with delay, actual step timeout, enhanced conditions (`!=`, `contains`, `starts_with`, `!`)
+- **Context Manager**: Tool result compression, adaptive token budget, usage ratio tracking, role-based message counting
+- **Prompt Builder**: Project context auto-detection (Rust/Node/Python/Go/Dart), role-aware prompts, tool-aware prompts
+
+### Fixed
+- WorkflowRunner::new() now returns Result (validates DAG on creation)
+
 ## [1.2.1] - 2026-05-30
 
 ### Added

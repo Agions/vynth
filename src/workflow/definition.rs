@@ -1,7 +1,7 @@
 //! Workflow definition types
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 /// A complete workflow definition
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -46,6 +46,61 @@ pub struct WorkflowStep {
     /// Timeout in seconds
     #[serde(default)]
     pub timeout_secs: Option<u64>,
+    /// Number of retries on failure (0 = no retry)
+    #[serde(default)]
+    pub retry_count: Option<u32>,
+    /// Delay between retries in milliseconds
+    #[serde(default = "default_retry_delay")]
+    pub retry_delay_ms: Option<u64>,
+}
+
+fn default_retry_delay() -> Option<u64> {
+    Some(1000)
+}
+
+impl WorkflowDef {
+    /// Validate the workflow DAG for cycles using DFS.
+    /// Returns Ok(()) if valid, Err with description if a cycle is found.
+    pub fn validate_dag(&self) -> Result<(), crate::error::AppError> {
+        let mut visited = HashSet::new();
+        let mut in_stack = HashSet::new();
+
+        for step in &self.steps {
+            if !visited.contains(&step.id) && self.has_cycle(&step.id, &mut visited, &mut in_stack)
+            {
+                return Err(crate::error::AppError::Config(format!(
+                    "Circular dependency detected in workflow '{}' involving step '{}'",
+                    self.name, step.id
+                )));
+            }
+        }
+        Ok(())
+    }
+
+    fn has_cycle(
+        &self,
+        step_id: &str,
+        visited: &mut HashSet<String>,
+        in_stack: &mut HashSet<String>,
+    ) -> bool {
+        visited.insert(step_id.to_string());
+        in_stack.insert(step_id.to_string());
+
+        if let Some(step) = self.steps.iter().find(|s| s.id == step_id) {
+            for dep in &step.depends_on {
+                if !visited.contains(dep) {
+                    if self.has_cycle(dep, visited, in_stack) {
+                        return true;
+                    }
+                } else if in_stack.contains(dep) {
+                    return true;
+                }
+            }
+        }
+
+        in_stack.remove(step_id);
+        false
+    }
 }
 
 /// Parse workflow from YAML

@@ -12,6 +12,11 @@ pub struct SkillRegistry {
 }
 
 impl SkillRegistry {
+    /// Create an empty registry
+    pub fn new() -> Self {
+        Self { skills: Vec::new() }
+    }
+
     /// Load all skills from a directory (recursively scans *.md files)
     pub fn load_from_dir(path: &Path) -> Result<Self, AppError> {
         let mut skills = Vec::new();
