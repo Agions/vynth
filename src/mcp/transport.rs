@@ -120,6 +120,23 @@ impl StdioTransport {
         self.next_id
             .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
     }
+
+    /// Test-only constructor — builds a connected-looking transport
+    /// without spawning a real subprocess.
+    #[cfg(test)]
+    fn new_for_test() -> Self {
+        use std::sync::atomic::AtomicU64;
+
+        let (stdin_tx, _stdin_rx) = tokio::sync::mpsc::channel::<String>(32);
+        let (_resp_tx, resp_rx) = tokio::sync::mpsc::channel::<JsonRpcResponse>(32);
+
+        Self {
+            stdin_tx: Some(stdin_tx),
+            response_rx: Some(tokio::sync::Mutex::new(resp_rx)),
+            child: None,
+            next_id: AtomicU64::new(1),
+        }
+    }
 }
 
 #[async_trait]
@@ -162,5 +179,88 @@ impl McpTransport for StdioTransport {
             let _ = child.kill().await;
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── compile-time trait sanity ────────────────────────────────
+
+    /// Verify McpTransport can be used as a trait object (dyn dispatch).
+    /// If this compiles, the trait is object-safe and the Send+Sync bounds work.
+    #[test]
+    fn trait_is_object_safe() {
+        fn _assert_object_safe(_: &dyn McpTransport) {}
+    }
+
+    // ── StdioTransport::is_connected ─────────────────────────────
+
+    #[tokio::test]
+    async fn is_connected_true_when_stdin_tx_present() {
+        let transport = StdioTransport::new_for_test();
+        assert!(transport.is_connected());
+    }
+
+    #[tokio::test]
+    async fn is_connected_false_after_stdin_tx_cleared() {
+        let mut transport = StdioTransport::new_for_test();
+        transport.stdin_tx = None;
+        assert!(!transport.is_connected());
+    }
+
+    // ── StdioTransport::close ────────────────────────────────────
+
+    #[tokio::test]
+    async fn close_clears_stdin_tx() {
+        let mut transport = StdioTransport::new_for_test();
+        assert!(transport.stdin_tx.is_some());
+
+        transport.close().await.unwrap();
+
+        assert!(transport.stdin_tx.is_none());
+    }
+
+    #[tokio::test]
+    async fn close_clears_response_rx() {
+        let mut transport = StdioTransport::new_for_test();
+        assert!(transport.response_rx.is_some());
+
+        transport.close().await.unwrap();
+
+        assert!(transport.response_rx.is_none());
+    }
+
+    #[tokio::test]
+    async fn close_makes_is_connected_false() {
+        let mut transport = StdioTransport::new_for_test();
+        assert!(transport.is_connected());
+
+        transport.close().await.unwrap();
+
+        assert!(!transport.is_connected());
+    }
+
+    #[tokio::test]
+    async fn close_without_child_succeeds() {
+        // new_for_test sets child = None, so close should not panic
+        let mut transport = StdioTransport::new_for_test();
+        assert!(transport.child.is_none());
+        assert!(transport.close().await.is_ok());
+    }
+
+    // ── next_id ──────────────────────────────────────────────────
+
+    #[test]
+    fn next_id_increments() {
+        let transport = StdioTransport::new_for_test();
+        let id1 = transport.next_id();
+        let id2 = transport.next_id();
+        let id3 = transport.next_id();
+        // new_for_test starts at 1; fetch_add returns the old value
+        assert_eq!(id1, 1);
+        assert_eq!(id2, 2);
+        assert_eq!(id3, 3);
     }
 }

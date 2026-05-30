@@ -75,3 +75,51 @@ impl ApprovalHandler for TuiApprove {
         Ok(ApprovalDecision::Allow)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn approval_mode_variants() {
+        assert_eq!(ApprovalMode::Auto, ApprovalMode::Auto);
+        assert_eq!(ApprovalMode::Confirm, ApprovalMode::Confirm);
+        assert_eq!(ApprovalMode::PreviewOnly, ApprovalMode::PreviewOnly);
+        assert_ne!(ApprovalMode::Auto, ApprovalMode::Confirm);
+        assert_ne!(ApprovalMode::Confirm, ApprovalMode::PreviewOnly);
+    }
+
+    #[test]
+    fn approval_decision_debug() {
+        let d = ApprovalDecision::Allow;
+        assert_eq!(format!("{:?}", d), "Allow");
+        let d = ApprovalDecision::Deny;
+        assert_eq!(format!("{:?}", d), "Deny");
+        let d = ApprovalDecision::AllowAlways;
+        assert_eq!(format!("{:?}", d), "AllowAlways");
+    }
+
+    #[tokio::test]
+    async fn auto_approve_always_returns_allow() {
+        let handler = AutoApprove;
+        let result = handler.request_approval("some preview").await.unwrap();
+        assert!(matches!(result, ApprovalDecision::Allow));
+        let result2 = handler.request_approval("").await.unwrap();
+        assert!(matches!(result2, ApprovalDecision::Allow));
+    }
+
+    #[tokio::test]
+    async fn tui_approve_sends_preview_to_channel() {
+        let (handler, mut rx) = TuiApprove::new();
+        let result = handler.request_approval("test preview").await.unwrap();
+        assert!(matches!(result, ApprovalDecision::Allow));
+        let received = rx.recv().await.unwrap();
+        assert_eq!(received, "test preview");
+    }
+
+    #[tokio::test]
+    async fn tui_approve_new_provides_receiver() {
+        let (_handler, _rx) = TuiApprove::new();
+        // Constructor succeeds without panic
+    }
+}

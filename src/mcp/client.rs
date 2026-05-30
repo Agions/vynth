@@ -160,4 +160,157 @@ impl McpClient {
     pub fn name(&self) -> &str {
         &self.config.name
     }
+
+    /// Test-only constructor for unit testing without a real subprocess
+    #[cfg(test)]
+    fn new_for_test(
+        name: &str,
+        allowed_tools: Vec<String>,
+    ) -> Self {
+        use std::collections::HashMap;
+
+        let config = McpServerConfig {
+            name: name.to_string(),
+            transport: crate::config::McpTransport::Stdio {
+                command: "noop".to_string(),
+                args: vec![],
+            },
+            allowed_tools: allowed_tools.clone(),
+            env: HashMap::new(),
+            cwd: None,
+            auto_reconnect: true,
+            timeout_secs: 30,
+        };
+
+        let allowed_patterns = if allowed_tools.is_empty() {
+            None
+        } else {
+            let patterns: Vec<glob::Pattern> = allowed_tools
+                .iter()
+                .filter_map(|p| glob::Pattern::new(p).ok())
+                .collect();
+            Some(patterns)
+        };
+
+        Self {
+            config,
+            transport: None,
+            tools: Vec::new(),
+            allowed_patterns,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── is_tool_allowed ──────────────────────────────────────────
+
+    #[test]
+    fn is_tool_allowed_none_patterns_allows_all() {
+        // Empty allowed_tools → None → allow all
+        let client = McpClient::new_for_test("test", vec![]);
+        assert!(client.is_tool_allowed("anything"));
+        assert!(client.is_tool_allowed("read_file"));
+        assert!(client.is_tool_allowed("special/tool"));
+    }
+
+    #[test]
+    fn is_tool_allowed_empty_vec_allows_all() {
+        let client = McpClient::new_for_test("test", vec![]);
+        assert!(client.is_tool_allowed("any_tool"));
+    }
+
+    #[test]
+    fn is_tool_allowed_exact_match() {
+        let client = McpClient::new_for_test(
+            "test",
+            vec!["read_file".to_string()],
+        );
+        assert!(client.is_tool_allowed("read_file"));
+        assert!(!client.is_tool_allowed("write_file"));
+        assert!(!client.is_tool_allowed("read"));
+        assert!(!client.is_tool_allowed("read_file_extra"));
+    }
+
+    #[test]
+    fn is_tool_allowed_star_glob() {
+        let client = McpClient::new_for_test(
+            "test",
+            vec!["read_*".to_string()],
+        );
+        assert!(client.is_tool_allowed("read_file"));
+        assert!(client.is_tool_allowed("read_dir"));
+        assert!(client.is_tool_allowed("read_"));
+        assert!(!client.is_tool_allowed("write_file"));
+        assert!(!client.is_tool_allowed("read"));
+    }
+
+    #[test]
+    fn is_tool_allowed_question_mark_glob() {
+        let client = McpClient::new_for_test(
+            "test",
+            vec!["tool_?".to_string()],
+        );
+        assert!(client.is_tool_allowed("tool_a"));
+        assert!(client.is_tool_allowed("tool_1"));
+        assert!(!client.is_tool_allowed("tool_ab"));
+        assert!(!client.is_tool_allowed("tool_"));
+    }
+
+    #[test]
+    fn is_tool_allowed_multiple_patterns() {
+        let client = McpClient::new_for_test(
+            "test",
+            vec![
+                "read_*".to_string(),
+                "list_*".to_string(),
+                "get_status".to_string(),
+            ],
+        );
+        assert!(client.is_tool_allowed("read_file"));
+        assert!(client.is_tool_allowed("list_tools"));
+        assert!(client.is_tool_allowed("get_status"));
+        assert!(!client.is_tool_allowed("write_file"));
+        assert!(!client.is_tool_allowed("delete_all"));
+    }
+
+    #[test]
+    fn is_tool_allowed_no_match_denies() {
+        let client = McpClient::new_for_test(
+            "test",
+            vec!["specific_tool".to_string()],
+        );
+        assert!(!client.is_tool_allowed("other_tool"));
+        assert!(!client.is_tool_allowed("specific"));
+        assert!(!client.is_tool_allowed("specific_tool_extra"));
+    }
+
+    #[test]
+    fn is_tool_allowed_bracket_glob() {
+        let client = McpClient::new_for_test(
+            "test",
+            vec!["tool_[abc]".to_string()],
+        );
+        assert!(client.is_tool_allowed("tool_a"));
+        assert!(client.is_tool_allowed("tool_b"));
+        assert!(client.is_tool_allowed("tool_c"));
+        assert!(!client.is_tool_allowed("tool_d"));
+        assert!(!client.is_tool_allowed("tool_ab"));
+    }
+
+    // ── accessors ────────────────────────────────────────────────
+
+    #[test]
+    fn name_returns_config_name() {
+        let client = McpClient::new_for_test("my_server", vec![]);
+        assert_eq!(client.name(), "my_server");
+    }
+
+    #[test]
+    fn tools_initially_empty() {
+        let client = McpClient::new_for_test("test", vec![]);
+        assert!(client.tools().is_empty());
+    }
 }
