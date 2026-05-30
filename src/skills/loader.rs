@@ -60,7 +60,9 @@ fn split_frontmatter(content: &str) -> Result<(String, String), AppError> {
     let end_marker = after_first
         .find("\n---")
         .or_else(|| after_first.find("\r\n---"))
-        .ok_or_else(|| AppError::Config("Unclosed frontmatter (missing closing ---)".to_string()))?;
+        .ok_or_else(|| {
+            AppError::Config("Unclosed frontmatter (missing closing ---)".to_string())
+        })?;
 
     let frontmatter = after_first[..end_marker].trim().to_string();
     let body = after_first[end_marker + 4..].to_string();

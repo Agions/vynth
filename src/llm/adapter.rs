@@ -43,12 +43,7 @@ pub struct OpenAICompatAdapter {
 }
 
 impl OpenAICompatAdapter {
-    pub fn new(
-        base_url: &str,
-        api_key: &str,
-        model: &str,
-        context_window: usize,
-    ) -> Self {
+    pub fn new(base_url: &str, api_key: &str, model: &str, context_window: usize) -> Self {
         Self {
             client: reqwest::Client::new(),
             base_url: base_url.trim_end_matches('/').to_string(),
@@ -100,10 +95,7 @@ impl LlmAdapter for OpenAICompatAdapter {
         if !response.status().is_success() {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
-            return Err(AppError::Llm(format!(
-                "API error {}: {}",
-                status, text
-            )));
+            return Err(AppError::Llm(format!("API error {}: {}", status, text)));
         }
 
         let byte_stream = response.bytes_stream();
@@ -137,8 +129,7 @@ fn build_request_body(
     });
 
     if !tools.is_empty() {
-        let tool_schemas: Vec<serde_json::Value> =
-            tools.iter().map(|t| t.to_json()).collect();
+        let tool_schemas: Vec<serde_json::Value> = tools.iter().map(|t| t.to_json()).collect();
         body["tools"] = serde_json::json!(tool_schemas);
     }
 

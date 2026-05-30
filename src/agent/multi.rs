@@ -155,8 +155,7 @@ impl AgentInstance {
         let max_turns = self.config.max_turns;
         let (event_tx, mut event_rx) = mpsc::unbounded_channel::<AgentEvent>();
 
-        let result =
-            run_agent_loop(llm, &mut self.context, tools, mcp, event_tx, max_turns).await;
+        let result = run_agent_loop(llm, &mut self.context, tools, mcp, event_tx, max_turns).await;
 
         // Drain remaining events to avoid channel warnings
         while event_rx.try_recv().is_ok() {}
@@ -248,11 +247,7 @@ impl AgentBus {
     }
 
     /// Async send with timeout. Returns error if the send fails or times out.
-    pub async fn send_async(
-        &self,
-        msg: AgentMessage,
-        timeout: Duration,
-    ) -> Result<(), AppError> {
+    pub async fn send_async(&self, msg: AgentMessage, timeout: Duration) -> Result<(), AppError> {
         let to = msg.to.clone();
         if let Some(tx) = self.channels.get(&to) {
             let tx = tx.clone();
@@ -296,7 +291,8 @@ impl AgentBus {
             .await
             .map_err(|_| AppError::ExecutionFailed("Broadcast timed out".to_string()))?;
         for result in results {
-            result.map_err(|e| AppError::ExecutionFailed(format!("Broadcast send failed: {}", e)))?;
+            result
+                .map_err(|e| AppError::ExecutionFailed(format!("Broadcast send failed: {}", e)))?;
         }
         Ok(())
     }
@@ -341,7 +337,8 @@ impl AgentSwarm {
         let tx = instance.message_tx.clone();
 
         self.bus.register(id.clone(), tx);
-        self.agents.insert(id.clone(), Arc::new(Mutex::new(instance)));
+        self.agents
+            .insert(id.clone(), Arc::new(Mutex::new(instance)));
 
         self.emit_event(AgentSwarmEvent::AgentSpawned {
             id: id.clone(),
@@ -371,7 +368,9 @@ impl AgentSwarm {
 
     /// Get agent status
     pub fn agent_status(&self, id: &str) -> Option<AgentStatus> {
-        self.agents.get(id).and_then(|a| a.try_lock().ok().map(|g| g.status.clone()))
+        self.agents
+            .get(id)
+            .and_then(|a| a.try_lock().ok().map(|g| g.status.clone()))
     }
 
     /// List all agent IDs
@@ -437,9 +436,7 @@ impl AgentSwarm {
         // which avoids overlapping mutable borrows from the HashMap.
         let futs = agent_arcs.into_iter().map(|(id, agent_arc)| async move {
             let mut agent = agent_arc.lock().await;
-            let result = agent
-                .process_message_async(task, llm, tools, mcp)
-                .await;
+            let result = agent.process_message_async(task, llm, tools, mcp).await;
             (id, result)
         });
 
@@ -472,11 +469,7 @@ impl AgentSwarm {
     }
 
     /// Run a simple single-agent task (synchronous placeholder)
-    pub async fn run_task(
-        &mut self,
-        agent_id: &str,
-        task: &str,
-    ) -> Result<String, AppError> {
+    pub async fn run_task(&mut self, agent_id: &str, task: &str) -> Result<String, AppError> {
         let arc = self
             .agents
             .get(agent_id)

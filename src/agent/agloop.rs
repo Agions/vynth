@@ -131,8 +131,7 @@ pub async fn run_agent_loop(
                 let args: serde_json::Value = if tc.args_buffer.is_empty() {
                     serde_json::json!({})
                 } else {
-                    serde_json::from_str(&tc.args_buffer)
-                        .unwrap_or_else(|_| serde_json::json!({}))
+                    serde_json::from_str(&tc.args_buffer).unwrap_or_else(|_| serde_json::json!({}))
                 };
 
                 // Emit ToolCallStart event

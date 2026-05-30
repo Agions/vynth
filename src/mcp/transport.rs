@@ -1,8 +1,8 @@
 //! MCP Transport trait
 
-use async_trait::async_trait;
 use crate::error::AppError;
 use crate::mcp::types::{JsonRpcRequest, JsonRpcResponse};
+use async_trait::async_trait;
 
 /// Transport abstraction for MCP communication
 #[async_trait]
@@ -40,7 +40,9 @@ impl StdioTransport {
             AppError::McpTransport("Failed to get stdin handle from MCP server process".to_string())
         })?;
         let stdout = child.stdout.take().ok_or_else(|| {
-            AppError::McpTransport("Failed to get stdout handle from MCP server process".to_string())
+            AppError::McpTransport(
+                "Failed to get stdout handle from MCP server process".to_string(),
+            )
         })?;
 
         let (stdin_tx, mut stdin_rx) = tokio::sync::mpsc::channel::<String>(32);
@@ -104,11 +106,7 @@ impl StdioTransport {
         let _response = self.send_and_wait(init_request).await?;
 
         // Send initialized notification
-        let notification = JsonRpcRequest::new(
-            self.next_id(),
-            "notifications/initialized",
-            None,
-        );
+        let notification = JsonRpcRequest::new(self.next_id(), "notifications/initialized", None);
 
         if let Some(tx) = &self.stdin_tx {
             let msg = serde_json::to_string(&notification)?;
@@ -136,15 +134,12 @@ impl McpTransport for StdioTransport {
 
         if let Some(rx) = &self.response_rx {
             // Wait with timeout
-            match tokio::time::timeout(
-                std::time::Duration::from_secs(30),
-                async {
-                    // This is a simplified version — in production, use a proper
-                    // request/response correlation mechanism
-                    let mut guard = rx.lock().await;
-                    guard.recv().await
-                },
-            )
+            match tokio::time::timeout(std::time::Duration::from_secs(30), async {
+                // This is a simplified version — in production, use a proper
+                // request/response correlation mechanism
+                let mut guard = rx.lock().await;
+                guard.recv().await
+            })
             .await
             {
                 Ok(Some(response)) => Ok(response),

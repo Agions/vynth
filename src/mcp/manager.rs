@@ -24,11 +24,7 @@ impl McpManager {
                     clients.insert(config.name.clone(), client);
                 }
                 Err(e) => {
-                    tracing::warn!(
-                        "Failed to connect to MCP server '{}': {}",
-                        config.name,
-                        e
-                    );
+                    tracing::warn!("Failed to connect to MCP server '{}': {}", config.name, e);
                 }
             }
         }
@@ -41,22 +37,20 @@ impl McpManager {
         self.clients
             .values()
             .flat_map(|client| {
-                client.tools().iter().map(move |tool| {
-                    crate::llm::types::ToolSchema {
+                client
+                    .tools()
+                    .iter()
+                    .map(move |tool| crate::llm::types::ToolSchema {
                         schema_type: "function".to_string(),
                         function: crate::llm::types::FunctionSchema {
                             name: format!("mcp__{}__{}", client.name(), tool.name),
-                            description: tool
-                                .description
-                                .clone()
-                                .unwrap_or_default(),
+                            description: tool.description.clone().unwrap_or_default(),
                             parameters: tool
                                 .input_schema
                                 .clone()
                                 .unwrap_or_else(|| serde_json::json!({})),
                         },
-                    }
-                })
+                    })
             })
             .collect()
     }

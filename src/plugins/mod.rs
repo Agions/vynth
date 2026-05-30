@@ -20,10 +20,7 @@ use crate::tools::Tool;
 #[derive(Debug, Clone)]
 pub enum PluginEvent {
     /// Emitted just before a tool is executed.
-    PreToolCall {
-        tool_name: String,
-        args: Value,
-    },
+    PreToolCall { tool_name: String, args: Value },
     /// Emitted after a tool finishes execution.
     PostToolCall {
         tool_name: String,
@@ -32,23 +29,13 @@ pub enum PluginEvent {
         is_error: bool,
     },
     /// Emitted at the start of an agent turn (before LLM call).
-    PreAgentTurn {
-        turn_number: usize,
-    },
+    PreAgentTurn { turn_number: usize },
     /// Emitted at the end of an agent turn (after LLM response processed).
-    PostAgentTurn {
-        turn_number: usize,
-    },
+    PostAgentTurn { turn_number: usize },
     /// Emitted when a workflow step completes.
-    WorkflowStepComplete {
-        step_id: String,
-        success: bool,
-    },
+    WorkflowStepComplete { step_id: String, success: bool },
     /// Custom event with an arbitrary name and payload for user-defined hooks.
-    Custom {
-        name: String,
-        payload: Value,
-    },
+    Custom { name: String, payload: Value },
 }
 
 // ---------------------------------------------------------------------------
@@ -138,18 +125,12 @@ impl PluginManager {
 
     /// Collect all tools contributed by registered plugins.
     pub fn collect_tools(&self) -> Vec<Arc<dyn Tool>> {
-        self.plugins
-            .iter()
-            .flat_map(|p| p.tools())
-            .collect()
+        self.plugins.iter().flat_map(|p| p.tools()).collect()
     }
 
     /// Collect all skills contributed by registered plugins.
     pub fn collect_skills(&self) -> Vec<SkillDef> {
-        self.plugins
-            .iter()
-            .flat_map(|p| p.skills())
-            .collect()
+        self.plugins.iter().flat_map(|p| p.skills()).collect()
     }
 
     /// Broadcast an event to every registered plugin.
@@ -158,11 +139,7 @@ impl PluginManager {
     pub async fn emit_event(&self, event: &PluginEvent) -> Result<(), AppError> {
         for plugin in &self.plugins {
             if let Err(e) = plugin.on_event(event).await {
-                tracing::warn!(
-                    "Plugin '{}' returned error on event: {}",
-                    plugin.name(),
-                    e
-                );
+                tracing::warn!("Plugin '{}' returned error on event: {}", plugin.name(), e);
                 return Err(e);
             }
         }
@@ -248,7 +225,8 @@ mod tests {
         }
 
         async fn init(&mut self) -> Result<(), AppError> {
-            self.init_called.store(true, std::sync::atomic::Ordering::SeqCst);
+            self.init_called
+                .store(true, std::sync::atomic::Ordering::SeqCst);
             Ok(())
         }
 
@@ -271,7 +249,8 @@ mod tests {
         }
 
         async fn on_event(&self, _event: &PluginEvent) -> Result<(), AppError> {
-            self.event_count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            self.event_count
+                .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             Ok(())
         }
     }
@@ -281,9 +260,15 @@ mod tests {
 
     #[async_trait]
     impl Plugin for FailingPlugin {
-        fn name(&self) -> &str { "failing" }
-        fn version(&self) -> &str { "0.0.1" }
-        fn description(&self) -> &str { "always fails" }
+        fn name(&self) -> &str {
+            "failing"
+        }
+        fn version(&self) -> &str {
+            "0.0.1"
+        }
+        fn description(&self) -> &str {
+            "always fails"
+        }
         async fn init(&mut self) -> Result<(), AppError> {
             Err(AppError::Config("init boom".into()))
         }
@@ -294,9 +279,15 @@ mod tests {
 
     #[async_trait]
     impl Plugin for EventFailPlugin {
-        fn name(&self) -> &str { "event_fail" }
-        fn version(&self) -> &str { "0.0.1" }
-        fn description(&self) -> &str { "event always fails" }
+        fn name(&self) -> &str {
+            "event_fail"
+        }
+        fn version(&self) -> &str {
+            "0.0.1"
+        }
+        fn description(&self) -> &str {
+            "event always fails"
+        }
         async fn on_event(&self, _event: &PluginEvent) -> Result<(), AppError> {
             Err(AppError::ExecutionFailed("event boom".into()))
         }
@@ -465,9 +456,15 @@ mod tests {
 
         #[async_trait]
         impl Plugin for MinimalPlugin {
-            fn name(&self) -> &str { "minimal" }
-            fn version(&self) -> &str { "0.0.1" }
-            fn description(&self) -> &str { "bare minimum" }
+            fn name(&self) -> &str {
+                "minimal"
+            }
+            fn version(&self) -> &str {
+                "0.0.1"
+            }
+            fn description(&self) -> &str {
+                "bare minimum"
+            }
         }
 
         let mut mgr = PluginManager::new();
@@ -486,13 +483,23 @@ mod tests {
         struct ToolsOnlyPlugin;
         #[async_trait]
         impl Plugin for ToolsOnlyPlugin {
-            fn name(&self) -> &str { "tools_only" }
-            fn version(&self) -> &str { "1.0.0" }
-            fn description(&self) -> &str { "provides tools only" }
+            fn name(&self) -> &str {
+                "tools_only"
+            }
+            fn version(&self) -> &str {
+                "1.0.0"
+            }
+            fn description(&self) -> &str {
+                "provides tools only"
+            }
             fn tools(&self) -> Vec<Arc<dyn Tool>> {
                 vec![
-                    Arc::new(StubTool { tool_name: "tool_a".into() }),
-                    Arc::new(StubTool { tool_name: "tool_b".into() }),
+                    Arc::new(StubTool {
+                        tool_name: "tool_a".into(),
+                    }),
+                    Arc::new(StubTool {
+                        tool_name: "tool_b".into(),
+                    }),
                 ]
             }
         }
@@ -501,9 +508,15 @@ mod tests {
         struct SkillsOnlyPlugin;
         #[async_trait]
         impl Plugin for SkillsOnlyPlugin {
-            fn name(&self) -> &str { "skills_only" }
-            fn version(&self) -> &str { "1.0.0" }
-            fn description(&self) -> &str { "provides skills only" }
+            fn name(&self) -> &str {
+                "skills_only"
+            }
+            fn version(&self) -> &str {
+                "1.0.0"
+            }
+            fn description(&self) -> &str {
+                "provides skills only"
+            }
             fn skills(&self) -> Vec<SkillDef> {
                 vec![SkillDef {
                     name: "skill_a".into(),

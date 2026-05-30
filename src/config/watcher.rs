@@ -69,10 +69,7 @@ async fn watch_loop(
 
             match Settings::load() {
                 Ok(settings) => {
-                    tracing::info!(
-                        version = version,
-                        "Config file changed, reloaded settings"
-                    );
+                    tracing::info!(version = version, "Config file changed, reloaded settings");
                     let _ = tx.send(ConfigReload { settings, version });
                 }
                 Err(e) => {
@@ -85,17 +82,12 @@ async fn watch_loop(
 
 /// Get the modification time of a file, returning None if it doesn't exist
 fn get_mtime(path: &PathBuf) -> Option<SystemTime> {
-    std::fs::metadata(path)
-        .ok()
-        .and_then(|m| m.modified().ok())
+    std::fs::metadata(path).ok().and_then(|m| m.modified().ok())
 }
 
 /// Handle SIGHUP signal on Unix — reload config on receipt
 #[cfg(unix)]
-async fn handle_sighup(
-    config_path: PathBuf,
-    tx: mpsc::UnboundedSender<ConfigReload>,
-) {
+async fn handle_sighup(config_path: PathBuf, tx: mpsc::UnboundedSender<ConfigReload>) {
     use tokio::signal::unix::{signal, SignalKind};
 
     let mut stream = match signal(SignalKind::hangup()) {

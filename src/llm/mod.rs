@@ -2,9 +2,12 @@
 
 pub mod adapter;
 pub mod provider;
-pub mod types;
 pub mod stream;
+pub mod types;
 
 pub use adapter::LlmAdapter;
-pub use types::{ChatMessage, ChatResponse, ChunkDelta, MessageRole, StreamChunk, ToolCall, ToolSchema, FunctionSchema};
 pub use provider::create_provider;
+pub use types::{
+    ChatMessage, ChatResponse, ChunkDelta, FunctionSchema, MessageRole, StreamChunk, ToolCall,
+    ToolSchema,
+};

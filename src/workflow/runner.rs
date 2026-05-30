@@ -418,10 +418,7 @@ async fn execute_step_with_retry(
         let result = tokio::time::timeout(timeout_duration, async {
             // In real usage, this would call swarm.run_task() with the actual agent.
             // For now, simulate step execution.
-            Ok::<String, AppError>(format!(
-                "[Step '{}' completed] (simulated)",
-                step_id
-            ))
+            Ok::<String, AppError>(format!("[Step '{}' completed] (simulated)", step_id))
         })
         .await;
 
@@ -473,10 +470,7 @@ async fn execute_step_with_retry(
                 }
                 return Ok(StepResult {
                     step_id,
-                    output: format!(
-                        "Timed out after {}s ({} attempts)",
-                        timeout_secs, attempts
-                    ),
+                    output: format!("Timed out after {}s ({} attempts)", timeout_secs, attempts),
                     status: StepStatus::TimedOut,
                     duration_ms: duration,
                     attempts,

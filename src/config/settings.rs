@@ -60,9 +60,7 @@ fn default_temperature() -> f32 {
 pub enum Provider {
     DeepSeek,
     MiMo,
-    Custom {
-        base_url: String,
-    },
+    Custom { base_url: String },
 }
 
 /// TUI configuration

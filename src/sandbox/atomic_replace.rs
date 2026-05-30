@@ -17,10 +17,7 @@ pub fn atomic_write(path: &Path, content: &[u8]) -> Result<(), AppError> {
     // 2. Fsync (ensure data is on disk)
     #[cfg(unix)]
     {
-        
-        let file = std::fs::OpenOptions::new()
-            .write(true)
-            .open(&tmp_path)?;
+        let file = std::fs::OpenOptions::new().write(true).open(&tmp_path)?;
         file.sync_all()?;
     }
 

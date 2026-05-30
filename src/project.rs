@@ -146,12 +146,24 @@ pub fn detect_languages(root: &Path) -> HashSet<String> {
             if path.is_file() {
                 if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
                     match ext {
-                        "rs" => { languages.insert("Rust".into()); }
-                        "ts" | "tsx" | "js" | "jsx" | "mjs" => { languages.insert("JavaScript/TypeScript".into()); }
-                        "py" => { languages.insert("Python".into()); }
-                        "go" => { languages.insert("Go".into()); }
-                        "java" | "kt" | "kts" => { languages.insert("Java/Kotlin".into()); }
-                        "dart" => { languages.insert("Dart".into()); }
+                        "rs" => {
+                            languages.insert("Rust".into());
+                        }
+                        "ts" | "tsx" | "js" | "jsx" | "mjs" => {
+                            languages.insert("JavaScript/TypeScript".into());
+                        }
+                        "py" => {
+                            languages.insert("Python".into());
+                        }
+                        "go" => {
+                            languages.insert("Go".into());
+                        }
+                        "java" | "kt" | "kts" => {
+                            languages.insert("Java/Kotlin".into());
+                        }
+                        "dart" => {
+                            languages.insert("Dart".into());
+                        }
                         _ => {}
                     }
                 }
@@ -164,12 +176,24 @@ pub fn detect_languages(root: &Path) -> HashSet<String> {
                         if s.path().is_file() {
                             if let Some(ext) = s.path().extension().and_then(|e| e.to_str()) {
                                 match ext {
-                                    "rs" => { languages.insert("Rust".into()); }
-                                    "ts" | "tsx" | "js" | "jsx" | "mjs" => { languages.insert("JavaScript/TypeScript".into()); }
-                                    "py" => { languages.insert("Python".into()); }
-                                    "go" => { languages.insert("Go".into()); }
-                                    "java" | "kt" | "kts" => { languages.insert("Java/Kotlin".into()); }
-                                    "dart" => { languages.insert("Dart".into()); }
+                                    "rs" => {
+                                        languages.insert("Rust".into());
+                                    }
+                                    "ts" | "tsx" | "js" | "jsx" | "mjs" => {
+                                        languages.insert("JavaScript/TypeScript".into());
+                                    }
+                                    "py" => {
+                                        languages.insert("Python".into());
+                                    }
+                                    "go" => {
+                                        languages.insert("Go".into());
+                                    }
+                                    "java" | "kt" | "kts" => {
+                                        languages.insert("Java/Kotlin".into());
+                                    }
+                                    "dart" => {
+                                        languages.insert("Dart".into());
+                                    }
                                     _ => {}
                                 }
                             }
@@ -187,7 +211,10 @@ pub fn detect_languages(root: &Path) -> HashSet<String> {
     if root.join("package.json").exists() || root.join("tsconfig.json").exists() {
         languages.insert("JavaScript/TypeScript".into());
     }
-    if root.join("pyproject.toml").exists() || root.join("setup.py").exists() || root.join("requirements.txt").exists() {
+    if root.join("pyproject.toml").exists()
+        || root.join("setup.py").exists()
+        || root.join("requirements.txt").exists()
+    {
         languages.insert("Python".into());
     }
     if root.join("go.mod").exists() {
@@ -216,7 +243,14 @@ pub fn detect_project_type(root: &Path, languages: &HashSet<String>) -> ProjectT
     let has_gradle = root.join("build.gradle").exists();
     let has_pubspec = root.join("pubspec.yaml").exists();
 
-    let markers = [has_cargo, has_package, has_pyproject, has_go_mod, has_maven || has_gradle, has_pubspec];
+    let markers = [
+        has_cargo,
+        has_package,
+        has_pyproject,
+        has_go_mod,
+        has_maven || has_gradle,
+        has_pubspec,
+    ];
     let count = markers.iter().filter(|&&b| b).count();
 
     if count > 1 {
@@ -284,7 +318,10 @@ pub fn find_project_root(start: &Path) -> Option<PathBuf> {
     let mut current = if start.is_dir() {
         start.to_path_buf()
     } else {
-        start.parent().map(PathBuf::from).unwrap_or_else(|| PathBuf::from("."))
+        start
+            .parent()
+            .map(PathBuf::from)
+            .unwrap_or_else(|| PathBuf::from("."))
     };
 
     loop {
@@ -336,38 +373,13 @@ fn detect_config_files(root: &Path) -> Vec<PathBuf> {
 
 fn suggest_skills(pt: &ProjectType) -> Vec<String> {
     match pt {
-        ProjectType::Rust => vec![
-            "code_review".into(),
-            "refactor".into(),
-            "cargo_test".into(),
-        ],
-        ProjectType::Node => vec![
-            "code_review".into(),
-            "refactor".into(),
-            "npm_test".into(),
-        ],
-        ProjectType::Python => vec![
-            "code_review".into(),
-            "refactor".into(),
-            "pytest".into(),
-        ],
-        ProjectType::Go => vec![
-            "code_review".into(),
-            "refactor".into(),
-            "go_test".into(),
-        ],
-        ProjectType::Java => vec![
-            "code_review".into(),
-            "refactor".into(),
-        ],
-        ProjectType::Flutter => vec![
-            "code_review".into(),
-            "refactor".into(),
-        ],
-        ProjectType::Mixed | ProjectType::Unknown => vec![
-            "code_review".into(),
-            "refactor".into(),
-        ],
+        ProjectType::Rust => vec!["code_review".into(), "refactor".into(), "cargo_test".into()],
+        ProjectType::Node => vec!["code_review".into(), "refactor".into(), "npm_test".into()],
+        ProjectType::Python => vec!["code_review".into(), "refactor".into(), "pytest".into()],
+        ProjectType::Go => vec!["code_review".into(), "refactor".into(), "go_test".into()],
+        ProjectType::Java => vec!["code_review".into(), "refactor".into()],
+        ProjectType::Flutter => vec!["code_review".into(), "refactor".into()],
+        ProjectType::Mixed | ProjectType::Unknown => vec!["code_review".into(), "refactor".into()],
     }
 }
 
@@ -395,7 +407,11 @@ fn build_prompt_hint(info: &ProjectInfo) -> String {
         "Project: {} ({}) | Languages: {} | Git: {} | Docker: {} | CI: {}",
         info.name,
         info.project_type,
-        if langs.is_empty() { "unknown".into() } else { langs },
+        if langs.is_empty() {
+            "unknown".into()
+        } else {
+            langs
+        },
         if info.has_git { "yes" } else { "no" },
         if info.has_docker { "yes" } else { "no" },
         if info.has_ci { "yes" } else { "no" },

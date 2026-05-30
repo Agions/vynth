@@ -6,18 +6,18 @@
 
 #![allow(dead_code, unused_imports, unused_variables)]
 
-mod app;
-mod error;
-mod config;
-mod tui;
-mod session;
 mod agent;
+mod app;
+mod config;
+mod error;
 mod llm;
-mod tools;
-mod skills;
 mod mcp;
 mod sandbox;
+mod session;
+mod skills;
 mod telemetry;
+mod tools;
+mod tui;
 
 use config::Settings;
 use error::AppError;

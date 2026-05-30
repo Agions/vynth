@@ -5,8 +5,8 @@ use serde_json::Value;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use crate::error::AppError;
 use crate::config::SandboxMode;
+use crate::error::AppError;
 
 /// Tool execution result
 pub struct ToolResult {

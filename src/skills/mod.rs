@@ -6,6 +6,6 @@ pub mod loader;
 pub mod registry;
 pub mod trait_def;
 
-pub use external::{SkillSource, SkillSourceType, load_external_skills};
+pub use external::{load_external_skills, SkillSource, SkillSourceType};
 pub use registry::SkillRegistry;
 pub use trait_def::{SkillDef, SkillTrigger};

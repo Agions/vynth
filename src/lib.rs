@@ -4,20 +4,20 @@
 
 #![allow(dead_code, unused_imports, unused_variables)]
 
-pub mod app;
-pub mod error;
-pub mod config;
-pub mod tui;
-pub mod session;
 pub mod agent;
-pub mod llm;
-pub mod tools;
-pub mod skills;
-pub mod mcp;
-pub mod sandbox;
-pub mod telemetry;
-pub mod workflow;
+pub mod app;
 pub mod command;
-pub mod project;
-pub mod plugins;
+pub mod config;
+pub mod error;
 pub mod git;
+pub mod llm;
+pub mod mcp;
+pub mod plugins;
+pub mod project;
+pub mod sandbox;
+pub mod session;
+pub mod skills;
+pub mod telemetry;
+pub mod tools;
+pub mod tui;
+pub mod workflow;

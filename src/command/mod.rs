@@ -202,7 +202,10 @@ impl CommandPalette {
             .collect();
 
         // Sort by score descending, then by name for stability
-        scored.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| self.commands[a.0].name.cmp(&self.commands[b.0].name)));
+        scored.sort_by(|a, b| {
+            b.1.cmp(&a.1)
+                .then_with(|| self.commands[a.0].name.cmp(&self.commands[b.0].name))
+        });
 
         self.filtered = scored.into_iter().map(|(i, _)| i).collect();
     }
@@ -243,22 +246,72 @@ impl CommandPalette {
 /// Build the default palette commands shipped with Syncode.
 pub fn default_commands() -> Vec<Command> {
     vec![
-        Command::new("Toggle Theme", "Switch between light and dark theme", "View", CommandAction::ToggleTheme)
-            .with_shortcut("Ctrl+T"),
-        Command::new("Switch Keymap", "Switch keyboard shortcut profile", "Settings", CommandAction::SwitchKeymap),
-        Command::new("Run Workflow", "Execute a named workflow", "Tools", CommandAction::RunWorkflow),
-        Command::new("Spawn Agent", "Spawn a new agent subtask", "Tools", CommandAction::SpawnAgent),
-        Command::new("Git Commit", "Create a git commit", "Git", CommandAction::GitCommit),
+        Command::new(
+            "Toggle Theme",
+            "Switch between light and dark theme",
+            "View",
+            CommandAction::ToggleTheme,
+        )
+        .with_shortcut("Ctrl+T"),
+        Command::new(
+            "Switch Keymap",
+            "Switch keyboard shortcut profile",
+            "Settings",
+            CommandAction::SwitchKeymap,
+        ),
+        Command::new(
+            "Run Workflow",
+            "Execute a named workflow",
+            "Tools",
+            CommandAction::RunWorkflow,
+        ),
+        Command::new(
+            "Spawn Agent",
+            "Spawn a new agent subtask",
+            "Tools",
+            CommandAction::SpawnAgent,
+        ),
+        Command::new(
+            "Git Commit",
+            "Create a git commit",
+            "Git",
+            CommandAction::GitCommit,
+        ),
         Command::new("Git Diff", "Show git diff", "Git", CommandAction::GitDiff)
             .with_shortcut("Ctrl+D"),
-        Command::new("Open File", "Open a file in the editor", "File", CommandAction::OpenFile)
-            .with_shortcut("Ctrl+O"),
-        Command::new("Toggle Sidebar", "Show or hide the sidebar panel", "View", CommandAction::ToggleSidebar)
-            .with_shortcut("Ctrl+B"),
-        Command::new("Toggle Diff", "Show or hide the diff panel", "View", CommandAction::ToggleDiff),
-        Command::new("Change Sandbox Mode", "Switch sandbox execution mode", "Settings", CommandAction::ChangeSandboxMode),
-        Command::new("Reload Config", "Reload configuration from disk", "Settings", CommandAction::ReloadConfig)
-            .with_shortcut("Ctrl+Shift+R"),
+        Command::new(
+            "Open File",
+            "Open a file in the editor",
+            "File",
+            CommandAction::OpenFile,
+        )
+        .with_shortcut("Ctrl+O"),
+        Command::new(
+            "Toggle Sidebar",
+            "Show or hide the sidebar panel",
+            "View",
+            CommandAction::ToggleSidebar,
+        )
+        .with_shortcut("Ctrl+B"),
+        Command::new(
+            "Toggle Diff",
+            "Show or hide the diff panel",
+            "View",
+            CommandAction::ToggleDiff,
+        ),
+        Command::new(
+            "Change Sandbox Mode",
+            "Switch sandbox execution mode",
+            "Settings",
+            CommandAction::ChangeSandboxMode,
+        ),
+        Command::new(
+            "Reload Config",
+            "Reload configuration from disk",
+            "Settings",
+            CommandAction::ReloadConfig,
+        )
+        .with_shortcut("Ctrl+Shift+R"),
         Command::new("Quit", "Exit Syncode", "Application", CommandAction::Quit)
             .with_shortcut("Ctrl+Q"),
         Command::new(
@@ -428,8 +481,7 @@ mod tests {
 
     #[test]
     fn test_command_with_shortcut() {
-        let cmd = Command::new("Test", "desc", "cat", CommandAction::Quit)
-            .with_shortcut("Ctrl+Q");
+        let cmd = Command::new("Test", "desc", "cat", CommandAction::Quit).with_shortcut("Ctrl+Q");
         assert_eq!(cmd.shortcut, Some("Ctrl+Q".into()));
     }
 

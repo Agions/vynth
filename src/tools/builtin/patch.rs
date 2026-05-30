@@ -62,9 +62,8 @@ impl Tool for PatchTool {
 
         let full_path = ctx.working_dir.join(path);
 
-        let content = std::fs::read_to_string(&full_path).map_err(|e| {
-            AppError::ExecutionFailed(format!("Failed to read {}: {}", path, e))
-        })?;
+        let content = std::fs::read_to_string(&full_path)
+            .map_err(|e| AppError::ExecutionFailed(format!("Failed to read {}: {}", path, e)))?;
 
         if !content.contains(old_text) {
             return Ok(ToolResult {
@@ -89,10 +88,7 @@ impl Tool for PatchTool {
         let replaced = if replace_all { count } else { 1 };
 
         Ok(ToolResult {
-            output: format!(
-                "Patched {} — {} replacement(s) made",
-                path, replaced
-            ),
+            output: format!("Patched {} — {} replacement(s) made", path, replaced),
             is_error: false,
             preview: Some(format!(
                 "--- a/{}\n+++ b/{}\n@@ -old +new @@\n-{}\n+{}",

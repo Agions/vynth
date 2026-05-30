@@ -33,6 +33,17 @@ pub struct ColorPalette {
     pub status_fg: Color,
     // Streaming cursor
     pub streaming_cursor: Color,
+    // Selection colors
+    pub selection_bg: Color,
+    pub selection_fg: Color,
+    // Highlight colors
+    pub highlight_bg: Color,
+    // Text style colors
+    pub muted_fg: Color,
+    pub link_fg: Color,
+    pub code_bg: Color,
+    pub quote_fg: Color,
+    pub separator_fg: Color,
 }
 
 /// Available themes
@@ -82,39 +93,61 @@ pub fn dark_theme() -> ColorPalette {
         status_fg: Color::Rgb(192, 202, 245),
         // Streaming
         streaming_cursor: Color::Rgb(125, 207, 255),
+        // Selection
+        selection_bg: Color::Rgb(65, 68, 100),
+        selection_fg: Color::Rgb(224, 227, 255),
+        // Highlight
+        highlight_bg: Color::Rgb(224, 175, 104),
+        // Text styles
+        muted_fg: Color::Rgb(105, 112, 140),
+        link_fg: Color::Rgb(125, 207, 255),
+        code_bg: Color::Rgb(35, 37, 52),
+        quote_fg: Color::Rgb(140, 148, 180),
+        separator_fg: Color::Rgb(50, 53, 72),
     }
 }
 
 /// Light theme
 pub fn light_theme() -> ColorPalette {
     ColorPalette {
-        background: Color::Rgb(252, 252, 252),
-        foreground: Color::Rgb(59, 60, 68),
-        accent: Color::Rgb(47, 130, 200),
-        border: Color::Rgb(200, 200, 200),
+        background: Color::Rgb(252, 252, 250),
+        foreground: Color::Rgb(52, 59, 88),
+        accent: Color::Rgb(47, 128, 200),
+        border: Color::Rgb(200, 202, 210),
         error: Color::Rgb(206, 60, 80),
-        warning: Color::Rgb(180, 130, 50),
+        warning: Color::Rgb(150, 89, 59),
         success: Color::Rgb(80, 160, 80),
-        comment: Color::Rgb(150, 150, 150),
+        comment: Color::Rgb(150, 152, 160),
         // Chat
-        chat_user: Color::Rgb(47, 130, 200),
+        chat_user: Color::Rgb(47, 128, 200),
         chat_assistant: Color::Rgb(80, 160, 80),
-        chat_system: Color::Rgb(180, 130, 50),
+        chat_system: Color::Rgb(150, 89, 59),
         chat_tool: Color::Rgb(140, 100, 200),
         // Sidebar
-        sidebar_bg: Color::Rgb(245, 245, 245),
+        sidebar_bg: Color::Rgb(245, 245, 242),
         sidebar_fg: Color::Rgb(80, 80, 90),
-        sidebar_active: Color::Rgb(47, 130, 200),
+        sidebar_active: Color::Rgb(47, 128, 200),
         // Input
         input_bg: Color::Rgb(255, 255, 255),
         // Diff
         diff_add: Color::Rgb(80, 160, 80),
         diff_remove: Color::Rgb(206, 60, 80),
-        diff_header: Color::Rgb(47, 130, 200),
+        diff_header: Color::Rgb(47, 128, 200),
         // Status
-        status_bg: Color::Rgb(230, 230, 230),
-        status_fg: Color::Rgb(59, 60, 68),
+        status_bg: Color::Rgb(230, 230, 228),
+        status_fg: Color::Rgb(52, 59, 88),
         // Streaming
-        streaming_cursor: Color::Rgb(47, 130, 200),
+        streaming_cursor: Color::Rgb(47, 128, 200),
+        // Selection
+        selection_bg: Color::Rgb(190, 210, 240),
+        selection_fg: Color::Rgb(20, 30, 60),
+        // Highlight
+        highlight_bg: Color::Rgb(255, 230, 150),
+        // Text styles
+        muted_fg: Color::Rgb(140, 142, 155),
+        link_fg: Color::Rgb(47, 128, 200),
+        code_bg: Color::Rgb(238, 238, 235),
+        quote_fg: Color::Rgb(100, 105, 120),
+        separator_fg: Color::Rgb(210, 212, 220),
     }
 }

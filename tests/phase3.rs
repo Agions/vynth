@@ -1,6 +1,8 @@
 //! Phase 3 tests — Theme, Diff Renderer, Syntax Highlighting, Input
 
-use syncode::tui::diff_renderer::{parse_diff, render_diff, render_side_by_side, render_unified, DiffViewMode};
+use syncode::tui::diff_renderer::{
+    parse_diff, render_diff, render_side_by_side, render_unified, DiffViewMode,
+};
 use syncode::tui::syntax::highlight_line;
 use syncode::tui::theme::Theme;
 // ── Theme System ──────────────────────────────────────────
@@ -43,7 +45,10 @@ fn test_theme_has_all_colors() {
 
 #[test]
 fn test_theme_enum_variants() {
-    assert_eq!(Theme::Dark.resolve().background, Theme::Dark.resolve().background);
+    assert_eq!(
+        Theme::Dark.resolve().background,
+        Theme::Dark.resolve().background
+    );
     // Dark and light should have different backgrounds
     assert_ne!(
         format!("{:?}", Theme::Dark.resolve().background),
@@ -68,7 +73,10 @@ fn test_parse_diff_basic() {
     assert!(!hunks.is_empty());
     assert!(hunks[0].header.contains("@@"));
 
-    let has_add = hunks[0].lines.iter().any(|l| matches!(l.kind, syncode::app::DiffLineKind::Add));
+    let has_add = hunks[0]
+        .lines
+        .iter()
+        .any(|l| matches!(l.kind, syncode::app::DiffLineKind::Add));
     assert!(has_add, "Should have an added line");
 }
 
@@ -230,7 +238,10 @@ fn test_app_submit_message() {
 
     assert_eq!(app.chat_state.messages.len(), 1);
     assert_eq!(app.chat_state.messages[0].content, "test message");
-    assert_eq!(app.chat_state.messages[0].role, syncode::app::MessageRole::User);
+    assert_eq!(
+        app.chat_state.messages[0].role,
+        syncode::app::MessageRole::User
+    );
     assert!(app.input_buffer.is_empty());
     assert_eq!(app.input_cursor, 0);
 }
@@ -272,7 +283,13 @@ fn test_project_file_count() {
     use std::process::Command;
 
     let output = Command::new("find")
-        .args(["/home/ubuntu/workspace/syncode/src", "-name", "*.rs", "-type", "f"])
+        .args([
+            "/home/ubuntu/workspace/syncode/src",
+            "-name",
+            "*.rs",
+            "-type",
+            "f",
+        ])
         .output()
         .unwrap();
 

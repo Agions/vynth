@@ -57,11 +57,7 @@ pub fn load_external_skills(
                 all_skills.extend(skills);
             }
             Err(e) => {
-                tracing::warn!(
-                    "Failed to load skills from {}: {}",
-                    source.location,
-                    e
-                );
+                tracing::warn!("Failed to load skills from {}: {}", source.location, e);
             }
         }
     }
@@ -77,10 +73,7 @@ fn source_type_name(t: &SkillSourceType) -> &'static str {
     }
 }
 
-fn load_from_source(
-    source: &SkillSource,
-    cache_dir: &Path,
-) -> Result<Vec<SkillDef>, AppError> {
+fn load_from_source(source: &SkillSource, cache_dir: &Path) -> Result<Vec<SkillDef>, AppError> {
     match source.source_type {
         SkillSourceType::Local => load_from_local(
             Path::new(&source.location),
@@ -117,34 +110,21 @@ fn load_from_local(
     }
 
     for entry in walk_dir(dir) {
-        let ext = entry
-            .extension()
-            .and_then(|e| e.to_str())
-            .unwrap_or("");
+        let ext = entry.extension().and_then(|e| e.to_str()).unwrap_or("");
 
         if ext != "md" {
             continue;
         }
 
-        let rel_path = entry
-            .strip_prefix(dir)
-            .unwrap_or(&entry)
-            .to_string_lossy();
+        let rel_path = entry.strip_prefix(dir).unwrap_or(&entry).to_string_lossy();
 
         // Check include patterns
-        if !include.is_empty()
-            && !include
-                .iter()
-                .any(|p| glob_match(p, &rel_path))
-        {
+        if !include.is_empty() && !include.iter().any(|p| glob_match(p, &rel_path)) {
             continue;
         }
 
         // Check exclude patterns
-        if exclude
-            .iter()
-            .any(|p| glob_match(p, &rel_path))
-        {
+        if exclude.iter().any(|p| glob_match(p, &rel_path)) {
             continue;
         }
 
@@ -160,11 +140,7 @@ fn load_from_local(
 }
 
 /// Clone or update a git repository
-fn clone_or_update_git(
-    url: &str,
-    branch: Option<&str>,
-    target: &Path,
-) -> Result<(), AppError> {
+fn clone_or_update_git(url: &str, branch: Option<&str>, target: &Path) -> Result<(), AppError> {
     if target.exists() {
         // Update existing clone
         let output = std::process::Command::new("git")
@@ -173,10 +149,7 @@ fn clone_or_update_git(
             .map_err(|e| AppError::Config(format!("git pull failed: {}", e)))?;
 
         if !output.status.success() {
-            tracing::warn!(
-                "git pull failed for {}, re-cloning",
-                target.display()
-            );
+            tracing::warn!("git pull failed for {}, re-cloning", target.display());
             std::fs::remove_dir_all(target).ok();
         } else {
             return Ok(());
@@ -255,10 +228,7 @@ fn glob_match(pattern: &str, text: &str) -> bool {
             return text.ends_with(rest) || text.contains(rest);
         }
         // **/foo.md matches foo.md at any depth
-        return text.ends_with(rest)
-            || text
-                .split('/')
-                .any(|part| simple_glob_match(rest, part));
+        return text.ends_with(rest) || text.split('/').any(|part| simple_glob_match(rest, part));
     }
 
     if let Some(prefix) = pattern.strip_suffix("/**") {
@@ -301,10 +271,7 @@ fn dir_name(url: &str) -> String {
 
 /// Extract filename from URL
 fn url_filename(url: &str) -> String {
-    url.split('/')
-        .last()
-        .unwrap_or("skill.md")
-        .to_string()
+    url.split('/').last().unwrap_or("skill.md").to_string()
 }
 
 /// Recursively walk a directory
@@ -338,10 +305,7 @@ mod tests {
 
     #[test]
     fn test_dir_name() {
-        assert_eq!(
-            dir_name("https://github.com/user/skills.git"),
-            "skills"
-        );
+        assert_eq!(dir_name("https://github.com/user/skills.git"), "skills");
         assert_eq!(
             dir_name("https://gitee.com/Agions/syncode-skills"),
             "syncode-skills"

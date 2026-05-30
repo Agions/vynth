@@ -2,18 +2,18 @@
 
 pub mod file_read;
 pub mod file_write;
-pub mod shell_exec;
-pub mod search;
 pub mod patch;
+pub mod search;
+pub mod shell_exec;
 
-use std::sync::Arc;
 use crate::tools::registry::ToolRegistry;
+use std::sync::Arc;
 
 pub use file_read::FileReadTool;
 pub use file_write::FileWriteTool;
-pub use shell_exec::ShellExecTool;
-pub use search::SearchTool;
 pub use patch::PatchTool;
+pub use search::SearchTool;
+pub use shell_exec::ShellExecTool;
 
 /// Register all built-in tools
 pub fn register_builtins(registry: &mut ToolRegistry) {

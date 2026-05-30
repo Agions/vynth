@@ -59,9 +59,21 @@ steps:
 
     // Each step result should be Success
     for step_id in &["step1", "step2", "step3"] {
-        let result = runner.step_results.get(*step_id).expect("step result missing");
-        assert_eq!(result.status, StepStatus::Success, "{} should succeed", step_id);
-        assert!(result.attempts >= 1, "{} should have at least 1 attempt", step_id);
+        let result = runner
+            .step_results
+            .get(*step_id)
+            .expect("step result missing");
+        assert_eq!(
+            result.status,
+            StepStatus::Success,
+            "{} should succeed",
+            step_id
+        );
+        assert!(
+            result.attempts >= 1,
+            "{} should have at least 1 attempt",
+            step_id
+        );
     }
 }
 
@@ -93,7 +105,11 @@ steps:
 
     // Before execution: a, b, c should all be executable (no deps)
     let initial = runner.get_executable_steps();
-    assert_eq!(initial.len(), 3, "3 independent steps should be executable initially");
+    assert_eq!(
+        initial.len(),
+        3,
+        "3 independent steps should be executable initially"
+    );
     let ids: Vec<&str> = initial.iter().map(|s| s.id.as_str()).collect();
     assert!(ids.contains(&"a"));
     assert!(ids.contains(&"b"));
@@ -682,10 +698,16 @@ steps:
     // design → code → (test skipped, review succeeds)
     assert_eq!(status.total_steps, 4);
     assert_eq!(status.completed, 3); // design, code, review
-    assert_eq!(status.skipped, 1);   // test
+    assert_eq!(status.skipped, 1); // test
 
-    assert_eq!(runner.step_results.get("test").unwrap().status, StepStatus::Skipped);
-    assert_eq!(runner.step_results.get("review").unwrap().status, StepStatus::Success);
+    assert_eq!(
+        runner.step_results.get("test").unwrap().status,
+        StepStatus::Skipped
+    );
+    assert_eq!(
+        runner.step_results.get("review").unwrap().status,
+        StepStatus::Success
+    );
 }
 
 // ---------------------------------------------------------------------------

@@ -160,10 +160,7 @@ pub fn render_unified(diff_text: &str) -> Text<'static> {
 
             // Highlighted content spans
             for (style, text) in highlighted {
-                spans.push(Span::styled(
-                    text,
-                    style.fg(fg).bg(bg),
-                ));
+                spans.push(Span::styled(text, style.fg(fg).bg(bg)));
             }
 
             lines.push(Line::from(spans));
@@ -213,15 +210,12 @@ pub fn render_side_by_side(diff_text: &str, col_width: usize) -> Text<'static> {
                     let left = format_side(&dl.content, col_width);
                     let right = format_side(&dl.content, col_width);
                     let mut spans = Vec::new();
+                    spans.push(Span::styled(left, Style::default().fg(Color::Gray)));
                     spans.push(Span::styled(
-                        left,
-                        Style::default().fg(Color::Gray),
+                        "│".to_string(),
+                        Style::default().fg(Color::DarkGray),
                     ));
-                    spans.push(Span::styled("│".to_string(), Style::default().fg(Color::DarkGray)));
-                    spans.push(Span::styled(
-                        right,
-                        Style::default().fg(Color::Gray),
-                    ));
+                    spans.push(Span::styled(right, Style::default().fg(Color::Gray)));
                     lines.push(Line::from(spans));
                     idx += 1;
                 }
@@ -243,23 +237,32 @@ pub fn render_side_by_side(diff_text: &str, col_width: usize) -> Text<'static> {
                         let mut spans = Vec::new();
                         if i < removes.len() {
                             let highlighted = syntax::highlight_line(&removes[i].content, &ext);
-                            let text: String = highlighted.iter().map(|(_, s)| s.as_str()).collect();
+                            let text: String =
+                                highlighted.iter().map(|(_, s)| s.as_str()).collect();
                             let left = format_side(&text, col_width);
                             spans.push(Span::styled(
                                 left,
-                                Style::default().fg(Color::Rgb(220, 100, 100)).bg(Color::Rgb(40, 18, 18)),
+                                Style::default()
+                                    .fg(Color::Rgb(220, 100, 100))
+                                    .bg(Color::Rgb(40, 18, 18)),
                             ));
                         } else {
                             spans.push(Span::raw(" ".repeat(col_width)));
                         }
-                        spans.push(Span::styled("│".to_string(), Style::default().fg(Color::DarkGray)));
+                        spans.push(Span::styled(
+                            "│".to_string(),
+                            Style::default().fg(Color::DarkGray),
+                        ));
                         if i < adds.len() {
                             let highlighted = syntax::highlight_line(&adds[i].content, &ext);
-                            let text: String = highlighted.iter().map(|(_, s)| s.as_str()).collect();
+                            let text: String =
+                                highlighted.iter().map(|(_, s)| s.as_str()).collect();
                             let right = format_side(&text, col_width);
                             spans.push(Span::styled(
                                 right,
-                                Style::default().fg(Color::Rgb(100, 220, 100)).bg(Color::Rgb(22, 40, 22)),
+                                Style::default()
+                                    .fg(Color::Rgb(100, 220, 100))
+                                    .bg(Color::Rgb(22, 40, 22)),
                             ));
                         } else {
                             spans.push(Span::raw(" ".repeat(col_width)));
@@ -274,10 +277,15 @@ pub fn render_side_by_side(diff_text: &str, col_width: usize) -> Text<'static> {
                     let right = format_side(&text, col_width);
                     let mut spans = Vec::new();
                     spans.push(Span::raw(" ".repeat(col_width)));
-                    spans.push(Span::styled("│".to_string(), Style::default().fg(Color::DarkGray)));
+                    spans.push(Span::styled(
+                        "│".to_string(),
+                        Style::default().fg(Color::DarkGray),
+                    ));
                     spans.push(Span::styled(
                         right,
-                        Style::default().fg(Color::Rgb(100, 220, 100)).bg(Color::Rgb(22, 40, 22)),
+                        Style::default()
+                            .fg(Color::Rgb(100, 220, 100))
+                            .bg(Color::Rgb(22, 40, 22)),
                     ));
                     lines.push(Line::from(spans));
                     idx += 1;

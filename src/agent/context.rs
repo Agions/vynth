@@ -86,12 +86,14 @@ impl ContextManager {
         while self.messages.len() > min_keep && self.estimated_tokens > target {
             // Find first non-system, non-recent message
             let keep_from = self.messages.len().saturating_sub(min_keep);
-            if let Some(pos) = self.messages.iter().take(keep_from).position(|m| {
-                !matches!(m.role, MessageRole::System)
-            }) {
+            if let Some(pos) = self
+                .messages
+                .iter()
+                .take(keep_from)
+                .position(|m| !matches!(m.role, MessageRole::System))
+            {
                 let removed = self.messages.remove(pos);
-                self.estimated_tokens -=
-                    estimate_tokens(removed.content.as_deref().unwrap_or(""));
+                self.estimated_tokens -= estimate_tokens(removed.content.as_deref().unwrap_or(""));
             } else {
                 break;
             }
@@ -307,7 +309,16 @@ mod tests {
         let short = "short result";
         assert_eq!(summarize_tool_result(short), short);
 
-        let long = (0..20).map(|i| format!("line {} with extra data to make it longer {}", i, "x".repeat(30))).collect::<Vec<_>>().join("\n");
+        let long = (0..20)
+            .map(|i| {
+                format!(
+                    "line {} with extra data to make it longer {}",
+                    i,
+                    "x".repeat(30)
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
         let summary = summarize_tool_result(&long);
         assert!(summary.contains("omitted"));
         assert!(summary.len() < long.len());
@@ -327,7 +338,11 @@ mod tests {
         }
 
         // Old results should be compressed
-        let tool_count = ctx.messages().iter().filter(|m| matches!(m.role, MessageRole::Tool)).count();
+        let tool_count = ctx
+            .messages()
+            .iter()
+            .filter(|m| matches!(m.role, MessageRole::Tool))
+            .count();
         assert_eq!(tool_count, 8); // Same count but older ones are compressed
     }
 }

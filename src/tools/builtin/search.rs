@@ -104,7 +104,9 @@ impl Tool for SearchTool {
             .current_dir(&ctx.working_dir)
             .output()
             .await
-            .map_err(|e| AppError::ExecutionFailed(format!("ripgrep not found or failed: {}", e)))?;
+            .map_err(|e| {
+                AppError::ExecutionFailed(format!("ripgrep not found or failed: {}", e))
+            })?;
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         let results: Vec<&str> = stdout.lines().take(max_results).collect();

@@ -7,7 +7,10 @@ use crate::tui::event::AppEvent;
 use ratatui::layout::Rect;
 
 /// Run the application
-pub async fn run(settings: Settings, startup_metrics: crate::telemetry::StartupMetrics) -> Result<(), AppError> {
+pub async fn run(
+    settings: Settings,
+    startup_metrics: crate::telemetry::StartupMetrics,
+) -> Result<(), AppError> {
     tracing::info!("Initializing application");
 
     let mut app = App::new(settings);
@@ -256,8 +259,15 @@ pub enum AgentState {
 /// Agent events (sent from agent task to TUI)
 pub enum AgentEvent {
     TextDelta(String),
-    ToolCallStart { name: String, args: serde_json::Value },
-    ToolResult { name: String, output: String, is_error: bool },
+    ToolCallStart {
+        name: String,
+        args: serde_json::Value,
+    },
+    ToolResult {
+        name: String,
+        output: String,
+        is_error: bool,
+    },
     Done,
     Error(String),
 }
@@ -379,7 +389,9 @@ impl App {
             AppEvent::Key(key) => {
                 // Global keybindings (Ctrl+C always quits)
                 if key.code == crossterm::event::KeyCode::Char('c')
-                    && key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL)
+                    && key
+                        .modifiers
+                        .contains(crossterm::event::KeyModifiers::CONTROL)
                 {
                     self.should_quit = true;
                     return Ok(());
@@ -477,11 +489,9 @@ impl App {
             }
             MouseEventKind::ScrollDown => {
                 if in_rect(&layout.chat_rect) {
-                    self.chat_state.scroll_offset =
-                        self.chat_state.scroll_offset.saturating_sub(3);
+                    self.chat_state.scroll_offset = self.chat_state.scroll_offset.saturating_sub(3);
                 } else if in_rect(&layout.diff_rect) {
-                    self.diff_state.scroll_offset =
-                        self.diff_state.scroll_offset.saturating_sub(3);
+                    self.diff_state.scroll_offset = self.diff_state.scroll_offset.saturating_sub(3);
                 } else if in_rect(&layout.sidebar_rect) {
                     self.sidebar_state.scroll_offset =
                         self.sidebar_state.scroll_offset.saturating_sub(3);
@@ -546,8 +556,12 @@ impl App {
                 if self.input_cursor > 0 {
                     let before = &self.input_buffer[..self.input_cursor];
                     let trimmed = before.trim_end();
-                    let new_pos = trimmed.rfind(|c: char| c.is_whitespace()).map(|i| i + 1).unwrap_or(0);
-                    self.input_buffer.replace_range(new_pos..self.input_cursor, "");
+                    let new_pos = trimmed
+                        .rfind(|c: char| c.is_whitespace())
+                        .map(|i| i + 1)
+                        .unwrap_or(0);
+                    self.input_buffer
+                        .replace_range(new_pos..self.input_cursor, "");
                     self.input_cursor = new_pos;
                 }
             }
@@ -708,10 +722,7 @@ impl App {
         Ok(())
     }
 
-    async fn handle_insert_key(
-        &mut self,
-        key: crossterm::event::KeyEvent,
-    ) -> Result<(), AppError> {
+    async fn handle_insert_key(&mut self, key: crossterm::event::KeyEvent) -> Result<(), AppError> {
         match key.code {
             crossterm::event::KeyCode::Esc => {
                 self.mode = InputMode::Normal;
@@ -769,7 +780,10 @@ impl App {
             }
             crossterm::event::KeyCode::Char(c) => {
                 // Ignore Ctrl+<char> combos (already handled globally)
-                if !key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) {
+                if !key
+                    .modifiers
+                    .contains(crossterm::event::KeyModifiers::CONTROL)
+                {
                     self.input_buffer.insert(self.input_cursor, c);
                     self.input_cursor += c.len_utf8();
                 }
@@ -779,10 +793,7 @@ impl App {
         Ok(())
     }
 
-    async fn handle_normal_key(
-        &mut self,
-        key: crossterm::event::KeyEvent,
-    ) -> Result<(), AppError> {
+    async fn handle_normal_key(&mut self, key: crossterm::event::KeyEvent) -> Result<(), AppError> {
         match key.code {
             crossterm::event::KeyCode::Char('i') => {
                 self.mode = InputMode::Insert;
@@ -846,7 +857,10 @@ impl App {
                 }
             }
             crossterm::event::KeyCode::Char(c) => {
-                if !key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) {
+                if !key
+                    .modifiers
+                    .contains(crossterm::event::KeyModifiers::CONTROL)
+                {
                     self.input_buffer.insert(self.input_cursor, c);
                     self.input_cursor += c.len_utf8();
                 }
@@ -856,10 +870,7 @@ impl App {
         Ok(())
     }
 
-    async fn handle_search_key(
-        &mut self,
-        key: crossterm::event::KeyEvent,
-    ) -> Result<(), AppError> {
+    async fn handle_search_key(&mut self, key: crossterm::event::KeyEvent) -> Result<(), AppError> {
         match key.code {
             crossterm::event::KeyCode::Esc => {
                 self.input_buffer.clear();
@@ -885,7 +896,10 @@ impl App {
                 }
             }
             crossterm::event::KeyCode::Char(c) => {
-                if !key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) {
+                if !key
+                    .modifiers
+                    .contains(crossterm::event::KeyModifiers::CONTROL)
+                {
                     self.input_buffer.insert(self.input_cursor, c);
                     self.input_cursor += c.len_utf8();
                 }
@@ -906,7 +920,11 @@ impl App {
                 self.status_bar.agent_state = AgentState::RunningTool(name.clone());
                 tracing::info!("Tool call: {} with args: {}", name, args);
             }
-            AgentEvent::ToolResult { name, output, is_error } => {
+            AgentEvent::ToolResult {
+                name,
+                output,
+                is_error,
+            } => {
                 tracing::info!(
                     "Tool result: {} (error={}): {}",
                     name,

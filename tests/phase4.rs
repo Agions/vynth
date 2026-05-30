@@ -1,12 +1,18 @@
 //! Phase 4 tests — Vim/Emacs keybindings, Mouse, Startup, Config reload
 
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use syncode::config::keymap::{Action, KeyBindings, KeymapProfile};
 use syncode::config::Settings;
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
-fn vim() -> KeyBindings { KeyBindings::new(KeymapProfile::Vim) }
-fn emacs() -> KeyBindings { KeyBindings::new(KeymapProfile::Emacs) }
-fn default_kb() -> KeyBindings { KeyBindings::new(KeymapProfile::Default) }
+fn vim() -> KeyBindings {
+    KeyBindings::new(KeymapProfile::Vim)
+}
+fn emacs() -> KeyBindings {
+    KeyBindings::new(KeymapProfile::Emacs)
+}
+fn default_kb() -> KeyBindings {
+    KeyBindings::new(KeymapProfile::Default)
+}
 
 fn key(code: KeyCode) -> KeyEvent {
     KeyEvent::new(code, KeyModifiers::NONE)
@@ -274,7 +280,13 @@ fn test_config_watcher_module_exists() {
 fn test_source_file_count() {
     use std::process::Command;
     let output = Command::new("find")
-        .args(["/home/ubuntu/workspace/syncode/src", "-name", "*.rs", "-type", "f"])
+        .args([
+            "/home/ubuntu/workspace/syncode/src",
+            "-name",
+            "*.rs",
+            "-type",
+            "f",
+        ])
         .output()
         .unwrap();
     let count = String::from_utf8_lossy(&output.stdout).lines().count();

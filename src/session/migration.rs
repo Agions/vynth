@@ -1,7 +1,7 @@
 //! Database schema migrations
 
-use rusqlite::Connection;
 use crate::error::AppError;
+use rusqlite::Connection;
 
 /// Run all database migrations
 pub fn run_migrations(conn: &Connection) -> Result<(), AppError> {
@@ -28,7 +28,7 @@ pub fn run_migrations(conn: &Connection) -> Result<(), AppError> {
 
         CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id, timestamp);
         CREATE INDEX IF NOT EXISTS idx_sessions_updated ON sessions(updated_at DESC);
-        "
+        ",
     )?;
 
     tracing::info!("Database migrations complete");

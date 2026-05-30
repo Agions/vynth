@@ -1,9 +1,9 @@
 //! MCP Client — single server connection
 
+use crate::config::McpServerConfig;
 use crate::error::AppError;
 use crate::mcp::transport::{McpTransport, StdioTransport};
 use crate::mcp::types::*;
-use crate::config::McpServerConfig;
 
 /// Single MCP Server connection
 pub struct McpClient {
@@ -20,9 +20,10 @@ impl McpClient {
                 Box::new(StdioTransport::connect(command, args).await?)
             }
             crate::config::McpTransport::Http { url } => {
-                return Err(AppError::McpTransport(
-                    format!("HTTP transport not yet implemented: {}", url),
-                ));
+                return Err(AppError::McpTransport(format!(
+                    "HTTP transport not yet implemented: {}",
+                    url
+                )));
             }
         };
 
@@ -65,7 +66,11 @@ impl McpClient {
     }
 
     /// Call a tool on this server
-    pub async fn call_tool(&self, tool_name: &str, args: serde_json::Value) -> Result<McpToolResult, AppError> {
+    pub async fn call_tool(
+        &self,
+        tool_name: &str,
+        args: serde_json::Value,
+    ) -> Result<McpToolResult, AppError> {
         // Permission check
         if !self.is_tool_allowed(tool_name) {
             return Err(AppError::McpPermissionDenied {
@@ -104,7 +109,10 @@ impl McpClient {
                     })
                     .unwrap_or_else(|| serde_json::to_string_pretty(&result).unwrap_or_default());
 
-                let is_error = result.get("isError").and_then(|v| v.as_bool()).unwrap_or(false);
+                let is_error = result
+                    .get("isError")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false);
 
                 return Ok(McpToolResult { content, is_error });
             }

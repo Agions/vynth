@@ -10,7 +10,8 @@ pub mod widgets;
 use crate::error::AppError;
 
 /// Initialize the terminal (raw mode, alternate screen)
-pub fn init() -> Result<ratatui::Terminal<ratatui::backend::CrosstermBackend<std::io::Stdout>>, AppError> {
+pub fn init(
+) -> Result<ratatui::Terminal<ratatui::backend::CrosstermBackend<std::io::Stdout>>, AppError> {
     crossterm::terminal::enable_raw_mode()?;
     let mut stdout = std::io::stdout();
     crossterm::execute!(

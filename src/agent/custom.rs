@@ -112,10 +112,7 @@ impl CustomAgentRegistry {
         }
 
         for entry in walk_dir(path) {
-            let ext = entry
-                .extension()
-                .and_then(|e| e.to_str())
-                .unwrap_or("");
+            let ext = entry.extension().and_then(|e| e.to_str()).unwrap_or("");
 
             if ext == "yaml" || ext == "yml" || ext == "toml" {
                 match load_agent_file(&entry) {
@@ -124,11 +121,7 @@ impl CustomAgentRegistry {
                         registry.agents.insert(agent.name.clone(), agent);
                     }
                     Err(e) => {
-                        tracing::warn!(
-                            "Failed to load agent from {}: {}",
-                            entry.display(),
-                            e
-                        );
+                        tracing::warn!("Failed to load agent from {}: {}", entry.display(), e);
                     }
                 }
             }
@@ -176,10 +169,7 @@ fn load_agent_file(path: &Path) -> Result<CustomAgentDef, AppError> {
     let content = std::fs::read_to_string(path)
         .map_err(|e| AppError::Config(format!("Failed to read agent file: {}", e)))?;
 
-    let ext = path
-        .extension()
-        .and_then(|e| e.to_str())
-        .unwrap_or("");
+    let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
 
     match ext {
         "yaml" | "yml" => serde_yaml::from_str(&content)

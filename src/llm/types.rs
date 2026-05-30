@@ -71,8 +71,14 @@ pub struct StreamChunk {
 
 #[derive(Debug, Clone)]
 pub enum ChunkDelta {
-    Text { content: String },
-    ToolCall { id: String, name: String, args_delta: String },
+    Text {
+        content: String,
+    },
+    ToolCall {
+        id: String,
+        name: String,
+        args_delta: String,
+    },
     Done,
 }
 
@@ -133,19 +139,17 @@ impl ChatMessage {
         }
 
         if let Some(tool_calls) = &self.tool_calls {
-            json["tool_calls"] = serde_json::json!(
-                tool_calls
-                    .iter()
-                    .map(|tc| serde_json::json!({
-                        "id": tc.id,
-                        "type": "function",
-                        "function": {
-                            "name": tc.name,
-                            "arguments": tc.arguments,
-                        }
-                    }))
-                    .collect::<Vec<_>>()
-            );
+            json["tool_calls"] = serde_json::json!(tool_calls
+                .iter()
+                .map(|tc| serde_json::json!({
+                    "id": tc.id,
+                    "type": "function",
+                    "function": {
+                        "name": tc.name,
+                        "arguments": tc.arguments,
+                    }
+                }))
+                .collect::<Vec<_>>());
         }
 
         if let Some(tool_call_id) = &self.tool_call_id {

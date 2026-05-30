@@ -52,7 +52,9 @@ impl Tool for ShellExecTool {
 
     fn requires_approval(&self, args: &Value) -> bool {
         let cmd = args["command"].as_str().unwrap_or("");
-        DANGEROUS_PATTERNS.iter().any(|pattern| cmd.contains(pattern))
+        DANGEROUS_PATTERNS
+            .iter()
+            .any(|pattern| cmd.contains(pattern))
     }
 
     async fn execute(&self, args: Value, ctx: &ToolContext) -> Result<ToolResult, AppError> {
@@ -85,7 +87,11 @@ impl Tool for ShellExecTool {
 
         // Trim very long output
         let output_text = if combined.len() > 50_000 {
-            format!("{}... (truncated, {} bytes total)", &combined[..50_000], combined.len())
+            format!(
+                "{}... (truncated, {} bytes total)",
+                &combined[..50_000],
+                combined.len()
+            )
         } else {
             combined
         };

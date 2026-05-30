@@ -216,7 +216,14 @@ pub fn git_log(dir: &Path, max_count: usize) -> Result<Vec<GitCommit>, String> {
     let sep = "---GIT_LOG_SEP---";
     let format = format!("%H%n%an%n%aI%n%s%n{sep}");
     let count_str = max_count.to_string();
-    let raw = run_git(dir, &["log", &format!("--format={format}"), &format!("-{count_str}")])?;
+    let raw = run_git(
+        dir,
+        &[
+            "log",
+            &format!("--format={format}"),
+            &format!("-{count_str}"),
+        ],
+    )?;
 
     let commits = raw
         .split(sep)
@@ -228,9 +235,7 @@ pub fn git_log(dir: &Path, max_count: usize) -> Result<Vec<GitCommit>, String> {
                 let author = parts[1].trim().to_string();
                 let date = parts[2].trim();
                 let message = parts[3..].join("\n").trim().to_string();
-                let date = DateTime::parse_from_rfc3339(date)
-                    .ok()?
-                    .with_timezone(&Utc);
+                let date = DateTime::parse_from_rfc3339(date).ok()?.with_timezone(&Utc);
                 Some(GitCommit {
                     hash,
                     author,

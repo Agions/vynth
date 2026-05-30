@@ -1,10 +1,10 @@
 //! Phase 2 integration tests — Agent Loop, Tools, Sandbox
 
 use std::path::PathBuf;
+use syncode::sandbox::command_preview::RiskLevel;
+use syncode::sandbox::CommandPreview;
 use syncode::tools::builtin;
 use syncode::tools::trait_def::{Tool, ToolContext, ToolResult};
-use syncode::sandbox::CommandPreview;
-use syncode::sandbox::command_preview::RiskLevel;
 
 fn test_ctx() -> ToolContext {
     ToolContext {
@@ -348,8 +348,16 @@ fn test_all_tools_have_valid_schemas() {
 
         // Every tool must have name, description, parameters
         assert!(schema.get("name").is_some(), "Tool {} missing name", name);
-        assert!(schema.get("description").is_some(), "Tool {} missing description", name);
-        assert!(schema.get("parameters").is_some(), "Tool {} missing parameters", name);
+        assert!(
+            schema.get("description").is_some(),
+            "Tool {} missing description",
+            name
+        );
+        assert!(
+            schema.get("parameters").is_some(),
+            "Tool {} missing parameters",
+            name
+        );
     }
 }
 
@@ -373,7 +381,10 @@ fn test_context_trim_on_overflow() {
 
     // Push many messages to exceed budget
     for i in 0..20 {
-        ctx.push(ChatMessage::user(&format!("Message number {} with some extra text to fill tokens", i)));
+        ctx.push(ChatMessage::user(&format!(
+            "Message number {} with some extra text to fill tokens",
+            i
+        )));
     }
 
     // Context should have been trimmed

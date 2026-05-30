@@ -82,11 +82,7 @@ fn parse_data_line(data: &str) -> Option<StreamChunk> {
     if let Some(tool_calls) = delta.get("tool_calls").and_then(|v| v.as_array()) {
         for tc in tool_calls {
             let id = tc.get("id")?.as_str()?.to_string();
-            let name = tc
-                .get("function")?
-                .get("name")?
-                .as_str()?
-                .to_string();
+            let name = tc.get("function")?.get("name")?.as_str()?.to_string();
             let args_delta = tc
                 .get("function")?
                 .get("arguments")?

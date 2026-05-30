@@ -5,7 +5,7 @@ use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 
-use crate::app::{AgentState, App, InputMode, SidebarTab};
+use crate::app::{App, InputMode, SidebarTab};
 
 /// Draw the entire frame (read-only)
 pub fn draw_frame(frame: &mut ratatui::Frame, app: &App) {
@@ -42,7 +42,7 @@ fn compute_layout(frame: &mut ratatui::Frame) -> (Rect, Rect, Rect, Rect, Rect) 
         .direction(Direction::Horizontal)
         .constraints([
             Constraint::Length(30), // Sidebar
-            Constraint::Min(0),    // Main area
+            Constraint::Min(0),     // Main area
         ])
         .split(frame.area());
 
@@ -57,7 +57,13 @@ fn compute_layout(frame: &mut ratatui::Frame) -> (Rect, Rect, Rect, Rect, Rect) 
         ])
         .split(h_chunks[1]);
 
-    (h_chunks[0], v_chunks[0], v_chunks[1], v_chunks[2], v_chunks[3])
+    (
+        h_chunks[0],
+        v_chunks[0],
+        v_chunks[1],
+        v_chunks[2],
+        v_chunks[3],
+    )
 }
 
 /// Draw sidebar panel with tab bar
@@ -91,10 +97,7 @@ fn draw_sidebar(frame: &mut ratatui::Frame, app: &App, area: Rect) {
                 Style::default().fg(Color::DarkGray)
             };
             let sep = if i > 0 { " " } else { "" };
-            vec![
-                Span::raw(sep),
-                Span::styled(*label, style),
-            ]
+            vec![Span::raw(sep), Span::styled(*label, style)]
         })
         .flatten()
         .collect();
@@ -147,11 +150,13 @@ fn draw_chat(frame: &mut ratatui::Frame, app: &App, area: Rect) {
     let block = Block::default()
         .title(" Chat ")
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(if app.focused_panel == crate::app::FocusedPanel::Chat {
-            Color::Cyan
-        } else {
-            Color::DarkGray
-        }));
+        .border_style(Style::default().fg(
+            if app.focused_panel == crate::app::FocusedPanel::Chat {
+                Color::Cyan
+            } else {
+                Color::DarkGray
+            },
+        ));
 
     let inner_height = area.height.saturating_sub(2) as usize; // subtract top/bottom border
     let mut lines: Vec<Line> = Vec::new();
@@ -165,7 +170,10 @@ fn draw_chat(frame: &mut ratatui::Frame, app: &App, area: Rect) {
         };
 
         lines.push(Line::from(vec![
-            Span::styled(prefix, Style::default().fg(color).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                prefix,
+                Style::default().fg(color).add_modifier(Modifier::BOLD),
+            ),
             Span::raw(&msg.content),
         ]));
 
@@ -181,7 +189,9 @@ fn draw_chat(frame: &mut ratatui::Frame, app: &App, area: Rect) {
                 Span::styled("    🔧 ", Style::default().fg(Color::Cyan)),
                 Span::styled(
                     &tc.name,
-                    Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+                    Style::default()
+                        .fg(Color::Cyan)
+                        .add_modifier(Modifier::BOLD),
                 ),
                 Span::styled(
                     format!("({})", args_preview),
@@ -216,7 +226,12 @@ fn draw_chat(frame: &mut ratatui::Frame, app: &App, area: Rect) {
     // Streaming text
     if app.chat_state.is_streaming {
         lines.push(Line::from(vec![
-            Span::styled("  AI:  ", Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "  AI:  ",
+                Style::default()
+                    .fg(Color::Green)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::raw(&app.chat_state.streaming_text),
             Span::styled("▌", Style::default().fg(Color::Green)),
         ]));
@@ -253,11 +268,13 @@ fn draw_diff(frame: &mut ratatui::Frame, app: &App, area: Rect) {
     let block = Block::default()
         .title(" Diff Preview ")
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(if app.focused_panel == crate::app::FocusedPanel::Diff {
-            Color::Cyan
-        } else {
-            Color::DarkGray
-        }));
+        .border_style(Style::default().fg(
+            if app.focused_panel == crate::app::FocusedPanel::Diff {
+                Color::Cyan
+            } else {
+                Color::DarkGray
+            },
+        ));
 
     if app.diff_state.content.is_empty() {
         let paragraph = Paragraph::new("  (no pending changes)")
@@ -320,9 +337,7 @@ fn draw_input(frame: &mut ratatui::Frame, app: &App, area: Rect) {
                     Span::raw(if after.is_empty() { "" } else { &after[1..] }),
                 ]);
 
-                let paragraph = Paragraph::new(line)
-                    .block(block)
-                    .wrap(Wrap { trim: false });
+                let paragraph = Paragraph::new(line).block(block).wrap(Wrap { trim: false });
                 frame.render_widget(paragraph, area);
             }
         }
@@ -354,44 +369,7 @@ fn draw_input(frame: &mut ratatui::Frame, app: &App, area: Rect) {
     }
 }
 
-/// Draw status bar
+/// Draw status bar — enhanced with mode, agent state, token usage, model, sandbox
 fn draw_status_bar(frame: &mut ratatui::Frame, app: &App, area: Rect) {
-    let state_str = match &app.status_bar.agent_state {
-        AgentState::Idle => "● Idle",
-        AgentState::Thinking => "◌ Thinking...",
-        AgentState::RunningTool(name) => &format!("⚙ {}", name),
-        AgentState::Error(msg) => &format!("✗ {}", msg),
-    };
-
-    let state_color = match &app.status_bar.agent_state {
-        AgentState::Idle => Color::Green,
-        AgentState::Thinking => Color::Yellow,
-        AgentState::RunningTool(_) => Color::Cyan,
-        AgentState::Error(_) => Color::Red,
-    };
-
-    let _status_text = format!(
-        "  {} │ {} │ {}/{} tokens │ sandbox: {}",
-        state_str,
-        app.status_bar.model_name,
-        app.status_bar.tokens_used,
-        app.status_bar.tokens_total,
-        app.status_bar.sandbox_mode,
-    );
-
-    let detail = format!(
-        " │ {} │ {}/{} tokens │ sandbox: {}",
-        app.status_bar.model_name,
-        app.status_bar.tokens_used,
-        app.status_bar.tokens_total,
-        app.status_bar.sandbox_mode,
-    );
-
-    let paragraph = Paragraph::new(Line::from(vec![
-        Span::styled(state_str, Style::default().fg(state_color)),
-        Span::raw(detail),
-    ]))
-    .style(Style::default().bg(Color::DarkGray).fg(Color::White));
-
-    frame.render_widget(paragraph, area);
+    crate::tui::widgets::status_bar::render_status_bar(frame, app, area);
 }

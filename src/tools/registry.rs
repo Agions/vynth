@@ -3,8 +3,8 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::tools::trait_def::Tool;
 use crate::llm::types::ToolSchema;
+use crate::tools::trait_def::Tool;
 
 /// Tool registry
 pub struct ToolRegistry {
@@ -38,10 +38,7 @@ impl ToolRegistry {
                     schema_type: "function".to_string(),
                     function: crate::llm::types::FunctionSchema {
                         name: schema["name"].as_str().unwrap_or(tool.name()).to_string(),
-                        description: schema["description"]
-                            .as_str()
-                            .unwrap_or("")
-                            .to_string(),
+                        description: schema["description"].as_str().unwrap_or("").to_string(),
                         parameters: schema["parameters"].clone(),
                     },
                 }

@@ -154,8 +154,8 @@ async fn test_tool_registry_integration() {
 
 #[tokio::test]
 async fn test_file_tool_roundtrip() {
-    use syncode::tools::trait_def::Tool;
     use std::path::PathBuf;
+    use syncode::tools::trait_def::Tool;
 
     let dir = PathBuf::from("/tmp/syncode_e2e_test");
     std::fs::create_dir_all(&dir).unwrap();
@@ -259,18 +259,38 @@ fn test_full_source_stats() {
     use std::process::Command;
 
     let output = Command::new("find")
-        .args(["/home/ubuntu/workspace/syncode/src", "-name", "*.rs", "-type", "f"])
+        .args([
+            "/home/ubuntu/workspace/syncode/src",
+            "-name",
+            "*.rs",
+            "-type",
+            "f",
+        ])
         .output()
         .unwrap();
 
     let file_count = String::from_utf8_lossy(&output.stdout).lines().count();
-    assert!(file_count >= 60, "Expected 60+ source files, got {}", file_count);
+    assert!(
+        file_count >= 60,
+        "Expected 60+ source files, got {}",
+        file_count
+    );
 
     let output = Command::new("find")
-        .args(["/home/ubuntu/workspace/syncode/tests", "-name", "*.rs", "-type", "f"])
+        .args([
+            "/home/ubuntu/workspace/syncode/tests",
+            "-name",
+            "*.rs",
+            "-type",
+            "f",
+        ])
         .output()
         .unwrap();
 
     let test_count = String::from_utf8_lossy(&output.stdout).lines().count();
-    assert!(test_count >= 4, "Expected 4+ test files, got {}", test_count);
+    assert!(
+        test_count >= 4,
+        "Expected 4+ test files, got {}",
+        test_count
+    );
 }
