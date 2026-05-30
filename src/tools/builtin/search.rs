@@ -122,3 +122,118 @@ impl Tool for SearchTool {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    fn test_ctx(dir: &std::path::Path) -> ToolContext {
+        ToolContext {
+            working_dir: dir.to_path_buf(),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn test_tool_name() {
+        let tool = SearchTool;
+        assert_eq!(tool.name(), "search");
+    }
+
+    #[test]
+    fn test_tool_schema() {
+        let tool = SearchTool;
+        let schema = tool.schema();
+        assert_eq!(schema["name"], "search");
+        assert!(schema["parameters"]["properties"]["pattern"].is_object());
+    }
+
+    #[tokio::test]
+    async fn test_content_search() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(
+            dir.path().join("test.rs"),
+            "fn main() {\n    println!(\"hello\");\n}\n",
+        )
+        .unwrap();
+
+        let tool = SearchTool;
+        let args = json!({"pattern": "main"});
+        let result = tool.execute(args, &test_ctx(dir.path())).await.unwrap();
+        assert!(!result.is_error);
+        assert!(result.output.contains("main"));
+    }
+
+    #[tokio::test]
+    async fn test_filename_search() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("test.rs"), "").unwrap();
+        fs::write(dir.path().join("main.rs"), "").unwrap();
+
+        let tool = SearchTool;
+        let args = json!({"pattern": "*.rs", "mode": "filename"});
+        let result = tool.execute(args, &test_ctx(dir.path())).await.unwrap();
+        assert!(!result.is_error);
+        assert!(result.output.contains("test.rs") || result.output.contains("main.rs"));
+    }
+
+    #[tokio::test]
+    async fn test_content_search_with_glob() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("test.rs"), "hello world").unwrap();
+        fs::write(dir.path().join("test.py"), "hello world").unwrap();
+
+        let tool = SearchTool;
+        let args = json!({"pattern": "hello", "file_glob": "*.rs"});
+        let result = tool.execute(args, &test_ctx(dir.path())).await.unwrap();
+        assert!(!result.is_error);
+        // Should only match .rs file
+        assert!(result.output.contains("test.rs"));
+    }
+
+    #[tokio::test]
+    async fn test_no_matches() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("test.rs"), "fn main() {}").unwrap();
+
+        let tool = SearchTool;
+        let args = json!({"pattern": "zzzznonexistent"});
+        let result = tool.execute(args, &test_ctx(dir.path())).await.unwrap();
+        assert!(!result.is_error);
+        assert!(result.output.contains("No matches"));
+    }
+
+    #[tokio::test]
+    async fn test_invalid_mode() {
+        let dir = tempfile::tempdir().unwrap();
+        let tool = SearchTool;
+        let args = json!({"pattern": "test", "mode": "invalid"});
+        let result = tool.execute(args, &test_ctx(dir.path())).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_missing_pattern() {
+        let dir = tempfile::tempdir().unwrap();
+        let tool = SearchTool;
+        let args = json!({});
+        let result = tool.execute(args, &test_ctx(dir.path())).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_max_results() {
+        let dir = tempfile::tempdir().unwrap();
+        for i in 0..10 {
+            fs::write(dir.path().join(format!("f{}.txt", i)), "match_target").unwrap();
+        }
+
+        let tool = SearchTool;
+        let args = json!({"pattern": "match_target", "max_results": 3});
+        let result = tool.execute(args, &test_ctx(dir.path())).await.unwrap();
+        assert!(!result.is_error);
+        let line_count = result.output.lines().count();
+        assert!(line_count <= 3);
+    }
+}

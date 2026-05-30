@@ -73,3 +73,102 @@ impl Tool for FileReadTool {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    fn test_ctx(dir: &std::path::Path) -> ToolContext {
+        ToolContext {
+            working_dir: dir.to_path_buf(),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn test_tool_name() {
+        let tool = FileReadTool;
+        assert_eq!(tool.name(), "file_read");
+    }
+
+    #[test]
+    fn test_tool_schema() {
+        let tool = FileReadTool;
+        let schema = tool.schema();
+        assert_eq!(schema["name"], "file_read");
+        assert!(schema["parameters"]["properties"]["path"].is_object());
+    }
+
+    #[tokio::test]
+    async fn test_read_file() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("test.txt"), "line1\nline2\nline3\n").unwrap();
+
+        let tool = FileReadTool;
+        let args = json!({"path": "test.txt"});
+        let result = tool.execute(args, &test_ctx(dir.path())).await.unwrap();
+        assert!(!result.is_error);
+        assert!(result.output.contains("1|line1"));
+        assert!(result.output.contains("2|line2"));
+        assert!(result.output.contains("3|line3"));
+    }
+
+    #[tokio::test]
+    async fn test_read_with_offset() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("test.txt"), "line1\nline2\nline3\n").unwrap();
+
+        let tool = FileReadTool;
+        let args = json!({"path": "test.txt", "offset": 2});
+        let result = tool.execute(args, &test_ctx(dir.path())).await.unwrap();
+        assert!(!result.is_error);
+        assert!(result.output.contains("2|line2"));
+        assert!(result.output.contains("3|line3"));
+        assert!(!result.output.contains("1|line1"));
+    }
+
+    #[tokio::test]
+    async fn test_read_with_limit() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("test.txt"), "line1\nline2\nline3\n").unwrap();
+
+        let tool = FileReadTool;
+        let args = json!({"path": "test.txt", "limit": 2});
+        let result = tool.execute(args, &test_ctx(dir.path())).await.unwrap();
+        assert!(!result.is_error);
+        assert!(result.output.contains("1|line1"));
+        assert!(result.output.contains("2|line2"));
+        assert!(!result.output.contains("3|line3"));
+    }
+
+    #[tokio::test]
+    async fn test_read_missing_path() {
+        let dir = tempfile::tempdir().unwrap();
+        let tool = FileReadTool;
+        let args = json!({});
+        let result = tool.execute(args, &test_ctx(dir.path())).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_read_nonexistent_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let tool = FileReadTool;
+        let args = json!({"path": "nonexistent.txt"});
+        let result = tool.execute(args, &test_ctx(dir.path())).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_read_empty_file() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("empty.txt"), "").unwrap();
+
+        let tool = FileReadTool;
+        let args = json!({"path": "empty.txt"});
+        let result = tool.execute(args, &test_ctx(dir.path())).await.unwrap();
+        assert!(!result.is_error);
+        assert!(result.output.is_empty());
+    }
+}
