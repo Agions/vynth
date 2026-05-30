@@ -134,3 +134,184 @@ fn classify_command(cmd: &str) -> (RiskLevel, String, Vec<String>) {
 
     (RiskLevel::Low, "General command".to_string(), paths)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── Critical risk ──────────────────────────────────────
+
+    #[test]
+    fn test_critical_rm_rf() {
+        let preview = CommandPreview::analyze("rm -rf /tmp/data");
+        assert_eq!(preview.risk_level, RiskLevel::Critical);
+        assert!(preview.description.contains("Recursive delete"));
+        assert!(!preview.affected_paths.is_empty());
+    }
+
+    #[test]
+    fn test_critical_rm_r_root() {
+        let preview = CommandPreview::analyze("rm -r /");
+        assert_eq!(preview.risk_level, RiskLevel::Critical);
+    }
+
+    #[test]
+    fn test_critical_dd() {
+        let preview = CommandPreview::analyze("dd if=/dev/zero of=/dev/sda");
+        assert_eq!(preview.risk_level, RiskLevel::Critical);
+    }
+
+    // ── High risk ──────────────────────────────────────────
+
+    #[test]
+    fn test_high_sudo() {
+        let preview = CommandPreview::analyze("sudo apt install nginx");
+        assert_eq!(preview.risk_level, RiskLevel::High);
+        assert!(preview.description.contains("privilege"));
+    }
+
+    #[test]
+    fn test_high_chmod_r() {
+        let preview = CommandPreview::analyze("chmod -R 777 /var/www");
+        assert_eq!(preview.risk_level, RiskLevel::High);
+        assert!(preview.description.contains("permission"));
+    }
+
+    #[test]
+    fn test_high_chown_r() {
+        let preview = CommandPreview::analyze("chown -R user:group /home");
+        assert_eq!(preview.risk_level, RiskLevel::High);
+    }
+
+    // ── Medium risk ────────────────────────────────────────
+
+    #[test]
+    fn test_medium_redirect() {
+        let preview = CommandPreview::analyze("echo hello > output.txt");
+        assert_eq!(preview.risk_level, RiskLevel::Medium);
+        assert!(preview.description.contains("write"));
+        assert!(preview.affected_paths.contains(&"output.txt".to_string()));
+    }
+
+    #[test]
+    fn test_medium_append() {
+        let preview = CommandPreview::analyze("echo data >> log.txt");
+        assert_eq!(preview.risk_level, RiskLevel::Medium);
+    }
+
+    #[test]
+    fn test_medium_git_push() {
+        let preview = CommandPreview::analyze("git push origin main");
+        assert_eq!(preview.risk_level, RiskLevel::Medium);
+        assert!(preview.description.contains("push"));
+    }
+
+    #[test]
+    fn test_medium_git_force() {
+        let preview = CommandPreview::analyze("git push --force");
+        assert_eq!(preview.risk_level, RiskLevel::Medium);
+    }
+
+    // ── Low risk ───────────────────────────────────────────
+
+    #[test]
+    fn test_low_git_status() {
+        let preview = CommandPreview::analyze("git status");
+        assert_eq!(preview.risk_level, RiskLevel::Low);
+        assert!(preview.description.contains("Git"));
+    }
+
+    #[test]
+    fn test_low_git_diff() {
+        let preview = CommandPreview::analyze("git diff");
+        assert_eq!(preview.risk_level, RiskLevel::Low);
+    }
+
+    #[test]
+    fn test_low_general_command() {
+        let preview = CommandPreview::analyze("cargo build");
+        assert_eq!(preview.risk_level, RiskLevel::Low);
+        assert!(preview.description.contains("General"));
+    }
+
+    // ── Safe commands ──────────────────────────────────────
+
+    #[test]
+    fn test_safe_ls() {
+        let preview = CommandPreview::analyze("ls -la");
+        assert_eq!(preview.risk_level, RiskLevel::Safe);
+        assert!(preview.description.contains("Read-only"));
+    }
+
+    #[test]
+    fn test_safe_cat() {
+        let preview = CommandPreview::analyze("cat /etc/hosts");
+        assert_eq!(preview.risk_level, RiskLevel::Safe);
+    }
+
+    #[test]
+    fn test_safe_echo() {
+        let preview = CommandPreview::analyze("echo hello");
+        assert_eq!(preview.risk_level, RiskLevel::Safe);
+    }
+
+    #[test]
+    fn test_safe_pwd() {
+        let preview = CommandPreview::analyze("pwd");
+        assert_eq!(preview.risk_level, RiskLevel::Safe);
+    }
+
+    #[test]
+    fn test_safe_grep() {
+        let preview = CommandPreview::analyze("grep -r 'pattern' .");
+        assert_eq!(preview.risk_level, RiskLevel::Safe);
+    }
+
+    #[test]
+    fn test_safe_find() {
+        let preview = CommandPreview::analyze("find . -name '*.rs'");
+        assert_eq!(preview.risk_level, RiskLevel::Safe);
+    }
+
+    // ── Display formatting ─────────────────────────────────
+
+    #[test]
+    fn test_display_contains_emoji() {
+        let preview = CommandPreview::analyze("ls");
+        let display = preview.display();
+        assert!(display.contains("✅"));
+        assert!(display.contains("SAFE"));
+    }
+
+    #[test]
+    fn test_display_critical_emoji() {
+        let preview = CommandPreview::analyze("rm -rf /");
+        let display = preview.display();
+        assert!(display.contains("🔴"));
+        assert!(display.contains("CRITICAL"));
+    }
+
+    #[test]
+    fn test_display_no_paths() {
+        let preview = CommandPreview::analyze("ls");
+        let display = preview.display();
+        assert!(display.contains("none detected"));
+    }
+
+    #[test]
+    fn test_display_with_paths() {
+        let preview = CommandPreview::analyze("echo data > output.txt");
+        let display = preview.display();
+        assert!(display.contains("output.txt"));
+    }
+
+    // ── Risk level ordering ────────────────────────────────
+
+    #[test]
+    fn test_risk_level_ordering() {
+        assert!(RiskLevel::Safe < RiskLevel::Low);
+        assert!(RiskLevel::Low < RiskLevel::Medium);
+        assert!(RiskLevel::Medium < RiskLevel::High);
+        assert!(RiskLevel::High < RiskLevel::Critical);
+    }
+}
