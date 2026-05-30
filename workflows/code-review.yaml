@@ -1,0 +1,49 @@
+# Code Review Workflow
+# 自动化代码审查流水线：编码 → 审查 → 测试
+#
+# 用法: syncode --workflow workflows/code-review.yaml --var task="实现用户登录功能"
+
+name: code-review
+description: 自动化代码审查流水线
+version: "1.0"
+
+variables:
+  language: "Rust"
+
+steps:
+  - id: implement
+    agent_role: coder
+    prompt: "{{task}}"
+    output_variable: code_changes
+    timeout_secs: 300
+
+  - id: review
+    agent_role: reviewer
+    prompt: |
+      审查以下代码变更，提供反馈：
+      
+      {{code_changes}}
+      
+      关注点：
+      - 代码质量和风格
+      - 潜在的 Bug 和安全问题
+      - 性能问题
+      - 测试覆盖率
+    depends_on: [implement]
+    condition: code_changes
+    output_variable: review_feedback
+    timeout_secs: 120
+
+  - id: test
+    agent_role: tester
+    prompt: |
+      为以下代码编写测试：
+      
+      {{code_changes}}
+      
+      审查反馈：
+      {{review_feedback}}
+    depends_on: [review]
+    condition: review_feedback
+    output_variable: test_results
+    timeout_secs: 180

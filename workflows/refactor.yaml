@@ -1,0 +1,48 @@
+# Refactor Workflow
+# 结构化重构：架构设计 → 实现 → 验证
+#
+# 用法: syncode --workflow workflows/refactor.yaml --var task="重构认证模块"
+
+name: refactor
+description: 结构化重构流水线
+version: "1.0"
+
+steps:
+  - id: plan
+    agent_role: architect
+    prompt: |
+      为以下任务创建重构计划：
+      
+      {{task}}
+      
+      考虑：
+      - 代码结构和依赖关系
+      - 风险评估
+      - 迁移步骤
+    output_variable: refactor_plan
+    timeout_secs: 120
+
+  - id: implement
+    agent_role: coder
+    prompt: |
+      按照以下重构计划实现：
+      
+      {{refactor_plan}}
+    depends_on: [plan]
+    condition: refactor_plan
+    output_variable: refactored_code
+    timeout_secs: 300
+
+  - id: validate
+    agent_role: reviewer
+    prompt: |
+      验证重构结果：
+      
+      原始计划：{{refactor_plan}}
+      重构代码：{{refactored_code}}
+      
+      检查：实现是否符合计划？是否有遗漏？
+    depends_on: [implement]
+    condition: refactored_code
+    output_variable: validation_result
+    timeout_secs: 120

@@ -1,0 +1,50 @@
+# Debug Workflow
+# 系统化调试：复现 → 修复 → 验证
+#
+# 用法: syncode --workflow workflows/debug.yaml --var task="登录页面崩溃问题"
+
+name: debug
+description: 系统化调试流水线
+version: "1.0"
+
+steps:
+  - id: reproduce
+    agent_role: tester
+    prompt: |
+      分析并复现以下 Bug：
+      
+      {{task}}
+      
+      提供：
+      - 复现步骤
+      - 预期 vs 实际行为
+      - 根因分析
+    output_variable: bug_analysis
+    timeout_secs: 120
+
+  - id: fix
+    agent_role: coder
+    prompt: |
+      修复以下 Bug：
+      
+      {{bug_analysis}}
+      
+      提供最小化修复。
+    depends_on: [reproduce]
+    condition: bug_analysis
+    output_variable: bug_fix
+    timeout_secs: 300
+
+  - id: verify
+    agent_role: tester
+    prompt: |
+      验证 Bug 修复：
+      
+      原始 Bug：{{bug_analysis}}
+      应用修复：{{bug_fix}}
+      
+      运行测试确认修复有效。
+    depends_on: [fix]
+    condition: bug_fix
+    output_variable: verification_result
+    timeout_secs: 180

@@ -13,6 +13,8 @@
 
 | 功能 | 说明 |
 |------|------|
+| **多智能体** | Agent Swarm 架构，Coder/Reviewer/Tester/Architect 角色 |
+| **工作流引擎** | YAML 定义多步骤流水线，依赖/分支/变量插值 |
 | **智能体循环** | 流式推理 → 工具分发 → 多轮推理 |
 | **LLM 集成** | DeepSeek V4、MiMo-v2.5 及任意 OpenAI 兼容 API |
 | **5 个内置工具** | 文件读写、Shell 执行、搜索 (ripgrep)、补丁应用 |
@@ -88,6 +90,61 @@ atomic_writes = true
 - `SYNCODE_API_KEY` — LLM API 密钥
 - `SYNCODE_BASE_URL` — API 基础 URL
 - `SYNCODE_MODEL` — 模型标识符
+
+## 多智能体与工作流
+
+### 内置智能体角色
+
+| 角色 | 职责 | 能力 |
+|------|------|------|
+| **Coder** | 编写和修改代码 | 读写文件、执行命令、运行测试 |
+| **Reviewer** | 代码审查 | 只读文件、搜索代码 |
+| **Tester** | 编写和运行测试 | 读写文件、执行命令 |
+| **Architect** | 架构设计 | 只读文件、搜索代码 |
+| **Planner** | 任务分解和规划 | 无工具权限 |
+
+### 内置工作流
+
+| 工作流 | 流程 | 说明 |
+|--------|------|------|
+| **code-review** | Coder → Reviewer → Tester | 自动化代码审查 |
+| **refactor** | Architect → Coder → Reviewer | 结构化重构 |
+| **debug** | Tester → Coder → Tester | 系统化调试 |
+
+### 工作流 YAML 格式
+
+```yaml
+name: my-workflow
+description: 自定义工作流
+version: "1.0"
+
+variables:
+  language: Rust
+
+steps:
+  - id: step1
+    agent_role: coder
+    prompt: "用 {{language}} 实现：{{task}}"
+    output_variable: code
+    timeout_secs: 300
+
+  - id: step2
+    agent_role: reviewer
+    prompt: "审查代码：{{code}}"
+    depends_on: [step1]
+    condition: code
+    output_variable: feedback
+```
+
+### 工作流执行
+
+```bash
+# 使用内置工作流
+syncode --workflow workflows/code-review.yaml --var task="实现用户登录"
+
+# 使用自定义工作流
+syncode --workflow my-workflow.yaml --var task="重构认证模块"
+```
 
 ## 键位映射
 

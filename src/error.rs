@@ -61,6 +61,15 @@ pub enum AppError {
 
     #[error("Token budget exceeded: used={used}, limit={limit}")]
     TokenBudgetExceeded { used: usize, limit: usize },
+
+    #[error("Workflow failed: {0}")]
+    WorkflowFailed(String),
+
+    #[error("Step '{step_id}' failed: {reason}")]
+    StepFailed { step_id: String, reason: String },
+
+    #[error("YAML parse error: {0}")]
+    YamlParse(#[from] serde_yaml::Error),
 }
 
 /// Convert channel send errors
