@@ -257,16 +257,13 @@ fn test_keymap_profiles() {
 fn test_full_source_stats() {
     use std::process::Command;
 
+    let manifest_dir = env!("CARGO_MANIFEST_DIR");
+    let src_dir = format!("{}/src", manifest_dir);
+
     let output = Command::new("find")
-        .args([
-            "/home/ubuntu/workspace/synerix/src",
-            "-name",
-            "*.rs",
-            "-type",
-            "f",
-        ])
+        .args([&src_dir, "-name", "*.rs", "-type", "f"])
         .output()
-        .unwrap();
+        .expect("find command failed");
 
     let file_count = String::from_utf8_lossy(&output.stdout).lines().count();
     assert!(
@@ -275,16 +272,11 @@ fn test_full_source_stats() {
         file_count
     );
 
+    let tests_dir = format!("{}/tests", manifest_dir);
     let output = Command::new("find")
-        .args([
-            "/home/ubuntu/workspace/synerix/tests",
-            "-name",
-            "*.rs",
-            "-type",
-            "f",
-        ])
+        .args([&tests_dir, "-name", "*.rs", "-type", "f"])
         .output()
-        .unwrap();
+        .expect("find command failed");
 
     let test_count = String::from_utf8_lossy(&output.stdout).lines().count();
     assert!(
