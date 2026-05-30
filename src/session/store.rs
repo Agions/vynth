@@ -185,3 +185,119 @@ impl SessionStore {
         Ok(messages)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::session::model::{Session, StoredMessage, StoredRole};
+
+    fn test_store() -> SessionStore {
+        SessionStore::memory().expect("create memory store")
+    }
+
+    #[test]
+    fn test_open_memory_store() {
+        let store = test_store();
+        let sessions = store.list_sessions().unwrap();
+        assert!(sessions.is_empty());
+    }
+
+    #[test]
+    fn test_create_and_list_sessions() {
+        let store = test_store();
+        let session = Session::new("Test Session", "gpt-4");
+        store.create_session(&session).unwrap();
+
+        let sessions = store.list_sessions().unwrap();
+        assert_eq!(sessions.len(), 1);
+        assert_eq!(sessions[0].title, "Test Session");
+        assert_eq!(sessions[0].model, "gpt-4");
+    }
+
+    #[test]
+    fn test_create_multiple_sessions() {
+        let store = test_store();
+        store.create_session(&Session::new("S1", "m1")).unwrap();
+        store.create_session(&Session::new("S2", "m2")).unwrap();
+
+        let sessions = store.list_sessions().unwrap();
+        assert_eq!(sessions.len(), 2);
+    }
+
+    #[test]
+    fn test_save_and_load_messages() {
+        let store = test_store();
+        let session = Session::new("Test", "gpt-4");
+        store.create_session(&session).unwrap();
+
+        let msg = StoredMessage::user(&session.id, "Hello!");
+        store.save_message(&msg).unwrap();
+
+        let messages = store.load_messages(&session.id).unwrap();
+        assert_eq!(messages.len(), 1);
+        assert_eq!(messages[0].content, "Hello!");
+        assert!(matches!(messages[0].role, StoredRole::User));
+    }
+
+    #[test]
+    fn test_save_multiple_messages() {
+        let store = test_store();
+        let session = Session::new("Test", "gpt-4");
+        store.create_session(&session).unwrap();
+
+        store
+            .save_message(&StoredMessage::user(&session.id, "Q1"))
+            .unwrap();
+        store
+            .save_message(&StoredMessage::assistant(&session.id, "A1"))
+            .unwrap();
+        store
+            .save_message(&StoredMessage::user(&session.id, "Q2"))
+            .unwrap();
+
+        let messages = store.load_messages(&session.id).unwrap();
+        assert_eq!(messages.len(), 3);
+        assert!(matches!(messages[0].role, StoredRole::User));
+        assert!(matches!(messages[1].role, StoredRole::Assistant));
+        assert!(matches!(messages[2].role, StoredRole::User));
+    }
+
+    #[test]
+    fn test_load_messages_empty_session() {
+        let store = test_store();
+        let session = Session::new("Empty", "gpt-4");
+        store.create_session(&session).unwrap();
+
+        let messages = store.load_messages(&session.id).unwrap();
+        assert!(messages.is_empty());
+    }
+
+    #[test]
+    fn test_session_stats_updated_on_message() {
+        let store = test_store();
+        let session = Session::new("Test", "gpt-4");
+        store.create_session(&session).unwrap();
+
+        let mut msg = StoredMessage::user(&session.id, "Hello");
+        msg.tokens_used = 10;
+        store.save_message(&msg).unwrap();
+
+        let sessions = store.list_sessions().unwrap();
+        assert_eq!(sessions[0].message_count, 1);
+        assert_eq!(sessions[0].total_tokens, 10);
+    }
+
+    #[test]
+    fn test_open_file_store() {
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("test.db");
+        let store = SessionStore::open(&db_path).unwrap();
+        store
+            .create_session(&Session::new("File Session", "m1"))
+            .unwrap();
+
+        let sessions = store.list_sessions().unwrap();
+        assert_eq!(sessions.len(), 1);
+        assert!(db_path.exists());
+    }
+}

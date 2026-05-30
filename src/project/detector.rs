@@ -336,3 +336,218 @@ pub(crate) fn build_prompt_hint(info: &ProjectInfo) -> String {
         if info.has_ci { "yes" } else { "no" },
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    // ── detect_project_type (pure, no filesystem) ──────────
+
+    #[test]
+    fn test_project_type_rust_by_cargo() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("Cargo.toml"), "[package]\n").unwrap();
+        let langs = HashSet::new();
+        assert_eq!(detect_project_type(dir.path(), &langs), ProjectType::Rust);
+    }
+
+    #[test]
+    fn test_project_type_node_by_package() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("package.json"), "{}").unwrap();
+        let langs = HashSet::new();
+        assert_eq!(detect_project_type(dir.path(), &langs), ProjectType::Node);
+    }
+
+    #[test]
+    fn test_project_type_python_by_pyproject() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("pyproject.toml"), "[tool]\n").unwrap();
+        let langs = HashSet::new();
+        assert_eq!(detect_project_type(dir.path(), &langs), ProjectType::Python);
+    }
+
+    #[test]
+    fn test_project_type_go_by_mod() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("go.mod"), "module test\n").unwrap();
+        let langs = HashSet::new();
+        assert_eq!(detect_project_type(dir.path(), &langs), ProjectType::Go);
+    }
+
+    #[test]
+    fn test_project_type_java_by_maven() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("pom.xml"), "<project/>\n").unwrap();
+        let langs = HashSet::new();
+        assert_eq!(detect_project_type(dir.path(), &langs), ProjectType::Java);
+    }
+
+    #[test]
+    fn test_project_type_flutter_by_pubspec() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("pubspec.yaml"), "name: test\n").unwrap();
+        let langs = HashSet::new();
+        assert_eq!(
+            detect_project_type(dir.path(), &langs),
+            ProjectType::Flutter
+        );
+    }
+
+    #[test]
+    fn test_project_type_mixed_when_multiple_markers() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("Cargo.toml"), "").unwrap();
+        fs::write(dir.path().join("package.json"), "").unwrap();
+        let langs = HashSet::new();
+        assert_eq!(detect_project_type(dir.path(), &langs), ProjectType::Mixed);
+    }
+
+    #[test]
+    fn test_project_type_unknown_empty() {
+        let dir = tempfile::tempdir().unwrap();
+        let langs = HashSet::new();
+        assert_eq!(
+            detect_project_type(dir.path(), &langs),
+            ProjectType::Unknown
+        );
+    }
+
+    #[test]
+    fn test_project_type_fallback_to_language_heuristic() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut langs = HashSet::new();
+        langs.insert("Rust".into());
+        assert_eq!(detect_project_type(dir.path(), &langs), ProjectType::Rust);
+    }
+
+    // ── find_project_root ──────────────────────────────────
+
+    #[test]
+    fn test_find_project_root_with_cargo() {
+        let dir = tempfile::tempdir().unwrap();
+        let sub = dir.path().join("a").join("b");
+        fs::create_dir_all(&sub).unwrap();
+        fs::write(dir.path().join("Cargo.toml"), "").unwrap();
+        assert_eq!(find_project_root(&sub), Some(dir.path().to_path_buf()));
+    }
+
+    #[test]
+    fn test_find_project_root_none_when_no_markers() {
+        let dir = tempfile::tempdir().unwrap();
+        let sub = dir.path().join("deep");
+        fs::create_dir_all(&sub).unwrap();
+        assert_eq!(find_project_root(&sub), None);
+    }
+
+    #[test]
+    fn test_find_project_root_from_file() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("package.json"), "").unwrap();
+        let file = dir.path().join("src.js");
+        fs::write(&file, "").unwrap();
+        assert_eq!(find_project_root(&file), Some(dir.path().to_path_buf()));
+    }
+
+    // ── suggest_skills ─────────────────────────────────────
+
+    #[test]
+    fn test_suggest_skills_rust() {
+        let skills = suggest_skills(&ProjectType::Rust);
+        assert!(skills.contains(&"cargo_test".into()));
+        assert!(skills.contains(&"code_review".into()));
+    }
+
+    #[test]
+    fn test_suggest_skills_python() {
+        let skills = suggest_skills(&ProjectType::Python);
+        assert!(skills.contains(&"pytest".into()));
+    }
+
+    #[test]
+    fn test_suggest_skills_unknown() {
+        let skills = suggest_skills(&ProjectType::Unknown);
+        assert!(skills.contains(&"code_review".into()));
+    }
+
+    // ── suggest_tools ──────────────────────────────────────
+
+    #[test]
+    fn test_suggest_tools_rust() {
+        let tools = suggest_tools(&ProjectType::Rust);
+        assert!(tools.contains(&"cargo".into()));
+        assert!(tools.contains(&"clippy".into()));
+    }
+
+    #[test]
+    fn test_suggest_tools_node() {
+        let tools = suggest_tools(&ProjectType::Node);
+        assert!(tools.contains(&"npm".into()));
+    }
+
+    #[test]
+    fn test_suggest_tools_unknown_empty() {
+        let tools = suggest_tools(&ProjectType::Unknown);
+        assert!(tools.is_empty());
+    }
+
+    // ── build_prompt_hint ──────────────────────────────────
+
+    #[test]
+    fn test_build_prompt_hint() {
+        let info = ProjectInfo {
+            root_dir: PathBuf::from("/test"),
+            project_type: ProjectType::Rust,
+            name: "myapp".into(),
+            languages: ["Rust".into()].into_iter().collect(),
+            has_git: true,
+            has_docker: false,
+            has_ci: true,
+            config_files: vec![],
+        };
+        let hint = build_prompt_hint(&info);
+        assert!(hint.contains("myapp"));
+        assert!(hint.contains("Rust"));
+        assert!(hint.contains("Git: yes"));
+        assert!(hint.contains("Docker: no"));
+    }
+
+    // ── detect_languages (async) ───────────────────────────
+
+    #[tokio::test]
+    async fn test_detect_languages_rust_project() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("main.rs"), "fn main() {}").unwrap();
+        fs::write(dir.path().join("Cargo.toml"), "[package]\n").unwrap();
+        let langs = detect_languages(dir.path()).await;
+        assert!(langs.contains("Rust"));
+    }
+
+    #[tokio::test]
+    async fn test_detect_languages_empty_dir() {
+        let dir = tempfile::tempdir().unwrap();
+        let langs = detect_languages(dir.path()).await;
+        assert!(langs.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_detect_languages_multi_language() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("main.rs"), "").unwrap();
+        fs::write(dir.path().join("app.py"), "").unwrap();
+        fs::write(dir.path().join("index.ts"), "").unwrap();
+        let langs = detect_languages(dir.path()).await;
+        assert!(langs.contains("Rust"));
+        assert!(langs.contains("Python"));
+        assert!(langs.contains("JavaScript/TypeScript"));
+    }
+
+    #[tokio::test]
+    async fn test_detect_languages_by_marker_file() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("go.mod"), "module test\n").unwrap();
+        let langs = detect_languages(dir.path()).await;
+        assert!(langs.contains("Go"));
+    }
+}
