@@ -68,3 +68,58 @@ pub trait ApprovalHandler: Send + Sync {
     /// Request approval for a tool execution
     async fn request_approval(&self, preview: &str) -> Result<bool, AppError>;
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_tool_result_success() {
+        let result = ToolResult {
+            output: "success".into(),
+            is_error: false,
+            preview: None,
+        };
+        assert_eq!(result.output, "success");
+        assert!(!result.is_error);
+        assert!(result.preview.is_none());
+    }
+
+    #[test]
+    fn test_tool_result_error() {
+        let result = ToolResult {
+            output: "failed".into(),
+            is_error: true,
+            preview: Some("diff preview".into()),
+        };
+        assert!(result.is_error);
+        assert!(result.preview.is_some());
+    }
+
+    #[test]
+    fn test_tool_context_default() {
+        let ctx = ToolContext::default();
+        assert!(ctx.working_dir.exists());
+        assert_eq!(ctx.sandbox_mode, SandboxMode::Confirm);
+        assert!(ctx.approval_handler.is_none());
+    }
+
+    #[test]
+    fn test_tool_context_custom() {
+        let ctx = ToolContext {
+            working_dir: PathBuf::from("/tmp"),
+            sandbox_mode: SandboxMode::Auto,
+            approval_handler: None,
+        };
+        assert_eq!(ctx.working_dir, PathBuf::from("/tmp"));
+        assert_eq!(ctx.sandbox_mode, SandboxMode::Auto);
+    }
+
+    #[test]
+    fn test_get_cached_cwd() {
+        let cwd1 = get_cached_cwd();
+        let cwd2 = get_cached_cwd();
+        assert_eq!(cwd1, cwd2);
+        assert!(cwd1.exists());
+    }
+}
