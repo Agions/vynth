@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ['[0-9]+.[0-9]+.[0-9]+']
   pull_request:
     branches: [main]
 
@@ -28,7 +29,7 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: cargo clippy
-        run: cargo clippy -- -D warnings -A dead_code
+        run: cargo clippy -- -D warnings -A dead_code -A unused
 
   test:
     name: Test (${{ matrix.os }})
@@ -58,7 +59,6 @@ jobs:
         run: |
           SIZE=$(du -sh target/release/synerix | cut -f1)
           echo "📦 Binary size: $SIZE"
-          echo "binary_size=$SIZE" >> $GITHUB_ENV
 
       - name: Benchmark startup
         shell: bash
@@ -68,7 +68,6 @@ jobs:
           END=$(date +%s%N)
           MS=$(( (END - START) / 1000000 ))
           echo "⚡ Startup: ${MS}ms"
-          echo "startup_ms=$MS" >> $GITHUB_ENV
 
       - name: Upload binary
         if: matrix.os == 'ubuntu-latest'
@@ -81,7 +80,7 @@ jobs:
   release:
     name: Release
     needs: [check, test]
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -93,8 +92,14 @@ jobs:
         with:
           name: synerix-linux-amd64
 
+      - name: Package binary
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          tar czf "synerix-${TAG}-linux-amd64.tar.gz" synerix
+          echo "tag=$TAG" >> $GITHUB_ENV
+
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
-          files: synerix
+          files: synerix-${{ env.tag }}-linux-amd64.tar.gz

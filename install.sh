@@ -2,11 +2,17 @@
 set -euo pipefail
 
 # Synerix installer — installs the latest release binary
-# Usage: curl -fsSL https://gitee.com/Agions/synerix/raw/main/install.sh | bash
+# Usage (GitHub):
+#   curl -fsSL https://raw.githubusercontent.com/Agions/synerix/main/install.sh | bash
+# Usage (Gitee):
+#   curl -fsSL https://gitee.com/Agions/synerix/raw/main/install.sh | bash
 
 REPO="Agions/synerix"
 BINARY="synerix"
 INSTALL_DIR="${INSTALL_DIR:-/usr/local/bin}"
+
+# Auto-detect source: prefer GitHub, fallback to Gitee
+GITHUB_API="https://api.github.com/repos"
 GITEE_API="https://gitee.com/api/v5/repos"
 
 RED='\033[0;31m'
@@ -42,15 +48,48 @@ check_deps() {
         command -v "$cmd" >/dev/null 2>&1 || error "Required command not found: $cmd"
     done
 }
+
+# Try GitHub first, fallback to Gitee
 get_latest_tag() {
-    local tag
-    tag=$(curl -fsSL "${GITEE_API}/${REPO}/releases?page=1&per_page=1" 2>/dev/null \
+    local tag=""
+
+    # Try GitHub
+    tag=$(curl -fsSL "${GITHUB_API}/${REPO}/releases/latest" 2>/dev/null \
         | grep -o '"tag_name":"[^"]*"' | head -1 | cut -d'"' -f4) || true
+
+    # Fallback: Gitee
     if [ -z "$tag" ]; then
-        echo "v1.0.0"
+        tag=$(curl -fsSL "${GITEE_API}/${REPO}/releases?page=1&per_page=1" 2>/dev/null \
+            | grep -o '"tag_name":"[^"]*"' | head -1 | cut -d'"' -f4) || true
+    fi
+
+    if [ -z "$tag" ]; then
+        echo "0.0.1"
     else
         echo "$tag"
     fi
+}
+
+# Try GitHub release download, fallback to Gitee
+download_release() {
+    local tag="$1"
+    local archive_name="$2"
+    local dest="$3"
+
+    local github_url="https://github.com/${REPO}/releases/download/${tag}/${archive_name}"
+    local gitee_url="https://gitee.com/${REPO}/releases/download/${tag}/${archive_name}"
+
+    # Try GitHub first (faster globally)
+    if curl -fsSL "$github_url" -o "$dest" 2>/dev/null; then
+        return 0
+    fi
+
+    # Fallback: Gitee
+    if curl -fsSL "$gitee_url" -o "$dest" 2>/dev/null; then
+        return 0
+    fi
+
+    return 1
 }
 
 build_from_source() {
@@ -62,7 +101,9 @@ build_from_source() {
     fi
 
     info "Cloning source at ${tag}..."
-    git clone --depth 1 --branch "$tag" "https://gitee.com/${REPO}.git" "${tmp_dir}/${BINARY}" 2>&1 \
+    git clone --depth 1 --branch "$tag" "https://github.com/${REPO}.git" "${tmp_dir}/${BINARY}" 2>&1 \
+        || git clone --depth 1 "https://github.com/${REPO}.git" "${tmp_dir}/${BINARY}" 2>&1 \
+        || git clone --depth 1 --branch "$tag" "https://gitee.com/${REPO}.git" "${tmp_dir}/${BINARY}" 2>&1 \
         || git clone --depth 1 "https://gitee.com/${REPO}.git" "${tmp_dir}/${BINARY}" 2>&1
 
     info "Building (this may take a few minutes)..."
@@ -89,14 +130,13 @@ build_from_source() {
 install_binary() {
     local tag="$1"
     local archive_name="${BINARY}-${tag}-${OS}-${ARCH}.tar.gz"
-    local download_url="https://gitee.com/${REPO}/releases/download/${tag}/${archive_name}"
     local tmp_dir
     tmp_dir=$(mktemp -d)
     trap 'rm -rf "${tmp_dir:-}"' EXIT
 
     info "Downloading ${BINARY} ${tag} for ${OS}/${ARCH}..."
 
-    if ! curl -fsSL "$download_url" -o "${tmp_dir}/${archive_name}" 2>/dev/null; then
+    if ! download_release "$tag" "$archive_name" "${tmp_dir}/${archive_name}"; then
         warn "Pre-built binary not available, attempting to build from source..."
         build_from_source "$tag" "$tmp_dir"
         return
@@ -160,7 +200,7 @@ main() {
     ok "安装完成！运行 'synerix' 开始使用。"
     echo ""
     echo "  配置文件: ~/.config/synerix/config.toml"
-    echo "  文档: https://gitee.com/Agions/synerix"
+    echo "  文档: https://github.com/Agions/synerix"
     echo ""
 }
 

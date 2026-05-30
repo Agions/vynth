@@ -106,10 +106,10 @@ Rust 零成本抽象，为速度而生：
 
 ```bash
 # curl 一键安装（推荐）
-curl -fsSL https://gitee.com/Agions/synerix/raw/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Agions/synerix/main/install.sh | bash
 
 # 自定义安装目录
-INSTALL_DIR=~/.local/bin curl -fsSL https://gitee.com/Agions/synerix/raw/main/install.sh | bash
+INSTALL_DIR=~/.local/bin curl -fsSL https://raw.githubusercontent.com/Agions/synerix/main/install.sh | bash
 ```
 
 <details>
@@ -128,10 +128,10 @@ cargo build --release
 
 ```bash
 # 一键卸载（保留配置）
-curl -fsSL https://gitee.com/Agions/synerix/raw/main/uninstall.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Agions/synerix/main/uninstall.sh | bash
 
 # 完全卸载（包括配置和数据）
-curl -fsSL https://gitee.com/Agions/synerix/raw/main/uninstall.sh | bash -s -- --all
+curl -fsSL https://raw.githubusercontent.com/Agions/synerix/main/uninstall.sh | bash -s -- --all
 ```
 </details>
 

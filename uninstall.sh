@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Synerix uninstaller
-# Usage: curl -fsSL https://gitee.com/Agions/synerix/raw/main/uninstall.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/Agions/synerix/main/uninstall.sh | bash
 #   or: bash uninstall.sh [--all]
 
 BINARY="synerix"
@@ -159,7 +159,7 @@ main() {
         echo "    • ${DATA_DIR}"
         echo ""
         echo "  To remove everything:"
-        echo "    curl -fsSL https://gitee.com/Agions/synerix/raw/main/uninstall.sh | bash -s -- --all"
+        echo "    curl -fsSL https://raw.githubusercontent.com/Agions/synerix/main/uninstall.sh | bash -s -- --all"
         echo ""
     fi
 }
