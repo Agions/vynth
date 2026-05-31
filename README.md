@@ -344,14 +344,14 @@ steps:
 
 ```toml
 # HTTP transport (remote server)
-[[mcp]]
+[mcp]
 name = "remote-tools"
 type = "http"
 url = "https://mcp.example.com/sse"
 timeout_secs = 60
 
 # stdio transport (local process)
-[[mcp]]
+[mcp]
 name = "filesystem"
 type = "stdio"
 command = "npx"
