@@ -85,9 +85,10 @@ impl Settings {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
 
     #[test]
-    fn defaults_returns_correct_values() {
+    fn test_settings_defaults() {
         let s = Settings::defaults();
         assert_eq!(s.llm.model, "deepseek-v4-flash");
         assert_eq!(s.llm.context_window, 128_000);
@@ -113,6 +114,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn apply_env_overrides_api_key() {
         let key = "test_api_key_12345";
         std::env::set_var("SYNERIX_API_KEY", key);
@@ -123,6 +125,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn apply_env_overrides_base_url() {
         std::env::set_var("SYNERIX_BASE_URL", "http://localhost:9999");
         let mut s = Settings::defaults();
@@ -132,6 +135,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn apply_env_overrides_model() {
         std::env::set_var("SYNERIX_MODEL", "custom-model-v2");
         let mut s = Settings::defaults();
@@ -141,6 +145,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn apply_env_overrides_no_env_keeps_defaults() {
         std::env::remove_var("SYNERIX_API_KEY");
         std::env::remove_var("SYNERIX_BASE_URL");
