@@ -244,7 +244,7 @@ Built-in commands available in the chat input:
 |---------|-------------|
 | `/help` | 显示所有斜杠命令 |
 | `/clear` | 清空当前对话 |
-| `/model` | 切换 LLM 模型（如 `/model deepseek-v4-pro`）|
+| `/model` | 切换 LLM 模型 / 配置自定义提供商：`/model <name>` 或 `/model custom <name> <base-url>` |
 | `/reset` | 重置对话状态 |
 | `/exit` | 退出 Synerix |
 | `/workflow` | 运行工作流（如 `/workflow code-review`）|

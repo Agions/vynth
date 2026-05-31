@@ -4,6 +4,7 @@
 //! instead of sending the message to the AI model.
 
 use crate::app::{App, ChatMessage, MessageRole};
+use crate::config::Provider;
 
 const DEFAULT_MODEL: &str = "deepseek-v4-flash";
 
@@ -21,8 +22,8 @@ const COMMANDS: &[CommandDef] = &[
     },
     CommandDef {
         name: "/model",
-        desc: "切换 LLM 模型",
-        usage: "/model <model-name>",
+        desc: "切换 LLM 模型 / 配置自定义提供商",
+        usage: "/model [name] | /model custom <name> <base-url>",
     },
     CommandDef {
         name: "/reset",
@@ -104,24 +105,68 @@ fn cmd_clear(app: &mut App) -> bool {
     true
 }
 
+fn provider_display(provider: &Provider) -> String {
+    match provider {
+        Provider::DeepSeek => "DeepSeek（默认）".to_string(),
+        Provider::MiMo => "MiMo".to_string(),
+        Provider::Custom { base_url } => format!("自定义 (`{}`)", base_url),
+    }
+}
+
 fn cmd_model(app: &mut App, args: Option<&str>) -> bool {
     match args {
         None => {
+            let provider_str = provider_display(&app.settings.llm.provider);
             sys_msg(
                 app,
                 &format!(
-                    "当前模型：`{}`\n\n用法：`/model <model-name>`\n例如：`/model deepseek-v4-pro`",
-                    app.settings.llm.model
+                    "当前模型：`{}`\n提供商：{}\n\n用法：\n  `/model <name>` — 切换模型名称\n  `/model custom <name> <base-url>` — 配置自定义模型",
+                    app.settings.llm.model, provider_str
                 ),
             );
         }
-        Some(model) if model.is_empty() => {
-            sys_msg(app, "❌ 请指定模型名称。用法：`/model <model-name>`");
+        Some(args) if args.is_empty() => {
+            sys_msg(
+                app,
+                "❌ 请指定参数。用法：`/model <name>` 或 `/model custom <name> <base-url>`",
+            );
         }
-        Some(model) => {
-            let old = std::mem::replace(&mut app.settings.llm.model, model.to_string());
-            app.status_bar.model_name = model.to_string();
-            sys_msg(app, &format!("✅ 模型已切换：`{}` → `{}`", old, model));
+        Some(args) => {
+            let trimmed = args.trim();
+            if trimmed == "custom" {
+                sys_msg(
+                    app,
+                    "❌ 用法：`/model custom <model-name> <base-url>`\n例如：`/model custom gpt-4o https://api.openai.com/v1`",
+                );
+            } else if let Some(rest) = trimmed.strip_prefix("custom ") {
+                let rest = rest.trim();
+                let parts: Vec<&str> = rest.splitn(2, ' ').collect();
+                if parts.len() < 2 || parts[0].is_empty() || parts[1].is_empty() {
+                    sys_msg(
+                        app,
+                        "❌ 用法：`/model custom <model-name> <base-url>`\n例如：`/model custom gpt-4o https://api.openai.com/v1`",
+                    );
+                    return true;
+                }
+                let model_name = parts[0].trim();
+                let base_url = parts[1].trim();
+                app.settings.llm.provider =
+                    Provider::Custom { base_url: base_url.to_string() };
+                app.settings.llm.model = model_name.to_string();
+                app.status_bar.model_name = model_name.to_string();
+                let provider_str = provider_display(&app.settings.llm.provider);
+                sys_msg(
+                    app,
+                    &format!(
+                        "✅ 已配置自定义模型：\n  模型：`{}`\n  提供商：{}\n  API Base URL：`{}`",
+                        model_name, provider_str, base_url
+                    ),
+                );
+            } else {
+                let old = std::mem::replace(&mut app.settings.llm.model, trimmed.to_string());
+                app.status_bar.model_name = trimmed.to_string();
+                sys_msg(app, &format!("✅ 模型已切换：`{}` → `{}`", old, trimmed));
+            }
         }
     }
     true
@@ -269,6 +314,44 @@ mod tests {
             .unwrap()
             .content
             .contains("当前模型"));
+    }
+
+    #[test]
+    fn test_model_no_args_shows_provider() {
+        let mut app = make_app();
+        assert!(try_handle(&mut app, "/model"));
+        let content = &app.chat_state.messages.last().unwrap().content;
+        assert!(content.contains("提供商"));
+        assert!(content.contains("DeepSeek"));
+    }
+
+    #[test]
+    fn test_model_custom() {
+        let mut app = make_app();
+        assert!(try_handle(
+            &mut app,
+            "/model custom claude-sonnet-4 https://api.anthropic.com/v1"
+        ));
+        assert_eq!(app.settings.llm.model, "claude-sonnet-4");
+        match &app.settings.llm.provider {
+            Provider::Custom { base_url } => {
+                assert_eq!(base_url, "https://api.anthropic.com/v1");
+            }
+            other => panic!("expected Custom provider, got {:?}", other),
+        }
+        assert_eq!(app.status_bar.model_name, "claude-sonnet-4");
+        let content = &app.chat_state.messages.last().unwrap().content;
+        assert!(content.contains("自定义模型"));
+        assert!(content.contains("claude-sonnet-4"));
+        assert!(content.contains("api.anthropic.com"));
+    }
+
+    #[test]
+    fn test_model_custom_missing_args() {
+        let mut app = make_app();
+        assert!(try_handle(&mut app, "/model custom"));
+        let content = &app.chat_state.messages.last().unwrap().content;
+        assert!(content.contains("用法"));
     }
 
     #[test]
