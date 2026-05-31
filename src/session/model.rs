@@ -86,15 +86,9 @@ impl StoredMessage {
     }
 }
 
-/// Simple UUID v4 generator (no external dependency)
+/// UUID v4 generator
 fn uuid_v4() -> String {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_nanos();
-
-    format!("{:032x}", timestamp)
+    uuid::Uuid::new_v4().to_string()
 }
 
 #[cfg(test)]
