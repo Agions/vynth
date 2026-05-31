@@ -615,11 +615,11 @@ fn cmd_config(app: &mut App, args: Option<&str>) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::agent::CustomAgentRegistry;
     use crate::app::{
         AgentState, ChatState, DiffState, FocusedPanel, InputMode, LayoutState, SidebarState,
         SidebarTab, StatusBarState,
     };
-    use crate::agent::CustomAgentRegistry;
     use crate::config::{KeyBindings, KeymapProfile, Settings};
     use crate::skills::SkillRegistry;
 

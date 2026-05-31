@@ -102,21 +102,33 @@ pub fn find_project_root(start: &Path) -> Option<PathBuf> {
 pub fn find_synerix_dir(start: &Path) -> Option<PathBuf> {
     let root = find_project_root(start)?;
     let synerix = root.join(".synerix");
-    if synerix.is_dir() { Some(synerix) } else { None }
+    if synerix.is_dir() {
+        Some(synerix)
+    } else {
+        None
+    }
 }
 
 /// Find `.synerix/skills/` directory, if it exists.
 pub fn find_synerix_skills_dir(start: &Path) -> Option<PathBuf> {
     let synerix = find_synerix_dir(start)?;
     let skills = synerix.join("skills");
-    if skills.is_dir() { Some(skills) } else { None }
+    if skills.is_dir() {
+        Some(skills)
+    } else {
+        None
+    }
 }
 
 /// Find `.synerix/agents/` directory, if it exists.
 pub fn find_synerix_agents_dir(start: &Path) -> Option<PathBuf> {
     let synerix = find_synerix_dir(start)?;
     let agents = synerix.join("agents");
-    if agents.is_dir() { Some(agents) } else { None }
+    if agents.is_dir() {
+        Some(agents)
+    } else {
+        None
+    }
 }
 
 // ---------------------------------------------------------------------------
