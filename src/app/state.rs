@@ -1,6 +1,8 @@
 //! Application state types — structs, enums, and their constructors.
 
+use crate::agent::CustomAgentRegistry;
 use crate::config::{KeyBindings, KeymapProfile, Settings};
+use crate::skills::SkillRegistry;
 use ratatui::layout::Rect;
 
 /// Which panel currently has focus
@@ -71,6 +73,10 @@ pub struct App {
     pub(crate) config_reload_rx: tokio::sync::mpsc::UnboundedReceiver<crate::config::ConfigReload>,
     /// Config version counter — incremented on each hot-reload
     pub config_version: u64,
+    /// Skills loaded from `.synerix/skills/` (project-local skills)
+    pub skill_registry: SkillRegistry,
+    /// Custom agents loaded from `.synerix/agents/` (project-local agents)
+    pub agent_registry: CustomAgentRegistry,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -245,6 +251,8 @@ impl App {
             agent_tx,
             config_reload_rx,
             config_version: 0,
+            skill_registry: SkillRegistry::new(),
+            agent_registry: CustomAgentRegistry::new(),
         }
     }
 
@@ -293,6 +301,8 @@ impl App {
             agent_tx,
             config_reload_rx,
             config_version: 0,
+            skill_registry: SkillRegistry::new(),
+            agent_registry: CustomAgentRegistry::new(),
         }
     }
 

@@ -12,6 +12,7 @@ mod config;
 mod error;
 mod llm;
 mod mcp;
+mod project;
 mod sandbox;
 mod session;
 mod skills;

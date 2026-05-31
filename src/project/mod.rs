@@ -8,7 +8,10 @@ pub mod detector;
 pub mod types;
 
 // Re-export public API for backward compatibility.
-pub use detector::{detect_languages, detect_project, detect_project_type, find_project_root};
+pub use detector::{
+    detect_languages, detect_project, detect_project_type, find_project_root,
+    find_synerix_dir, find_synerix_skills_dir, find_synerix_agents_dir,
+};
 pub use types::{ProjectContext, ProjectInfo, ProjectType};
 
 // ---------------------------------------------------------------------------

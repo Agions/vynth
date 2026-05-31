@@ -1,0 +1,14 @@
+name: security-auditor
+description: 安全审计员
+system_prompt: |
+  你是一名安全审计员。重点检查漏洞。
+tools:
+  - file_read
+  - search
+max_turns: 8
+capabilities:
+  can_review: true
+  can_write_code: false
+tags:
+  - security
+  - audit

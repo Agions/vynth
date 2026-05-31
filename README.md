@@ -370,6 +370,56 @@ timeout_secs = 30
 | 添加 HTTP | `/mcp add <name> http <url>` |
 | 删除 | `/mcp remove <name>` |
 
+### Project-Local Skills & Agents
+
+Synerix 会自动检测项目根目录下的 `.synerix/` 目录，并自动加载其中的技能和自定义代理——与 Claude Code 的 `.claude/skills/` 模式一致。
+
+```
+.synerix/
+├── skills/           # 技能文件（YAML frontmatter + Markdown）
+│   ├── code-review.md
+│   └── my-skill.md
+└── agents/           # 自定义代理定义（YAML/TOML）
+    ├── security-auditor.yaml
+    └── doc-writer.toml
+```
+
+**技能文件**（`skills/*.md`）使用 YAML frontmatter 格式：
+
+```yaml
+---
+name: my-skill
+description: 技能描述
+trigger:
+  auto_match:
+    keywords: [review, code quality]
+    threshold: 0.5
+required_tools: [file_read, search]
+---
+
+## 技能指令
+Markdown 正文作为技能的详细指令内容。
+```
+
+**自定义代理**（`agents/*.{yaml,yml,toml}`）格式：
+
+```yaml
+name: security-auditor
+description: 安全审计员
+system_prompt: |
+  你是一名安全审计员。重点检查漏洞。
+tools:
+  - file_read
+  - search
+max_turns: 8
+capabilities:
+  can_review: true
+  can_write_code: false
+tags:
+  - security
+  - audit
+```
+
 ### External Skills
 
 ```toml

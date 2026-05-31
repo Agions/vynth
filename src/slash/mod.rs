@@ -619,7 +619,9 @@ mod tests {
         AgentState, ChatState, DiffState, FocusedPanel, InputMode, LayoutState, SidebarState,
         SidebarTab, StatusBarState,
     };
+    use crate::agent::CustomAgentRegistry;
     use crate::config::{KeyBindings, KeymapProfile, Settings};
+    use crate::skills::SkillRegistry;
 
     fn make_app() -> App {
         let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
@@ -664,6 +666,8 @@ mod tests {
             agent_tx: tx,
             config_reload_rx: crx,
             config_version: 0,
+            skill_registry: SkillRegistry::new(),
+            agent_registry: CustomAgentRegistry::new(),
         }
     }
 

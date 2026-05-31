@@ -95,6 +95,30 @@ pub fn find_project_root(start: &Path) -> Option<PathBuf> {
     None
 }
 
+/// Find `.synerix` directory in the project root.
+///
+/// Looks for `.synerix/` under the project root (determined by `find_project_root`).
+/// Returns `None` if no project root or no `.synerix` directory exists.
+pub fn find_synerix_dir(start: &Path) -> Option<PathBuf> {
+    let root = find_project_root(start)?;
+    let synerix = root.join(".synerix");
+    if synerix.is_dir() { Some(synerix) } else { None }
+}
+
+/// Find `.synerix/skills/` directory, if it exists.
+pub fn find_synerix_skills_dir(start: &Path) -> Option<PathBuf> {
+    let synerix = find_synerix_dir(start)?;
+    let skills = synerix.join("skills");
+    if skills.is_dir() { Some(skills) } else { None }
+}
+
+/// Find `.synerix/agents/` directory, if it exists.
+pub fn find_synerix_agents_dir(start: &Path) -> Option<PathBuf> {
+    let synerix = find_synerix_dir(start)?;
+    let agents = synerix.join("agents");
+    if agents.is_dir() { Some(agents) } else { None }
+}
+
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
@@ -358,5 +382,67 @@ mod tests {
         fs::write(dir.path().join("go.mod"), "module test\n").unwrap();
         let langs = detect_languages(dir.path()).await;
         assert!(langs.contains("Go"));
+    }
+
+    // ── find_synerix_dir ───────────────────────────────────
+
+    #[test]
+    fn test_find_synerix_dir_exists() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("Cargo.toml"), "[package]\n").unwrap();
+        fs::create_dir_all(dir.path().join(".synerix")).unwrap();
+        let result = find_synerix_dir(dir.path());
+        assert_eq!(result, Some(dir.path().join(".synerix")));
+    }
+
+    #[test]
+    fn test_find_synerix_dir_not_exists() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("Cargo.toml"), "[package]\n").unwrap();
+        let result = find_synerix_dir(dir.path());
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_find_synerix_dir_no_project_root() {
+        let dir = tempfile::tempdir().unwrap();
+        let result = find_synerix_dir(dir.path());
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_find_synerix_skills_dir_found() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("Cargo.toml"), "[package]\n").unwrap();
+        fs::create_dir_all(dir.path().join(".synerix/skills")).unwrap();
+        let result = find_synerix_skills_dir(dir.path());
+        assert_eq!(result, Some(dir.path().join(".synerix/skills")));
+    }
+
+    #[test]
+    fn test_find_synerix_skills_dir_not_found() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("Cargo.toml"), "[package]\n").unwrap();
+        fs::create_dir_all(dir.path().join(".synerix")).unwrap(); // no skills subdir
+        let result = find_synerix_skills_dir(dir.path());
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_find_synerix_agents_dir_found() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("Cargo.toml"), "[package]\n").unwrap();
+        fs::create_dir_all(dir.path().join(".synerix/agents")).unwrap();
+        let result = find_synerix_agents_dir(dir.path());
+        assert_eq!(result, Some(dir.path().join(".synerix/agents")));
+    }
+
+    #[test]
+    fn test_find_synerix_agents_dir_not_found() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("Cargo.toml"), "[package]\n").unwrap();
+        fs::create_dir_all(dir.path().join(".synerix")).unwrap(); // no agents subdir
+        let result = find_synerix_agents_dir(dir.path());
+        assert_eq!(result, None);
     }
 }
