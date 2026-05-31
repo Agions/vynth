@@ -309,15 +309,22 @@ impl App {
     pub fn submit_message(&mut self) {
         let text = std::mem::take(&mut self.input_buffer);
         self.input_cursor = 0;
-        if !text.is_empty() {
-            self.chat_state.messages.push(ChatMessage {
-                role: MessageRole::User,
-                content: text,
-                tool_calls: Vec::new(),
-            });
-            // Reset scroll to bottom on new message
-            self.chat_state.scroll_offset = 0;
+        if text.is_empty() {
+            return;
         }
+
+        // Handle slash commands
+        if crate::slash::try_handle(self, &text) {
+            return;
+        }
+
+        self.chat_state.messages.push(ChatMessage {
+            role: MessageRole::User,
+            content: text,
+            tool_calls: Vec::new(),
+        });
+        // Reset scroll to bottom on new message
+        self.chat_state.scroll_offset = 0;
     }
 
     /// Get the byte position of the previous character boundary

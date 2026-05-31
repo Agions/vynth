@@ -15,6 +15,7 @@ mod mcp;
 mod sandbox;
 mod session;
 mod skills;
+mod slash;
 mod telemetry;
 mod token_estimator;
 mod tools;

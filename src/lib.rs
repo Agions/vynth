@@ -17,6 +17,7 @@ pub mod project;
 pub mod sandbox;
 pub mod session;
 pub mod skills;
+pub mod slash;
 pub mod telemetry;
 pub mod token_estimator;
 pub mod tools;
