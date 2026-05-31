@@ -236,6 +236,21 @@ Token budgeting + LRU cache + zero-copy
 
 ---
 
+## ⌨️ Slash Commands
+
+Built-in commands available in the chat input:
+
+| Command | Description |
+|---------|-------------|
+| `/help` | 显示所有斜杠命令 |
+| `/clear` | 清空当前对话 |
+| `/model` | 切换 LLM 模型（如 `/model deepseek-v4-pro`）|
+| `/reset` | 重置对话状态 |
+| `/exit` | 退出 Synerix |
+| `/workflow` | 运行工作流（如 `/workflow code-review`）|
+
+---
+
 ## ⌨️ Keymaps
 
 <details>
