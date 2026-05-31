@@ -424,12 +424,12 @@ tags:
 
 ```toml
 # Local directory
-[[skill_sources]]
+[skill_sources]
 type = "local"
 location = "~/.config/synerix/skills"
 
 # Git repository (auto-cloning + updates)
-[[skill_sources]]
+[skill_sources]
 type = "git"
 location = "https://github.com/Agions/synerix-skills.git"
 branch = "main"
