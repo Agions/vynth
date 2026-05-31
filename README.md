@@ -248,6 +248,9 @@ Built-in commands available in the chat input:
 | `/reset` | 重置对话状态 |
 | `/exit` | 退出 Synerix |
 | `/workflow` | 运行工作流（如 `/workflow code-review`）|
+| `/mcp` | 管理 MCP 服务器：`/mcp`（列表）、`/mcp add <name> <cmd>`（添加 stdio）、`/mcp add-http <name> <url>`（添加 HTTP）、`/mcp remove <name>`（删除）|
+| `/skill` | 管理技能：`/skill`（查看）、`/skill dir <path>`（设置目录）、`/skill add-source <type> <location>`（添加源）、`/skill remove-source <index>`（删除源）|
+| `/config` | 管理配置：`/config show`（显示路径）、`/config save`（保存配置到文件）|
 
 ---
 

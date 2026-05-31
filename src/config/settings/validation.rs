@@ -80,6 +80,21 @@ impl Settings {
             self.llm.model = model;
         }
     }
+
+    /// Save settings back to the config file
+    pub fn save(&self) -> Result<(), AppError> {
+        let config_path = Self::config_path();
+        if let Some(parent) = config_path.parent() {
+            std::fs::create_dir_all(parent)
+                .map_err(|e| AppError::Config(format!("Failed to create config dir: {}", e)))?;
+        }
+        let toml = toml::to_string_pretty(self)
+            .map_err(|e| AppError::Config(format!("Failed to serialize config: {}", e)))?;
+        std::fs::write(&config_path, toml)
+            .map_err(|e| AppError::Config(format!("Failed to write config: {}", e)))?;
+        tracing::info!("Settings saved to {:?}", config_path);
+        Ok(())
+    }
 }
 
 #[cfg(test)]

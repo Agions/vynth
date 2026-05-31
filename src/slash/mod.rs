@@ -4,7 +4,7 @@
 //! instead of sending the message to the AI model.
 
 use crate::app::{App, ChatMessage, MessageRole};
-use crate::config::Provider;
+use crate::config::{McpServerConfig, McpTransport, Provider, SkillSourceConfig};
 
 const DEFAULT_MODEL: &str = "deepseek-v4-flash";
 
@@ -40,6 +40,21 @@ const COMMANDS: &[CommandDef] = &[
         desc: "运行工作流",
         usage: "/workflow <name>",
     },
+    CommandDef {
+        name: "/mcp",
+        desc: "管理 MCP 服务器",
+        usage: "/mcp [add|add-http|remove]",
+    },
+    CommandDef {
+        name: "/skill",
+        desc: "管理技能（Skills）",
+        usage: "/skill [dir|add-source|remove-source]",
+    },
+    CommandDef {
+        name: "/config",
+        desc: "管理配置",
+        usage: "/config [save|show]",
+    },
 ];
 
 struct CommandDef {
@@ -67,6 +82,9 @@ pub fn try_handle(app: &mut App, input: &str) -> bool {
         "/reset" => cmd_reset(app),
         "/exit" => cmd_exit(app),
         "/workflow" => cmd_workflow(app, args),
+        "/mcp" => cmd_mcp(app, args),
+        "/skill" => cmd_skill(app, args),
+        "/config" => cmd_config(app, args),
         _ => {
             sys_msg(
                 app,
@@ -205,6 +223,270 @@ fn cmd_workflow(app: &mut App, args: Option<&str>) -> bool {
             sys_msg(app, &format!("🚀 启动工作流：`{}`（功能开发中）", name));
         }
     }
+    true
+}
+
+fn format_mcp_server(idx: usize, server: &McpServerConfig) -> String {
+    let transport_desc = match &server.transport {
+        McpTransport::Stdio { command, args } => {
+            let args_str = if args.is_empty() {
+                String::new()
+            } else {
+                format!(" {}", args.join(" "))
+            };
+            format!("stdio: `{}{}`", command, args_str)
+        }
+        McpTransport::Http { url } => format!("http: `{}`", url),
+    };
+    let tools = if server.allowed_tools.is_empty() {
+        "（全部）".to_string()
+    } else {
+        server.allowed_tools.join(", ")
+    };
+    format!(
+        "{}. `{}` — {}\n   工具: {} | 超时: {}s | 重连: {}",
+        idx + 1,
+        server.name,
+        transport_desc,
+        tools,
+        server.timeout_secs,
+        if server.auto_reconnect { "开" } else { "关" }
+    )
+}
+
+fn cmd_mcp(app: &mut App, args: Option<&str>) -> bool {
+    let args = args.unwrap_or("");
+    let trimmed = args.trim();
+
+    if trimmed.is_empty() {
+        // List MCP servers
+        if app.settings.mcp.is_empty() {
+            sys_msg(app, "📋 未配置 MCP 服务器。\n\n用法:\n  `/mcp add <name> <cmd> [args...]` — 添加 stdio MCP\n  `/mcp add-http <name> <url>` — 添加 HTTP MCP\n  `/mcp remove <name>` — 删除 MCP");
+        } else {
+            let mut lines = vec![format!(
+                "📋 已配置 {} 个 MCP 服务器：",
+                app.settings.mcp.len()
+            )];
+            for (i, server) in app.settings.mcp.iter().enumerate() {
+                lines.push(String::new());
+                lines.push(format_mcp_server(i, server));
+            }
+            sys_msg(app, &lines.join("\n"));
+        }
+        return true;
+    }
+
+    if let Some(rest) = trimmed.strip_prefix("add ") {
+        let parts: Vec<&str> = rest.splitn(2, ' ').collect();
+        let name = parts[0].trim();
+        if name.is_empty() || parts.len() < 2 {
+            sys_msg(app, "❌ 用法：`/mcp add <name> <command> [args...]`\n例如：`/mcp add fs npx @modelcontextprotocol/server-filesystem /tmp`");
+            return true;
+        }
+        let cmd_rest = parts[1].trim();
+        let cmd_parts: Vec<&str> = cmd_rest.split_whitespace().collect();
+        if cmd_parts.is_empty() {
+            sys_msg(app, "❌ 请指定 MCP 命令。");
+            return true;
+        }
+        let command = cmd_parts[0].to_string();
+        let args_vec: Vec<String> = cmd_parts[1..].iter().map(|s| s.to_string()).collect();
+
+        if app.settings.mcp.iter().any(|s| s.name == name) {
+            sys_msg(app, &format!("❌ MCP 服务器 `{}` 已存在。请先 `/mcp remove {}`", name, name));
+            return true;
+        }
+
+        app.settings.mcp.push(McpServerConfig {
+            name: name.to_string(),
+            transport: McpTransport::Stdio {
+                command,
+                args: args_vec,
+            },
+            allowed_tools: Vec::new(),
+            env: std::collections::HashMap::new(),
+            cwd: None,
+            auto_reconnect: true,
+            timeout_secs: 30,
+        });
+        sys_msg(app, &format!("✅ 已添加 MCP 服务器：`{}`（stdio）", name));
+        return true;
+    }
+
+    if let Some(rest) = trimmed.strip_prefix("add-http ") {
+        let parts: Vec<&str> = rest.splitn(2, ' ').collect();
+        let name = parts[0].trim();
+        if name.is_empty() || parts.len() < 2 || parts[1].trim().is_empty() {
+            sys_msg(app, "❌ 用法：`/mcp add-http <name> <url>`\n例如：`/mcp add-http my-server http://localhost:8080`");
+            return true;
+        }
+        let url = parts[1].trim().to_string();
+
+        if app.settings.mcp.iter().any(|s| s.name == name) {
+            sys_msg(app, &format!("❌ MCP 服务器 `{}` 已存在。请先 `/mcp remove {}`", name, name));
+            return true;
+        }
+
+        app.settings.mcp.push(McpServerConfig {
+            name: name.to_string(),
+            transport: McpTransport::Http { url },
+            allowed_tools: Vec::new(),
+            env: std::collections::HashMap::new(),
+            cwd: None,
+            auto_reconnect: true,
+            timeout_secs: 30,
+        });
+        sys_msg(app, &format!("✅ 已添加 MCP 服务器：`{}`（HTTP）", name));
+        return true;
+    }
+
+    if let Some(name) = trimmed.strip_prefix("remove ") {
+        let name = name.trim();
+        if name.is_empty() {
+            sys_msg(app, "❌ 用法：`/mcp remove <name>`");
+            return true;
+        }
+        let len_before = app.settings.mcp.len();
+        app.settings.mcp.retain(|s| s.name != name);
+        if app.settings.mcp.len() < len_before {
+            sys_msg(app, &format!("🗑️ 已移除 MCP 服务器：`{}`", name));
+        } else {
+            sys_msg(app, &format!("❌ 未找到 MCP 服务器：`{}`", name));
+        }
+        return true;
+    }
+
+    sys_msg(app, "❌ 未知子命令。用法：`/mcp`、`/mcp add <name> <cmd>`、`/mcp add-http <name> <url>`、`/mcp remove <name>`");
+    true
+}
+
+fn cmd_skill(app: &mut App, args: Option<&str>) -> bool {
+    let args = args.unwrap_or("");
+    let trimmed = args.trim();
+
+    if trimmed.is_empty() {
+        let dir_info = match &app.settings.skills_dir {
+            Some(path) => format!("`{}`", path.display()),
+            None => "未设置（使用默认路径）".to_string(),
+        };
+        let mut lines = vec![
+            format!("📂 Skills 目录：{}", dir_info),
+            String::new(),
+        ];
+        if app.settings.skill_sources.is_empty() {
+            lines.push("技能源：无".to_string());
+        } else {
+            lines.push(format!(
+                "技能源（{} 个）：",
+                app.settings.skill_sources.len()
+            ));
+            for (i, src) in app.settings.skill_sources.iter().enumerate() {
+                let branch = src.branch.as_ref().map(|b| format!(" @{}", b)).unwrap_or_default();
+                lines.push(format!("  {}. [{}] {}{}", i + 1, src.source_type, src.location, branch));
+            }
+        }
+        lines.push(String::new());
+        lines.push("用法：".to_string());
+        lines.push("  `/skill dir <path>` — 设置 Skills 目录".to_string());
+        lines.push("  `/skill add-source <type> <location> [branch]` — 添加技能源".to_string());
+        lines.push("  `/skill remove-source <index>` — 移除技能源".to_string());
+        sys_msg(app, &lines.join("\n"));
+        return true;
+    }
+
+    if let Some(path) = trimmed.strip_prefix("dir ") {
+        let path = path.trim();
+        if path.is_empty() {
+            sys_msg(app, "❌ 用法：`/skill dir <path>`");
+            return true;
+        }
+        app.settings.skills_dir = Some(std::path::PathBuf::from(path));
+        sys_msg(app, &format!("📂 Skills 目录已设置为：`{}`", path));
+        return true;
+    }
+
+    if let Some(rest) = trimmed.strip_prefix("add-source ") {
+        let parts: Vec<&str> = rest.splitn(3, ' ').collect();
+        let source_type = parts[0].trim();
+        if source_type.is_empty() || parts.len() < 2 {
+            sys_msg(app, "❌ 用法：`/skill add-source <type> <location> [branch]`\n类型：`git`、`local`、`url`\n例如：`/skill add-source git https://github.com/user/skills main`");
+            return true;
+        }
+        let location = parts[1].trim().to_string();
+        let branch = parts.get(2).map(|s| s.trim().to_string()).filter(|s| !s.is_empty());
+
+        // Build message before moving values into SkillSourceConfig
+        let branch_info = branch.as_ref().map(|b| format!(" @{}", b)).unwrap_or_default();
+        sys_msg(
+            app,
+            &format!(
+                "✅ 已添加技能源：`[{}] {}{}`",
+                source_type, location, branch_info
+            ),
+        );
+
+        app.settings.skill_sources.push(SkillSourceConfig {
+            source_type: source_type.to_string(),
+            location,
+            branch,
+            include: Vec::new(),
+            exclude: Vec::new(),
+        });
+
+        return true;
+    }
+
+    if let Some(idx_str) = trimmed.strip_prefix("remove-source ") {
+        let idx_str = idx_str.trim();
+        match idx_str.parse::<usize>() {
+            Ok(idx) if idx > 0 && idx <= app.settings.skill_sources.len() => {
+                let removed = app.settings.skill_sources.remove(idx - 1);
+                sys_msg(app, &format!("🗑️ 已移除技能源 #{}：`[{}] {}`", idx, removed.source_type, removed.location));
+            }
+            Ok(_) | Err(_) => {
+                sys_msg(app, &format!("❌ 无效索引。有效范围：1~{}", app.settings.skill_sources.len()));
+            }
+        }
+        return true;
+    }
+
+    sys_msg(app, "❌ 未知子命令。用法：`/skill`、`/skill dir <path>`、`/skill add-source <type> <location>`、`/skill remove-source <index>`");
+    true
+}
+
+fn cmd_config(app: &mut App, args: Option<&str>) -> bool {
+    let args = args.unwrap_or("");
+    let trimmed = args.trim();
+
+    if trimmed.is_empty() || trimmed == "show" {
+        let path = crate::config::settings::Settings::config_path();
+        sys_msg(
+            app,
+            &format!(
+                "⚙️ 配置路径：`{}`\nMCP 服务器：{} 个\n技能源：{} 个\nSkills 目录：{}\n\n用法：\n  `/config show` — 显示配置路径\n  `/config save` — 保存当前配置到文件",
+                path.display(),
+                app.settings.mcp.len(),
+                app.settings.skill_sources.len(),
+                app.settings.skills_dir.as_ref().map(|p| p.display().to_string()).unwrap_or_else(|| "未设置".to_string())
+            ),
+        );
+        return true;
+    }
+
+    if trimmed == "save" {
+        match app.settings.save() {
+            Ok(()) => {
+                let path = crate::config::settings::Settings::config_path();
+                sys_msg(app, &format!("💾 配置已保存到：`{}`", path.display()));
+            }
+            Err(e) => {
+                sys_msg(app, &format!("❌ 保存配置失败：{}", e));
+            }
+        }
+        return true;
+    }
+
+    sys_msg(app, "❌ 未知子命令。用法：`/config show`、`/config save`");
     true
 }
 
@@ -411,5 +693,109 @@ mod tests {
             .unwrap()
             .content
             .contains("开发中"));
+    }
+
+    #[test]
+    fn test_mcp_list_empty() {
+        let mut app = make_app();
+        assert!(try_handle(&mut app, "/mcp"));
+        assert!(app.chat_state.messages.last().unwrap().content.contains("未配置 MCP"));
+    }
+
+    #[test]
+    fn test_mcp_add_stdio() {
+        let mut app = make_app();
+        assert!(try_handle(&mut app, "/mcp add my-fs npx @modelcontextprotocol/server-filesystem /tmp"));
+        assert_eq!(app.settings.mcp.len(), 1);
+        assert_eq!(app.settings.mcp[0].name, "my-fs");
+        assert!(matches!(app.settings.mcp[0].transport, McpTransport::Stdio { .. }));
+        assert!(app.chat_state.messages.last().unwrap().content.contains("my-fs"));
+    }
+
+    #[test]
+    fn test_mcp_add_duplicate() {
+        let mut app = make_app();
+        assert!(try_handle(&mut app, "/mcp add my-srv echo hello"));
+        assert_eq!(app.settings.mcp.len(), 1);
+        // Second add with same name should fail
+        assert!(try_handle(&mut app, "/mcp add my-srv other cmd"));
+        assert_eq!(app.settings.mcp.len(), 1); // unchanged
+        assert!(app.chat_state.messages.last().unwrap().content.contains("已存在"));
+    }
+
+    #[test]
+    fn test_mcp_add_http() {
+        let mut app = make_app();
+        assert!(try_handle(&mut app, "/mcp add-http remote http://localhost:8080"));
+        assert_eq!(app.settings.mcp.len(), 1);
+        assert_eq!(app.settings.mcp[0].name, "remote");
+        assert!(matches!(app.settings.mcp[0].transport, McpTransport::Http { .. }));
+    }
+
+    #[test]
+    fn test_mcp_remove() {
+        let mut app = make_app();
+        assert!(try_handle(&mut app, "/mcp add demo echo test"));
+        assert_eq!(app.settings.mcp.len(), 1);
+        assert!(try_handle(&mut app, "/mcp remove demo"));
+        assert!(app.settings.mcp.is_empty());
+    }
+
+    #[test]
+    fn test_mcp_remove_not_found() {
+        let mut app = make_app();
+        assert!(try_handle(&mut app, "/mcp remove nonexistent"));
+        assert!(app.chat_state.messages.last().unwrap().content.contains("未找到"));
+    }
+
+    #[test]
+    fn test_skill_list_empty() {
+        let mut app = make_app();
+        assert!(try_handle(&mut app, "/skill"));
+        let content = &app.chat_state.messages.last().unwrap().content;
+        assert!(content.contains("Skills 目录"));
+        assert!(content.contains("技能源：无"));
+    }
+
+    #[test]
+    fn test_skill_set_dir() {
+        let mut app = make_app();
+        assert!(try_handle(&mut app, "/skill dir /home/user/skills"));
+        assert_eq!(app.settings.skills_dir, Some(std::path::PathBuf::from("/home/user/skills")));
+    }
+
+    #[test]
+    fn test_skill_add_source() {
+        let mut app = make_app();
+        assert!(try_handle(&mut app, "/skill add-source git https://github.com/user/skills main"));
+        assert_eq!(app.settings.skill_sources.len(), 1);
+        assert_eq!(app.settings.skill_sources[0].source_type, "git");
+        assert_eq!(app.settings.skill_sources[0].branch, Some("main".into()));
+    }
+
+    #[test]
+    fn test_skill_remove_source() {
+        let mut app = make_app();
+        assert!(try_handle(&mut app, "/skill add-source local ./skills"));
+        assert_eq!(app.settings.skill_sources.len(), 1);
+        assert!(try_handle(&mut app, "/skill remove-source 1"));
+        assert!(app.settings.skill_sources.is_empty());
+    }
+
+    #[test]
+    fn test_skill_remove_source_invalid_index() {
+        let mut app = make_app();
+        assert!(try_handle(&mut app, "/skill remove-source 1"));
+        assert!(app.chat_state.messages.last().unwrap().content.contains("无效索引"));
+    }
+
+    #[test]
+    fn test_config_show() {
+        let mut app = make_app();
+        assert!(try_handle(&mut app, "/config show"));
+        let content = &app.chat_state.messages.last().unwrap().content;
+        assert!(content.contains("配置路径"));
+        assert!(content.contains("MCP 服务器"));
+        assert!(content.contains("技能源"));
     }
 }
