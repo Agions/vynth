@@ -168,8 +168,9 @@ fn cmd_model(app: &mut App, args: Option<&str>) -> bool {
                 }
                 let model_name = parts[0].trim();
                 let base_url = parts[1].trim();
-                app.settings.llm.provider =
-                    Provider::Custom { base_url: base_url.to_string() };
+                app.settings.llm.provider = Provider::Custom {
+                    base_url: base_url.to_string(),
+                };
                 app.settings.llm.model = model_name.to_string();
                 app.status_bar.model_name = model_name.to_string();
                 let provider_str = provider_display(&app.settings.llm.provider);
@@ -293,7 +294,13 @@ fn cmd_mcp(app: &mut App, args: Option<&str>) -> bool {
         let args_vec: Vec<String> = cmd_parts[1..].iter().map(|s| s.to_string()).collect();
 
         if app.settings.mcp.iter().any(|s| s.name == name) {
-            sys_msg(app, &format!("❌ MCP 服务器 `{}` 已存在。请先 `/mcp remove {}`", name, name));
+            sys_msg(
+                app,
+                &format!(
+                    "❌ MCP 服务器 `{}` 已存在。请先 `/mcp remove {}`",
+                    name, name
+                ),
+            );
             return true;
         }
 
@@ -323,7 +330,13 @@ fn cmd_mcp(app: &mut App, args: Option<&str>) -> bool {
         let url = parts[1].trim().to_string();
 
         if app.settings.mcp.iter().any(|s| s.name == name) {
-            sys_msg(app, &format!("❌ MCP 服务器 `{}` 已存在。请先 `/mcp remove {}`", name, name));
+            sys_msg(
+                app,
+                &format!(
+                    "❌ MCP 服务器 `{}` 已存在。请先 `/mcp remove {}`",
+                    name, name
+                ),
+            );
             return true;
         }
 
@@ -369,10 +382,7 @@ fn cmd_skill(app: &mut App, args: Option<&str>) -> bool {
             Some(path) => format!("`{}`", path.display()),
             None => "未设置（使用默认路径）".to_string(),
         };
-        let mut lines = vec![
-            format!("📂 Skills 目录：{}", dir_info),
-            String::new(),
-        ];
+        let mut lines = vec![format!("📂 Skills 目录：{}", dir_info), String::new()];
         if app.settings.skill_sources.is_empty() {
             lines.push("技能源：无".to_string());
         } else {
@@ -381,8 +391,18 @@ fn cmd_skill(app: &mut App, args: Option<&str>) -> bool {
                 app.settings.skill_sources.len()
             ));
             for (i, src) in app.settings.skill_sources.iter().enumerate() {
-                let branch = src.branch.as_ref().map(|b| format!(" @{}", b)).unwrap_or_default();
-                lines.push(format!("  {}. [{}] {}{}", i + 1, src.source_type, src.location, branch));
+                let branch = src
+                    .branch
+                    .as_ref()
+                    .map(|b| format!(" @{}", b))
+                    .unwrap_or_default();
+                lines.push(format!(
+                    "  {}. [{}] {}{}",
+                    i + 1,
+                    src.source_type,
+                    src.location,
+                    branch
+                ));
             }
         }
         lines.push(String::new());
@@ -413,10 +433,16 @@ fn cmd_skill(app: &mut App, args: Option<&str>) -> bool {
             return true;
         }
         let location = parts[1].trim().to_string();
-        let branch = parts.get(2).map(|s| s.trim().to_string()).filter(|s| !s.is_empty());
+        let branch = parts
+            .get(2)
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty());
 
         // Build message before moving values into SkillSourceConfig
-        let branch_info = branch.as_ref().map(|b| format!(" @{}", b)).unwrap_or_default();
+        let branch_info = branch
+            .as_ref()
+            .map(|b| format!(" @{}", b))
+            .unwrap_or_default();
         sys_msg(
             app,
             &format!(
@@ -441,10 +467,22 @@ fn cmd_skill(app: &mut App, args: Option<&str>) -> bool {
         match idx_str.parse::<usize>() {
             Ok(idx) if idx > 0 && idx <= app.settings.skill_sources.len() => {
                 let removed = app.settings.skill_sources.remove(idx - 1);
-                sys_msg(app, &format!("🗑️ 已移除技能源 #{}：`[{}] {}`", idx, removed.source_type, removed.location));
+                sys_msg(
+                    app,
+                    &format!(
+                        "🗑️ 已移除技能源 #{}：`[{}] {}`",
+                        idx, removed.source_type, removed.location
+                    ),
+                );
             }
             Ok(_) | Err(_) => {
-                sys_msg(app, &format!("❌ 无效索引。有效范围：1~{}", app.settings.skill_sources.len()));
+                sys_msg(
+                    app,
+                    &format!(
+                        "❌ 无效索引。有效范围：1~{}",
+                        app.settings.skill_sources.len()
+                    ),
+                );
             }
         }
         return true;
@@ -699,17 +737,35 @@ mod tests {
     fn test_mcp_list_empty() {
         let mut app = make_app();
         assert!(try_handle(&mut app, "/mcp"));
-        assert!(app.chat_state.messages.last().unwrap().content.contains("未配置 MCP"));
+        assert!(app
+            .chat_state
+            .messages
+            .last()
+            .unwrap()
+            .content
+            .contains("未配置 MCP"));
     }
 
     #[test]
     fn test_mcp_add_stdio() {
         let mut app = make_app();
-        assert!(try_handle(&mut app, "/mcp add my-fs npx @modelcontextprotocol/server-filesystem /tmp"));
+        assert!(try_handle(
+            &mut app,
+            "/mcp add my-fs npx @modelcontextprotocol/server-filesystem /tmp"
+        ));
         assert_eq!(app.settings.mcp.len(), 1);
         assert_eq!(app.settings.mcp[0].name, "my-fs");
-        assert!(matches!(app.settings.mcp[0].transport, McpTransport::Stdio { .. }));
-        assert!(app.chat_state.messages.last().unwrap().content.contains("my-fs"));
+        assert!(matches!(
+            app.settings.mcp[0].transport,
+            McpTransport::Stdio { .. }
+        ));
+        assert!(app
+            .chat_state
+            .messages
+            .last()
+            .unwrap()
+            .content
+            .contains("my-fs"));
     }
 
     #[test]
@@ -720,16 +776,28 @@ mod tests {
         // Second add with same name should fail
         assert!(try_handle(&mut app, "/mcp add my-srv other cmd"));
         assert_eq!(app.settings.mcp.len(), 1); // unchanged
-        assert!(app.chat_state.messages.last().unwrap().content.contains("已存在"));
+        assert!(app
+            .chat_state
+            .messages
+            .last()
+            .unwrap()
+            .content
+            .contains("已存在"));
     }
 
     #[test]
     fn test_mcp_add_http() {
         let mut app = make_app();
-        assert!(try_handle(&mut app, "/mcp add-http remote http://localhost:8080"));
+        assert!(try_handle(
+            &mut app,
+            "/mcp add-http remote http://localhost:8080"
+        ));
         assert_eq!(app.settings.mcp.len(), 1);
         assert_eq!(app.settings.mcp[0].name, "remote");
-        assert!(matches!(app.settings.mcp[0].transport, McpTransport::Http { .. }));
+        assert!(matches!(
+            app.settings.mcp[0].transport,
+            McpTransport::Http { .. }
+        ));
     }
 
     #[test]
@@ -745,7 +813,13 @@ mod tests {
     fn test_mcp_remove_not_found() {
         let mut app = make_app();
         assert!(try_handle(&mut app, "/mcp remove nonexistent"));
-        assert!(app.chat_state.messages.last().unwrap().content.contains("未找到"));
+        assert!(app
+            .chat_state
+            .messages
+            .last()
+            .unwrap()
+            .content
+            .contains("未找到"));
     }
 
     #[test]
@@ -761,13 +835,19 @@ mod tests {
     fn test_skill_set_dir() {
         let mut app = make_app();
         assert!(try_handle(&mut app, "/skill dir /home/user/skills"));
-        assert_eq!(app.settings.skills_dir, Some(std::path::PathBuf::from("/home/user/skills")));
+        assert_eq!(
+            app.settings.skills_dir,
+            Some(std::path::PathBuf::from("/home/user/skills"))
+        );
     }
 
     #[test]
     fn test_skill_add_source() {
         let mut app = make_app();
-        assert!(try_handle(&mut app, "/skill add-source git https://github.com/user/skills main"));
+        assert!(try_handle(
+            &mut app,
+            "/skill add-source git https://github.com/user/skills main"
+        ));
         assert_eq!(app.settings.skill_sources.len(), 1);
         assert_eq!(app.settings.skill_sources[0].source_type, "git");
         assert_eq!(app.settings.skill_sources[0].branch, Some("main".into()));
@@ -786,7 +866,13 @@ mod tests {
     fn test_skill_remove_source_invalid_index() {
         let mut app = make_app();
         assert!(try_handle(&mut app, "/skill remove-source 1"));
-        assert!(app.chat_state.messages.last().unwrap().content.contains("无效索引"));
+        assert!(app
+            .chat_state
+            .messages
+            .last()
+            .unwrap()
+            .content
+            .contains("无效索引"));
     }
 
     #[test]
