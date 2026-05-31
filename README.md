@@ -343,24 +343,21 @@ steps:
 ### MCP Servers
 
 ```toml
-# stdio transport (local process)
-[[mcp]]
-name = "gitee"
-type = "stdio"
-command = "npx"
-args = ["-y", "@gitee/mcp-gitee"]
-auto_reconnect = true
-timeout_secs = 30
-
-[mcp.env]
-GITEE_TOKEN = "your-token"
-
 # HTTP transport (remote server)
 [[mcp]]
 name = "remote-tools"
 type = "http"
 url = "https://mcp.example.com/sse"
 timeout_secs = 60
+
+# stdio transport (local process)
+[[mcp]]
+name = "filesystem"
+type = "stdio"
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
+auto_reconnect = true
+timeout_secs = 30
 ```
 
 对应的斜杠命令：
