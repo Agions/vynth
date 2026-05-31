@@ -126,22 +126,6 @@ synerix
 
 ---
 
-## ✨ Why Synerix?
-
-| | Synerix | Claude Code | Codex CLI | OpenCode |
-|---|:---:|:---:|:---:|:---:|
-| **Language** | Rust 🦀 | TypeScript | Python | Go |
-| **Binary Size** | **3.8 MB** | ~100 MB | ~50 MB | ~20 MB |
-| **Startup Time** | **2 ms** | ~500 ms | ~300 ms | ~200 ms |
-| **Multi-Agent** | ✅ 5 roles | ❌ | ❌ | ❌ |
-| **Workflow Engine** | ✅ DAG | ❌ | ❌ | ❌ |
-| **MCP Protocol** | ✅ Native | ✅ | ❌ | ✅ |
-| **Sandbox** | ✅ 3 modes | ✅ | ✅ | ❌ |
-| **Custom Keymaps** | ✅ Vim/Emacs | ✅ Vim | ❌ | ❌ |
-| **Offline-First** | ✅ | ❌ | ❌ | ❌ |
-
----
-
 ## ✨ Features
 
 <table>
