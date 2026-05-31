@@ -363,6 +363,16 @@ url = "https://mcp.example.com/sse"
 timeout_secs = 60
 ```
 
+对应的斜杠命令：
+
+| 操作 | 命令 |
+|------|------|
+| 查看列表 | `/mcp` 或 `/mcp list` |
+| 查看详情 | `/mcp show <name>` |
+| 添加 stdio | `/mcp add <name> stdio <command> [args...]` |
+| 添加 HTTP | `/mcp add <name> http <url>` |
+| 删除 | `/mcp remove <name>` |
+
 ### External Skills
 
 ```toml
@@ -378,6 +388,16 @@ location = "https://github.com/Agions/synerix-skills.git"
 branch = "main"
 include = ["**/*.md"]
 ```
+
+对应的斜杠命令：
+
+| 操作 | 命令 |
+|------|------|
+| 查看状态 | `/skill` |
+| 设置目录 | `/skill dir <path>` |
+| 列出技能源 | `/skill source list` |
+| 添加技能源 | `/skill source add <type> <location> [branch]` |
+| 删除技能源 | `/skill source remove <index>` |
 
 ### Custom Agents
 
