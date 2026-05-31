@@ -280,20 +280,18 @@ fn test_app_chat_scroll() {
 
 #[test]
 fn test_project_file_count() {
+    use std::path::Path;
     use std::process::Command;
 
+    let repo_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let src_dir = repo_root.join("src");
+
     let output = Command::new("find")
-        .args([
-            "/home/ubuntu/workspace/synerix/src",
-            "-name",
-            "*.rs",
-            "-type",
-            "f",
-        ])
+        .arg(&src_dir)
+        .args(["-name", "*.rs", "-type", "f"])
         .output()
         .unwrap();
 
     let count = String::from_utf8_lossy(&output.stdout).lines().count();
-    // Should have at least 55 source files now
     assert!(count >= 55, "Expected 55+ source files, got {}", count);
 }
