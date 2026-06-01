@@ -17,8 +17,7 @@ impl MockLlm {
         let addr = listener.local_addr().unwrap().to_string();
 
         thread::spawn(move || {
-            for stream in listener.incoming() {
-                if let Ok(mut stream) = stream {
+            for mut stream in listener.incoming().flatten() {
                     let mut buf = [0u8; 4096];
                     let _ = stream.read(&mut buf);
                     let request = String::from_utf8_lossy(&buf);
@@ -49,7 +48,6 @@ impl MockLlm {
                     let _ = stream.write_all(body.as_bytes());
                     let _ = stream.flush();
                 }
-            }
         });
 
         MockLlm { addr }
@@ -159,7 +157,7 @@ async fn test_file_tool_roundtrip() {
     let dir = PathBuf::from("/tmp/synerix_e2e_test");
     std::fs::create_dir_all(&dir).unwrap();
 
-    let ctx = synerix::tools::trait_def::ToolContext {
+    let ctx = synerix::tools::traits::ToolContext {
         working_dir: dir.clone(),
         sandbox_mode: synerix::config::SandboxMode::Auto,
         approval_handler: None,

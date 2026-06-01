@@ -1,81 +1,52 @@
-[package]
-name = "synerix"
-version = "0.0.1"
+[workspace]
+resolver = "2"
+members = [
+    "crates/synerix",
+    "crates/synerix-core",
+]
+
+[workspace.package]
+version = "0.1.0"
 edition = "2021"
-description = "AI coding terminal — A high-performance AI pair programming terminal"
 license = "MIT"
 rust-version = "1.75"
 
-[[bin]]
-name = "synerix"
-path = "src/main.rs"
-
-[dependencies]
-# TUI framework
+[workspace.dependencies]
 ratatui = "0.28"
 crossterm = "0.28"
-
-# Async runtime
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "process", "signal", "fs", "io-util", "net"] }
 futures = "0.3"
-
-# HTTP client (LLM API + MCP HTTP transport)
 reqwest = { version = "0.12", features = ["json", "stream"] }
-
-# Serialization
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-
-# SQLite session persistence
 rusqlite = { version = "0.31", features = ["bundled"] }
-
-# Error handling
 thiserror = "2"
-
-# Config parsing
 toml = "0.8"
-
-# Structured logging
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-
-# Syntax highlighting for diffs
 syntect = { version = "5", default-features = false, features = ["default-fancy"] }
-
-# Glob pattern matching (skills/tools)
 glob = "0.3"
-
-# Timestamps
 chrono = { version = "0.4", features = ["serde"] }
-
-# XDG directories
 dirs-next = "2"
-
-# YAML parsing (skill frontmatter)
 serde_yaml = "0.9"
-
-# Async stream macro
 async-stream = "0.3"
-
-# Async trait macro
 async-trait = "0.1"
-
-# Byte buffer (reqwest streaming)
 bytes = "1"
-
-# UUID generation
 uuid = { version = "1", features = ["v4"] }
 
-[features]
-default = []
-startup_bench = []
+[workspace.dependencies.tempfile]
+version = "3"
 
-[dev-dependencies]
-tempfile = "3"
-serial_test = "3"
+[workspace.dependencies.serial_test]
+version = "3"
+
+[workspace.lints.clippy]
+# Suppress in-progress warnings during migration — will be tightened
+pedantic = "allow"
 
 [profile.release]
 opt-level = 3
 lto = true
 codegen-units = 1
 strip = true
+panic = "abort"

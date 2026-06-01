@@ -29,7 +29,19 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: cargo clippy
-        run: cargo clippy --all-targets -- -W clippy::all 2>&1
+        run: cargo clippy --all-targets --workspace -- -D warnings 2>&1
+
+      - name: Check naming conventions
+        shell: bash
+        run: |
+          # Check snake_case .rs files in crates/ and src/
+          NON_SNAKE=$(find crates src -name "*.rs" 2>/dev/null | grep -E '[A-Z]' || true)
+          if [ -n "$NON_SNAKE" ]; then
+            echo "❌ Non-snake_case .rs files found:"
+            echo "$NON_SNAKE"
+            exit 1
+          fi
+          echo "✅ All file names are snake_case"
 
   test:
     name: Test (${{ matrix.os }})
@@ -62,10 +74,10 @@ jobs:
           rg --version
 
       - name: Run tests
-        run: cargo test --all-targets 2>&1
+        run: cargo test --all-targets --workspace 2>&1
 
       - name: Release build
-        run: cargo build --release
+        run: cargo build --release --workspace 2>&1
 
       - name: Check binary size
         shell: bash
