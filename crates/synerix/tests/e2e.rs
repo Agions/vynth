@@ -18,36 +18,36 @@ impl MockLlm {
 
         thread::spawn(move || {
             for mut stream in listener.incoming().flatten() {
-                    let mut buf = [0u8; 4096];
-                    let _ = stream.read(&mut buf);
-                    let request = String::from_utf8_lossy(&buf);
+                let mut buf = [0u8; 4096];
+                let _ = stream.read(&mut buf);
+                let request = String::from_utf8_lossy(&buf);
 
-                    let body = if request.contains("\"stream\":true") {
-                        // Streaming response
-                        let sse = "data: {\"choices\":[{\"delta\":{\"content\":\"Hello\"}}]}\n\ndata: {\"choices\":[{\"delta\":{\"content\":\" world!\"}}]}\n\ndata: [DONE]\n\n";
-                        format!(
+                let body = if request.contains("\"stream\":true") {
+                    // Streaming response
+                    let sse = "data: {\"choices\":[{\"delta\":{\"content\":\"Hello\"}}]}\n\ndata: {\"choices\":[{\"delta\":{\"content\":\" world!\"}}]}\n\ndata: [DONE]\n\n";
+                    format!(
                             "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\n\r\n{}",
                             sse.len(), sse
                         )
-                    } else if request.contains("shell_exec") {
-                        // Tool call response
-                        let body = r#"{"choices":[{"message":{"role":"assistant","content":"","tool_calls":[{"id":"call_1","type":"function","function":{"name":"shell_exec","arguments":"{\"command\":\"echo test\"}"}}]}}],"usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15}}"#;
-                        format!(
+                } else if request.contains("shell_exec") {
+                    // Tool call response
+                    let body = r#"{"choices":[{"message":{"role":"assistant","content":"","tool_calls":[{"id":"call_1","type":"function","function":{"name":"shell_exec","arguments":"{\"command\":\"echo test\"}"}}]}}],"usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15}}"#;
+                    format!(
                             "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{}",
                             body.len(), body
                         )
-                    } else {
-                        // Simple text response
-                        let body = r#"{"choices":[{"message":{"role":"assistant","content":"Hello! I'm a mock AI assistant."}}],"usage":{"prompt_tokens":10,"completion_tokens":8,"total_tokens":18}}"#;
-                        format!(
+                } else {
+                    // Simple text response
+                    let body = r#"{"choices":[{"message":{"role":"assistant","content":"Hello! I'm a mock AI assistant."}}],"usage":{"prompt_tokens":10,"completion_tokens":8,"total_tokens":18}}"#;
+                    format!(
                             "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{}",
                             body.len(), body
                         )
-                    };
+                };
 
-                    let _ = stream.write_all(body.as_bytes());
-                    let _ = stream.flush();
-                }
+                let _ = stream.write_all(body.as_bytes());
+                let _ = stream.flush();
+            }
         });
 
         MockLlm { addr }

@@ -13,13 +13,11 @@ pub fn render(area: Rect, frame: &mut ratatui::Frame, app: &App) {
     let block = Block::default()
         .title(" Chat ")
         .borders(Borders::ALL)
-        .border_style(
-            if app.focused_panel == FocusedPanel::Chat {
-                Style::default().fg(theme::COLOR_CYAN)
-            } else {
-                theme::muted_style()
-            },
-        );
+        .border_style(if app.focused_panel == FocusedPanel::Chat {
+            Style::default().fg(theme::COLOR_CYAN)
+        } else {
+            theme::muted_style()
+        });
 
     let inner_height = area.height.saturating_sub(2) as usize; // subtract top/bottom border
     let mut lines: Vec<Line> = Vec::new();
@@ -56,10 +54,7 @@ pub fn render(area: Rect, frame: &mut ratatui::Frame, app: &App) {
                         .fg(theme::COLOR_CYAN)
                         .add_modifier(Modifier::BOLD),
                 ),
-                Span::styled(
-                    format!("({})", args_preview),
-                    theme::muted_style(),
-                ),
+                Span::styled(format!("({})", args_preview), theme::muted_style()),
             ]));
 
             // Tool result line

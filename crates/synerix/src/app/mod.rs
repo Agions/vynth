@@ -10,8 +10,8 @@
 //! - `runner` — Application entry point
 
 mod actions;
-pub mod events;
 mod event_loop;
+pub mod events;
 mod input_handler;
 pub mod message;
 mod runner;

@@ -4,9 +4,7 @@ use std::path::PathBuf;
 
 use crate::error::AppError;
 
-use super::{
-    LlmConfig, Provider, SandboxConfig, SandboxMode, Settings, UiConfig,
-};
+use super::{LlmConfig, Provider, SandboxConfig, SandboxMode, Settings, UiConfig};
 
 impl Settings {
     /// Load settings from config file, with environment variable overrides

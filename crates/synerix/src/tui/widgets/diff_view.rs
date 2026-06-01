@@ -51,13 +51,11 @@ pub fn render(area: Rect, frame: &mut Frame, app: &App) {
     let block = Block::default()
         .title(" Diff Preview ")
         .borders(Borders::ALL)
-        .border_style(
-            if app.focused_panel == crate::app::FocusedPanel::Diff {
-                Style::default().fg(theme::COLOR_CYAN)
-            } else {
-                theme::muted_style()
-            },
-        );
+        .border_style(if app.focused_panel == crate::app::FocusedPanel::Diff {
+            Style::default().fg(theme::COLOR_CYAN)
+        } else {
+            theme::muted_style()
+        });
 
     if app.diff_state.content.is_empty() {
         let paragraph = Paragraph::new("  (no pending changes)")

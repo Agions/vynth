@@ -2,10 +2,10 @@
 //!
 //! Coordinates layout computation and delegates rendering to each widget.
 
-use ratatui::Frame;
 use crate::app::App;
 use crate::tui::layout::{compute_layout, TerminalLayout};
 use crate::tui::widgets;
+use ratatui::Frame;
 
 /// Draw the entire frame (read-only)
 pub fn draw_frame(frame: &mut Frame, app: &App) {

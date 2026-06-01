@@ -2,9 +2,7 @@
 
 use super::events::AgentEvent;
 use super::message::{ChatMessage, MessageRole};
-use super::state::{
-    AgentState, App, FocusedPanel, InputMode, LayoutState, SidebarTab,
-};
+use super::state::{AgentState, App, FocusedPanel, InputMode, LayoutState, SidebarTab};
 use crate::config::keymap::Action;
 use crate::config::ConfigReload;
 use crate::error::AppError;

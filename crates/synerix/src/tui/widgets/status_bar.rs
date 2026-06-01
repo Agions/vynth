@@ -78,9 +78,7 @@ pub fn render_status_bar(frame: &mut Frame, app: &App, area: Rect) {
     // Build spans
     let separator = Span::styled(
         " │ ",
-        Style::default()
-            .fg(Color::Rgb(86, 92, 116))
-            .bg(STATUS_BG),
+        Style::default().fg(Color::Rgb(86, 92, 116)).bg(STATUS_BG),
     );
 
     let mut spans: Vec<Span> = Vec::new();
@@ -120,9 +118,7 @@ pub fn render_status_bar(frame: &mut Frame, app: &App, area: Rect) {
             };
             spans.push(Span::styled(
                 format!(" ✗ {} ", display_msg),
-                Style::default()
-                    .fg(Color::Rgb(247, 118, 142))
-                    .bg(STATUS_BG),
+                Style::default().fg(Color::Rgb(247, 118, 142)).bg(STATUS_BG),
             ));
         }
         _ => {
@@ -163,9 +159,7 @@ pub fn render_status_bar(frame: &mut Frame, app: &App, area: Rect) {
     // Right: Model name
     spans.push(Span::styled(
         format!(" {} ", app.status_bar.model_name),
-        Style::default()
-            .fg(Color::Rgb(160, 170, 210))
-            .bg(STATUS_BG),
+        Style::default().fg(Color::Rgb(160, 170, 210)).bg(STATUS_BG),
     ));
 
     spans.push(separator.clone());
@@ -179,17 +173,12 @@ pub fn render_status_bar(frame: &mut Frame, app: &App, area: Rect) {
     };
     spans.push(Span::styled(
         format!(" {} {} ", sandbox_icon, app.status_bar.sandbox_mode),
-        Style::default()
-            .fg(Color::Rgb(140, 148, 180))
-            .bg(STATUS_BG),
+        Style::default().fg(Color::Rgb(140, 148, 180)).bg(STATUS_BG),
     ));
 
     let line = Line::from(spans);
-    let paragraph = Paragraph::new(line).style(
-        Style::default()
-            .bg(STATUS_BG)
-            .fg(Color::Rgb(192, 202, 245)),
-    );
+    let paragraph =
+        Paragraph::new(line).style(Style::default().bg(STATUS_BG).fg(Color::Rgb(192, 202, 245)));
 
     frame.render_widget(paragraph, area);
 }

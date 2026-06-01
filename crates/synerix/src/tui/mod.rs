@@ -2,8 +2,8 @@
 
 pub mod diff_renderer;
 pub mod event;
-pub mod renderer;
 pub mod layout;
+pub mod renderer;
 pub mod syntax;
 pub mod theme;
 pub mod widgets;

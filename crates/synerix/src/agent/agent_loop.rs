@@ -18,8 +18,8 @@ use crate::error::AppError;
 use crate::llm::adapter::LlmAdapter;
 use crate::llm::types::{ChatMessage, ChunkDelta, MessageRole, ToolCall};
 use crate::mcp::manager::McpManager;
-use crate::tools::registry::ToolRegistry;
 use crate::token_estimator::estimate_tokens;
+use crate::tools::registry::ToolRegistry;
 
 /// Run the agent reasoning loop
 ///

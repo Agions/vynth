@@ -98,10 +98,7 @@ fn classify_command(cmd: &str) -> (RiskLevel, String, Vec<String>) {
     // Medium: file writes
     if cmd.contains(" > ") || cmd.contains(" >> ") {
         if let Some(pos) = cmd.find(" > ") {
-            let path = cmd[pos + 3..]
-                .split_whitespace()
-                .next()
-                .unwrap_or("?");
+            let path = cmd[pos + 3..].split_whitespace().next().unwrap_or("?");
             paths.push(path.to_string());
         }
         return (

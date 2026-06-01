@@ -15,10 +15,7 @@ pub struct TerminalLayout {
 pub fn compute_layout(area: Rect) -> TerminalLayout {
     let h_chunks = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Length(30),
-            Constraint::Min(0),
-        ])
+        .constraints([Constraint::Length(30), Constraint::Min(0)])
         .split(area);
 
     let v_chunks = Layout::default()
