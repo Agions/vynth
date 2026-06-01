@@ -657,6 +657,7 @@ mod tests {
             },
             settings,
             should_quit: false,
+            dirty_flags: crate::app::DirtyFlags::all_dirty(),
             input_buffer: String::new(),
             input_cursor: 0,
             keybindings: KeyBindings::new(KeymapProfile::Default),

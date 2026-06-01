@@ -110,7 +110,7 @@ fn default_typing_delay() -> u64 {
     10
 }
 
-/// Sandbox security configuration
+/// Sandbox security settings
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SandboxConfig {
     /// Sandbox mode: auto, confirm, preview_only
@@ -119,6 +119,13 @@ pub struct SandboxConfig {
     /// Enable atomic file writes
     #[serde(default = "default_true")]
     pub atomic_writes: bool,
+    /// Tool execution timeout in seconds (default: 120)
+    #[serde(default = "default_tool_timeout")]
+    pub tool_timeout_secs: u64,
+}
+
+fn default_tool_timeout() -> u64 {
+    120
 }
 
 fn default_sandbox_mode() -> SandboxMode {

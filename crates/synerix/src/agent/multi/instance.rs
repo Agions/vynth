@@ -74,7 +74,16 @@ impl AgentInstance {
         let max_turns = self.config.max_turns;
         let (event_tx, mut event_rx) = mpsc::unbounded_channel::<AgentEvent>();
 
-        let result = run_agent_loop(llm, &mut self.context, tools, mcp, event_tx, max_turns).await;
+        let result = run_agent_loop(
+            llm,
+            &mut self.context,
+            tools,
+            mcp,
+            event_tx,
+            max_turns,
+            120, // default tool timeout
+        )
+        .await;
 
         // Drain remaining events to avoid channel warnings
         while event_rx.try_recv().is_ok() {}

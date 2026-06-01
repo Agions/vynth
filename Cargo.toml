@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/synerix",
     "crates/synerix-core",
+    "benches/bench_runner",
 ]
 
 [workspace.package]
@@ -33,6 +34,7 @@ async-stream = "0.3"
 async-trait = "0.1"
 bytes = "1"
 uuid = { version = "1", features = ["v4"] }
+criterion = { version = "0.5", features = ["html_reports"] }
 
 [workspace.dependencies.tempfile]
 version = "3"

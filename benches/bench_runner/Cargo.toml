@@ -1,0 +1,17 @@
+[package]
+name = "synerix-bench"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+synerix = { path = "../../crates/synerix" }
+criterion = { workspace = true }
+
+[[bench]]
+name = "agent_bench"
+harness = false
+
+[[bench]]
+name = "session_bench"
+harness = false

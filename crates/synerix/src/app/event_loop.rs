@@ -2,7 +2,7 @@
 
 use super::events::AgentEvent;
 use super::message::{ChatMessage, MessageRole};
-use super::state::{AgentState, App, FocusedPanel, InputMode, LayoutState, SidebarTab};
+use super::state::{AgentState, App, DirtyFlags, FocusedPanel, InputMode, LayoutState, SidebarTab};
 use crate::config::keymap::Action;
 use crate::config::ConfigReload;
 use crate::error::AppError;
@@ -69,7 +69,9 @@ impl App {
                 // Delegate to mode-specific handler
                 self.handle_mode_key(key).await?;
             }
-            AppEvent::Resize(_, _) => {}
+            AppEvent::Resize(_, _) => {
+                self.dirty_flags = DirtyFlags::all_dirty();
+            }
             AppEvent::Tick => {}
             AppEvent::Mouse(mouse) => {
                 self.handle_mouse(mouse);
@@ -121,9 +123,11 @@ impl App {
                 } else {
                     self.sidebar_state.active_tab = SidebarTab::Skills;
                 }
+                self.dirty_flags.sidebar = true;
             } else {
                 let content_row = tab_click_y.saturating_sub(2) as usize;
                 self.select_sidebar_item(content_row);
+                self.dirty_flags.sidebar = true;
             }
         } else if in_rect(&layout.input_rect) {
             self.focused_panel = FocusedPanel::Input;
@@ -136,11 +140,14 @@ impl App {
                 .map(|(i, _)| i)
                 .unwrap_or(self.input_buffer.len());
             self.input_cursor = byte_pos;
+            self.dirty_flags.input = true;
         } else if in_rect(&layout.chat_rect) {
             self.focused_panel = FocusedPanel::Chat;
             self.mode = InputMode::Insert;
+            self.dirty_flags.chat = true;
         } else if in_rect(&layout.diff_rect) {
             self.focused_panel = FocusedPanel::Diff;
+            self.dirty_flags.diff = true;
         }
     }
 
@@ -148,20 +155,26 @@ impl App {
         if in_rect(&layout.chat_rect) {
             let max_scroll = self.chat_state.messages.len().saturating_sub(1);
             self.chat_state.scroll_offset = (self.chat_state.scroll_offset + 3).min(max_scroll);
+            self.dirty_flags.chat = true;
         } else if in_rect(&layout.diff_rect) {
             self.diff_state.scroll_offset += 3;
+            self.dirty_flags.diff = true;
         } else if in_rect(&layout.sidebar_rect) {
             self.sidebar_state.scroll_offset += 3;
+            self.dirty_flags.sidebar = true;
         }
     }
 
     fn handle_mouse_scroll_down(&mut self, layout: &LayoutState, in_rect: &dyn Fn(&Rect) -> bool) {
         if in_rect(&layout.chat_rect) {
             self.chat_state.scroll_offset = self.chat_state.scroll_offset.saturating_sub(3);
+            self.dirty_flags.chat = true;
         } else if in_rect(&layout.diff_rect) {
             self.diff_state.scroll_offset = self.diff_state.scroll_offset.saturating_sub(3);
+            self.dirty_flags.diff = true;
         } else if in_rect(&layout.sidebar_rect) {
             self.sidebar_state.scroll_offset = self.sidebar_state.scroll_offset.saturating_sub(3);
+            self.dirty_flags.sidebar = true;
         }
     }
 
@@ -194,9 +207,11 @@ impl App {
             AgentEvent::TextDelta(text) => {
                 self.chat_state.streaming_text.push_str(&text);
                 self.chat_state.is_streaming = true;
+                self.dirty_flags.chat = true;
             }
             AgentEvent::ToolCallStart { name, args } => {
                 self.status_bar.agent_state = AgentState::RunningTool(name);
+                self.dirty_flags.status = true;
                 tracing::info!(
                     "Tool call: {:?} with args: {}",
                     self.status_bar.agent_state,
@@ -219,6 +234,7 @@ impl App {
                     is_error,
                     &output[..preview_len]
                 );
+                self.dirty_flags.status = true;
             }
             AgentEvent::Done => {
                 if !self.chat_state.streaming_text.is_empty() {
@@ -231,9 +247,12 @@ impl App {
                 self.chat_state.is_streaming = false;
                 self.chat_state.scroll_offset = 0;
                 self.status_bar.agent_state = AgentState::Idle;
+                self.dirty_flags.chat = true;
+                self.dirty_flags.status = true;
             }
             AgentEvent::Error(msg) => {
                 self.status_bar.agent_state = AgentState::Error(msg.clone());
+                self.dirty_flags.status = true;
                 tracing::error!("Agent error: {}", msg);
             }
         }
@@ -255,6 +274,7 @@ impl App {
         self.settings.sandbox.mode = reload.settings.sandbox.mode.clone();
         self.status_bar.sandbox_mode = format!("{:?}", self.settings.sandbox.mode);
         self.config_version = reload.version;
+        self.dirty_flags.status = true;
     }
 
     // ── Drawing ────────────────────────────────────────────

@@ -32,6 +32,7 @@ pub async fn run_agent_loop(
     mcp: &McpManager,
     event_tx: mpsc::UnboundedSender<AgentEvent>,
     max_turns: usize,
+    tool_timeout_secs: u64,
 ) -> Result<(), AppError> {
     for turn in 0..max_turns {
         tracing::debug!("Agent turn {}/{}", turn + 1, max_turns);
@@ -134,7 +135,8 @@ pub async fn run_agent_loop(
                 let tc_name = tc.name.clone();
 
                 async move {
-                    let result = dispatch_with_timeout(&tc_name, &args, tools, mcp).await;
+                    let result =
+                        dispatch_with_timeout(&tc_name, &args, tools, mcp, tool_timeout_secs).await;
                     let (output, is_error) = match result {
                         Ok(r) => (r.output, r.is_error),
                         Err(e) => (format!("Error: {}", e), true),

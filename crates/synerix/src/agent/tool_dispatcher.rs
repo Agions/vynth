@@ -7,9 +7,6 @@ use crate::mcp::manager::McpManager;
 use crate::tools::registry::ToolRegistry;
 use crate::tools::traits::{ToolContext, ToolResult};
 
-/// Tool execution timeout in seconds
-const TOOL_TIMEOUT_SECS: u64 = 120;
-
 /// Pending tool call accumulator (for streaming JSON args)
 pub struct PendingToolCall {
     pub id: String,
@@ -23,16 +20,14 @@ pub async fn dispatch_with_timeout(
     args: &serde_json::Value,
     tools: &ToolRegistry,
     mcp: &McpManager,
+    timeout_secs: u64,
 ) -> Result<ToolResult, AppError> {
-    let timeout = Duration::from_secs(TOOL_TIMEOUT_SECS);
+    let timeout = Duration::from_secs(timeout_secs);
 
     tokio::time::timeout(timeout, dispatch(name, args, tools, mcp))
         .await
         .map_err(|_| {
-            AppError::ExecutionFailed(format!(
-                "Tool '{}' timed out after {}s",
-                name, TOOL_TIMEOUT_SECS
-            ))
+            AppError::ExecutionFailed(format!("Tool '{}' timed out after {}s", name, timeout_secs))
         })?
 }
 

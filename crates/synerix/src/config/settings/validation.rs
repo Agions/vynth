@@ -58,6 +58,7 @@ impl Settings {
             sandbox: SandboxConfig {
                 mode: SandboxMode::Confirm,
                 atomic_writes: true,
+                tool_timeout_secs: 120,
             },
             mcp: Vec::new(),
             skills_dir: None,

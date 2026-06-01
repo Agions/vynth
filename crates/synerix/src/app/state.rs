@@ -42,6 +42,8 @@ impl Default for LayoutState {
 
 /// Global application state
 pub struct App {
+    /// Dirty flags for differential rendering
+    pub dirty_flags: DirtyFlags,
     /// Current input mode
     pub mode: InputMode,
     /// Which panel currently has focus
@@ -166,6 +168,33 @@ pub enum AgentState {
     Error(String),
 }
 
+// ── Dirty Flags ──────────────────────────────────────────
+
+/// Per-widget dirty flags for differential rendering
+#[derive(Debug, Default, Clone, Copy)]
+pub struct DirtyFlags {
+    pub sidebar: bool,
+    pub chat: bool,
+    pub diff: bool,
+    pub input: bool,
+    pub status: bool,
+}
+
+impl DirtyFlags {
+    pub fn all_dirty() -> Self {
+        Self {
+            sidebar: true,
+            chat: true,
+            diff: true,
+            input: true,
+            status: true,
+        }
+    }
+    pub fn is_clean(&self) -> bool {
+        !self.sidebar && !self.chat && !self.diff && !self.input && !self.status
+    }
+}
+
 // ── Constructors ──────────────────────────────────────────────
 
 impl App {
@@ -179,6 +208,7 @@ impl App {
         let keybindings = Self::create_keybindings(&settings);
         Self {
             mode: InputMode::Normal,
+            dirty_flags: DirtyFlags::all_dirty(),
             focused_panel: FocusedPanel::Input,
             chat_state: ChatState {
                 messages: Vec::new(),
@@ -229,6 +259,7 @@ impl App {
 
         Self {
             mode: InputMode::Insert,
+            dirty_flags: DirtyFlags::all_dirty(),
             focused_panel: FocusedPanel::Input,
             chat_state: ChatState {
                 messages: Vec::new(),

@@ -9,6 +9,8 @@ All notable changes to Synerix will be documented in this file.
 - **Cargo Workspace**: Monolithic crate split into workspace with `synerix` (main) and `synerix-core` (core abstractions) sub-crates
 - **Core crate (`synerix-core`)**: Extracted shared types including unified `Role` enum, `MutexExt` trait, and datetime utilities
 - **Lint cleanup**: Removed `#![allow(dead_code, unused_imports, unused_variables)]` from lib root; all warnings now treated as errors via clippy CI
+- **CI pipeline**: Release CI with matrix build (linux/macos/windows), uploaded artifacts, auto-generated release notes
+- **Binary size**: 3.9MB release build with `lto=true`, `panic="abort"`, `strip=true`
 
 ### ✂️ Module Splitting
 
@@ -43,3 +45,10 @@ All notable changes to Synerix will be documented in this file.
 - Added CI Release pipeline (`release.yml`) for automated GitHub Releases on tags
 - Binary size: **3.9 MB** (under 5 MB target)
 - Zero `unsafe` blocks, zero nightly features
+
+### ⚡ Performance
+
+- **SessionStore locking**: Consolidate to `Mutex<Connection>` with WAL mode for minimal contention (`rusqlite::Connection` is `Send` but not `Sync`)
+- **TUI dirty-flag rendering**: Per-widget dirty flags skip unchanged widgets (sidebar, chat, diff, input, status) — 60fps CPU reduction
+- **Configurable tool timeout**: `SandboxConfig.tool_timeout_secs` (default 120s) controls tool execution timeout, configurable via `config.toml`
+- **Benchmark suite**: `criterion` benchmarks for token estimation, context push/trim, session CRUD — run with `cargo bench`

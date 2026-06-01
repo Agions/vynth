@@ -21,27 +21,36 @@ impl App {
         match key.code {
             crossterm::event::KeyCode::Esc => {
                 self.mode = InputMode::Normal;
+                self.dirty_flags.input = true;
             }
             crossterm::event::KeyCode::Enter => {
                 self.submit_message();
+                self.dirty_flags.input = true;
+                self.dirty_flags.chat = true;
             }
             crossterm::event::KeyCode::Backspace => {
                 self.delete_char_before_cursor();
+                self.dirty_flags.input = true;
             }
             crossterm::event::KeyCode::Delete => {
                 self.delete_char_after_cursor();
+                self.dirty_flags.input = true;
             }
             crossterm::event::KeyCode::Left => {
                 self.move_cursor_left();
+                self.dirty_flags.input = true;
             }
             crossterm::event::KeyCode::Right => {
                 self.move_cursor_right();
+                self.dirty_flags.input = true;
             }
             crossterm::event::KeyCode::Home => {
                 self.input_cursor = 0;
+                self.dirty_flags.input = true;
             }
             crossterm::event::KeyCode::End => {
                 self.input_cursor = self.input_buffer.len();
+                self.dirty_flags.input = true;
             }
             crossterm::event::KeyCode::Char(c)
                 if !key
@@ -50,6 +59,7 @@ impl App {
             {
                 self.input_buffer.insert(self.input_cursor, c);
                 self.input_cursor += c.len_utf8();
+                self.dirty_flags.input = true;
             }
             _ => {}
         }
@@ -60,12 +70,15 @@ impl App {
         match key.code {
             crossterm::event::KeyCode::Char('i') => {
                 self.mode = InputMode::Insert;
+                self.dirty_flags.input = true;
             }
             crossterm::event::KeyCode::Char(':') => {
                 self.mode = InputMode::Command;
+                self.dirty_flags.input = true;
             }
             crossterm::event::KeyCode::Char('/') => {
                 self.mode = InputMode::Search;
+                self.dirty_flags.input = true;
             }
             crossterm::event::KeyCode::Char('q') => {
                 self.should_quit = true;
@@ -75,12 +88,15 @@ impl App {
                 if self.chat_state.scroll_offset < max_scroll {
                     self.chat_state.scroll_offset += 1;
                 }
+                self.dirty_flags.chat = true;
             }
             crossterm::event::KeyCode::Char('k') => {
                 self.chat_state.scroll_offset = self.chat_state.scroll_offset.saturating_sub(1);
+                self.dirty_flags.chat = true;
             }
             crossterm::event::KeyCode::Char('G') => {
                 self.chat_state.scroll_offset = 0;
+                self.dirty_flags.chat = true;
             }
             _ => {}
         }
@@ -95,14 +111,17 @@ impl App {
             crossterm::event::KeyCode::Esc => {
                 self.clear_input();
                 self.mode = InputMode::Normal;
+                self.dirty_flags.input = true;
             }
             crossterm::event::KeyCode::Enter => {
                 tracing::debug!("Command: {}", self.input_buffer);
                 self.clear_input();
                 self.mode = InputMode::Normal;
+                self.dirty_flags.input = true;
             }
             crossterm::event::KeyCode::Backspace => {
                 self.delete_char_before_cursor();
+                self.dirty_flags.input = true;
             }
             crossterm::event::KeyCode::Char(c)
                 if !key
@@ -111,6 +130,7 @@ impl App {
             {
                 self.input_buffer.insert(self.input_cursor, c);
                 self.input_cursor += c.len_utf8();
+                self.dirty_flags.input = true;
             }
             _ => {}
         }
@@ -122,14 +142,17 @@ impl App {
             crossterm::event::KeyCode::Esc => {
                 self.clear_input();
                 self.mode = InputMode::Normal;
+                self.dirty_flags.input = true;
             }
             crossterm::event::KeyCode::Enter => {
                 tracing::debug!("Search: {}", self.input_buffer);
                 self.clear_input();
                 self.mode = InputMode::Normal;
+                self.dirty_flags.input = true;
             }
             crossterm::event::KeyCode::Backspace => {
                 self.delete_char_before_cursor();
+                self.dirty_flags.input = true;
             }
             crossterm::event::KeyCode::Char(c)
                 if !key
@@ -138,6 +161,7 @@ impl App {
             {
                 self.input_buffer.insert(self.input_cursor, c);
                 self.input_cursor += c.len_utf8();
+                self.dirty_flags.input = true;
             }
             _ => {}
         }

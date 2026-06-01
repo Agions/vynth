@@ -1,15 +1,17 @@
 //! SQLite session store
+//!
+//! Uses `Mutex` instead of `RwLock` because `rusqlite::Connection` is `Send` but not `Sync`,
+//! which means `RwLock<Connection>` (which requires `T: Sync` for shared reads) cannot be
+//! wrapped in `Arc`. With WAL mode and `PRAGMA busy_timeout`, `Mutex` contention is minimal.
 
 use rusqlite::Connection;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 
-use synerix_core::utils::datetime::parse_rfc3339_or_default;
-use synerix_core::utils::sync::MutexExt;
-
 use crate::error::AppError;
 use crate::session::migration::run_migrations;
 use crate::session::model::{Session, StoredMessage, StoredRole};
+use synerix_core::utils::datetime::parse_rfc3339_or_default;
 
 /// SQLite-backed session store
 pub struct SessionStore {
@@ -19,7 +21,9 @@ pub struct SessionStore {
 impl SessionStore {
     /// Acquire the connection lock, converting poison errors to AppError
     fn lock_conn(&self) -> Result<std::sync::MutexGuard<'_, Connection>, AppError> {
-        self.conn.lock_or_err().map_err(AppError::MutexPoisoned)
+        self.conn
+            .lock()
+            .map_err(|e| AppError::MutexPoisoned(e.to_string()))
     }
 
     /// Open or create the session database
