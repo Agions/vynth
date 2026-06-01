@@ -2,6 +2,25 @@
 
 All notable changes to Synerix will be documented in this file.
 
+## [0.1.1] — 2026-06-01
+
+### 🎛️ Slash Command System Redesign
+
+- **Registry architecture**: Replaced hardcoded `match` routing with declarative `CmdDef` registration table — commands are now self-documenting structs with name, description, category, aliases, and handler
+- **Unified argument parsing**: `subcmd()`, `nth_arg()`, `rest_from()` helper functions replace ad-hoc per-command parsing logic
+- **Hierarchical help**: `/help` now displays commands grouped by category (💡 Help, 📋 Session, 🤖 Model, ⚙️ Config, 🎯 Goal, 📦 Workflow); `/help <cmd>` shows aliases and usage
+- **Alias support**: `/h`, `/?`, `/c`, `/cls`, `/m`, `/re`, `/quit`, `/q`, `/wf`, `/skills`, `/cfg`, `/g` shortcuts for common commands
+- **15 new tests** covering alias resolution, help system hierarchy, and command completeness
+
+### 🧹 Audit Fixes
+
+- **Release profile**: `lto = true` → `lto = "fat"` for cross-crate LTO optimization
+- **CI**: Added `cargo audit` step for vulnerability scanning
+- **Features**: Restructured with `default = ["tui"]`, added `headless` mode feature
+- **TokenBudget**: Hardcoded `2000/3000/4096` replaced with named associated constants (`DEFAULT_SYSTEM_OVERHEAD`, `DEFAULT_TOOLS_OVERHEAD`, `DEFAULT_RESERVED`)
+- **Security**: `Sandbox::Auto` mode now has explicit `⚠️ Security Warning` doc annotation
+- **Documentation**: Added `//!` module-level docs to 5 command/workflow files
+
 ## [0.1.0] — 2026-06-01
 
 ### 🏗️ Architecture
