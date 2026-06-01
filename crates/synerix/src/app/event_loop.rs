@@ -72,7 +72,10 @@ impl App {
             AppEvent::Resize(_, _) => {
                 self.dirty_flags = DirtyFlags::all_dirty();
             }
-            AppEvent::Tick => {}
+            AppEvent::Tick => {
+                // Update goal duration display in status bar
+                self.status_bar.goal_duration = self.goal_state.duration_str();
+            }
             AppEvent::Mouse(mouse) => {
                 self.handle_mouse(mouse);
             }
@@ -249,6 +252,28 @@ impl App {
                 self.status_bar.agent_state = AgentState::Idle;
                 self.dirty_flags.chat = true;
                 self.dirty_flags.status = true;
+
+                // /goal auto-loop: if goal is still active, continue working
+                if self.goal_state.is_active() {
+                    self.goal_state.turns += 1;
+                    self.goal_state.last_reason = "继续工作…".to_string();
+                    self.status_bar.agent_state = AgentState::Thinking;
+
+                    // Push a "continue" user message for the agent to pick up
+                    let condition = self
+                        .goal_state
+                        .condition
+                        .as_deref()
+                        .unwrap_or("condition");
+                    self.chat_state.messages.push(ChatMessage {
+                        role: MessageRole::User,
+                        content: format!(
+                            "继续工作直到条件满足: {}\n请汇报当前进展并决定下一步。",
+                            condition,
+                        ),
+                        tool_calls: Vec::new(),
+                    });
+                }
             }
             AgentEvent::Error(msg) => {
                 self.status_bar.agent_state = AgentState::Error(msg.clone());

@@ -3,64 +3,137 @@
 //! Intercepts user input starting with `/` and executes built-in commands
 //! instead of sending the message to the AI model.
 
-use crate::app::{App, ChatMessage, MessageRole};
+use crate::app::{App, ChatMessage, GoalState, MessageRole};
 use crate::config::{McpServerConfig, McpTransport, Provider, SkillSourceConfig};
 
 const DEFAULT_MODEL: &str = "deepseek-v4-flash";
 
-/// List of all available slash commands with descriptions
-const COMMANDS: &[CommandDef] = &[
-    CommandDef {
+// ── Command framework ──────────────────────────────────────────────────────────
+
+/// Command category for organizing `/help` output
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CmdCategory {
+    Help,
+    Session,
+    Model,
+    Config,
+    Goal,
+    Workflow,
+}
+
+impl CmdCategory {
+    fn label(self) -> &'static str {
+        match self {
+            CmdCategory::Help => "💡 帮助",
+            CmdCategory::Session => "📋 会话管理",
+            CmdCategory::Model => "🤖 模型配置",
+            CmdCategory::Config => "⚙️ 配置管理",
+            CmdCategory::Goal => "🎯 目标模式",
+            CmdCategory::Workflow => "📦 工作流",
+        }
+    }
+}
+
+/// Handler type for a slash command
+type CmdHandler = fn(&mut App, Option<&str>) -> bool;
+
+/// Structured definition of a slash command
+pub struct CmdDef {
+    pub name: &'static str,
+    pub aliases: &'static [&'static str],
+    pub desc: &'static str,
+    pub usage: &'static str,
+    pub category: CmdCategory,
+    pub handler: CmdHandler,
+}
+
+/// Registry of all available slash commands
+pub const COMMANDS: &[CmdDef] = &[
+    CmdDef {
         name: "/help",
-        desc: "显示所有斜杠命令",
-        usage: "/help",
+        aliases: &["/h", "/?"],
+        desc: "显示所有斜杠命令或其详细用法",
+        usage: "/help [命令名]",
+        category: CmdCategory::Help,
+        handler: cmd_help,
     },
-    CommandDef {
+    CmdDef {
         name: "/clear",
+        aliases: &["/c", "/cls"],
         desc: "清空当前对话",
         usage: "/clear",
+        category: CmdCategory::Session,
+        handler: cmd_clear,
     },
-    CommandDef {
+    CmdDef {
         name: "/model",
+        aliases: &["/m"],
         desc: "切换 LLM 模型 / 配置自定义提供商",
         usage: "/model [name] | /model custom <name> <base-url>",
+        category: CmdCategory::Model,
+        handler: cmd_model,
     },
-    CommandDef {
+    CmdDef {
         name: "/reset",
-        desc: "重置对话状态",
+        aliases: &["/re"],
+        desc: "重置对话状态（清空 + 恢复默认模型）",
         usage: "/reset",
+        category: CmdCategory::Session,
+        handler: cmd_reset,
     },
-    CommandDef {
+    CmdDef {
         name: "/exit",
+        aliases: &["/quit", "/q"],
         desc: "退出 Synerix",
         usage: "/exit",
+        category: CmdCategory::Session,
+        handler: cmd_exit,
     },
-    CommandDef {
+    CmdDef {
         name: "/workflow",
+        aliases: &["/wf"],
         desc: "运行工作流",
         usage: "/workflow <name>",
+        category: CmdCategory::Workflow,
+        handler: cmd_workflow,
     },
-    CommandDef {
+    CmdDef {
         name: "/mcp",
-        desc: "管理 MCP 服务器",
-        usage: "/mcp [list|show|add|remove]",
+        aliases: &[],
+        desc: "管理 MCP 服务器（list/show/add/remove）",
+        usage: "/mcp [list] | /mcp show <name> | /mcp add <name> stdio|http <args> | /mcp remove <name>",
+        category: CmdCategory::Config,
+        handler: cmd_mcp,
     },
-    CommandDef {
+    CmdDef {
         name: "/skill",
-        desc: "管理技能（Skills）",
-        usage: "/skill [dir|source [list|add|remove]]",
+        aliases: &["/skills"],
+        desc: "管理技能（dir/source list/add/remove）",
+        usage: "/skill [dir <path>] | /skill source [list|add|remove]",
+        category: CmdCategory::Config,
+        handler: cmd_skill,
     },
-    CommandDef {
+    CmdDef {
         name: "/config",
-        desc: "管理配置",
-        usage: "/config [save|show]",
+        aliases: &["/cfg"],
+        desc: "管理配置（show/save）",
+        usage: "/config [show|save]",
+        category: CmdCategory::Config,
+        handler: cmd_config,
+    },
+    CmdDef {
+        name: "/goal",
+        aliases: &["/g"],
+        desc: "设置/查看/清除完成目标，Agent 自动循环直到条件满足",
+        usage: "/goal [条件] | /goal | /goal clear",
+        category: CmdCategory::Goal,
+        handler: cmd_goal,
     },
 ];
 
-struct CommandDef {
-    name: &'static str,
-    desc: &'static str,
-    usage: &'static str,
+/// Find a command definition by name or alias
+fn find_cmd(input: &str) -> Option<&'static CmdDef> {
+    COMMANDS.iter().find(|c| c.name == input || c.aliases.contains(&input))
 }
 
 /// Try to handle a slash command. Returns `true` if the input was a slash command.
@@ -70,25 +143,17 @@ pub fn try_handle(app: &mut App, input: &str) -> bool {
         return false;
     }
 
-    let (cmd, args) = match trimmed.split_once(' ') {
-        Some((c, a)) => (c.trim(), Some(a.trim())),
-        None => (trimmed, None),
-    };
+    let (cmd_name, args) = trimmed
+        .split_once(' ')
+        .map(|(c, a)| (c, Some(a.trim())))
+        .unwrap_or((trimmed, None));
 
-    match cmd {
-        "/help" => cmd_help(app),
-        "/clear" => cmd_clear(app),
-        "/model" => cmd_model(app, args),
-        "/reset" => cmd_reset(app),
-        "/exit" => cmd_exit(app),
-        "/workflow" => cmd_workflow(app, args),
-        "/mcp" => cmd_mcp(app, args),
-        "/skill" => cmd_skill(app, args),
-        "/config" => cmd_config(app, args),
-        _ => {
+    match find_cmd(cmd_name) {
+        Some(cmd) => (cmd.handler)(app, args),
+        None => {
             sys_msg(
                 app,
-                &format!("未知命令 `{}`。输入 `/help` 查看可用命令。", cmd),
+                &format!("❌ 未知命令 `{}`。输入 `/help` 查看可用命令。", cmd_name),
             );
             true
         }
@@ -103,19 +168,98 @@ fn sys_msg(app: &mut App, text: &str) {
     });
 }
 
-fn cmd_help(app: &mut App) -> bool {
-    let mut lines = vec!["**可用斜杠命令：**".to_string(), String::new()];
-    for cmd in COMMANDS {
-        lines.push(format!("  `{}` — {}", cmd.name, cmd.desc));
-        lines.push(format!("    用法：`{}`", cmd.usage));
+// ── Argument parsing utilities ─────────────────────────────────────────────────
+
+/// Split args into (subcommand, remaining).
+/// Returns ("", None) when no args given.
+fn subcmd(args: Option<&str>) -> (&str, Option<&str>) {
+    match args {
+        None | Some("") => ("", None),
+        Some(a) => match a.trim().split_once(' ') {
+            Some((s, r)) => (s, Some(r.trim())),
+            None => (a.trim(), None),
+        },
+    }
+}
+
+/// Get the Nth positional argument (0-indexed) from args.
+fn nth_arg(args: Option<&str>, n: usize) -> Option<&str> {
+    args?.split_whitespace().nth(n)
+}
+
+/// Join remaining args from position N onward into a single string.
+#[allow(dead_code)]
+/// Available for handlers needing rest-of-line capture (e.g. /note content)
+fn rest_from(args: Option<&str>, n: usize) -> Option<String> {
+    let parts: Vec<&str> = args?.split_whitespace().collect();
+    if n < parts.len() {
+        Some(parts[n..].join(" "))
+    } else {
+        None
+    }
+}
+
+// ── Categorized help system ────────────────────────────────────────────────────
+
+fn cmd_help(app: &mut App, args: Option<&str>) -> bool {
+    let (target, _) = subcmd(args);
+
+    if !target.is_empty() {
+        // ── /help <command> — show detailed usage ────────────────────────
+        let lookup = if target.starts_with('/') {
+            target
+        } else {
+            // Allow /help model (with or without leading /)
+            return cmd_help(app, Some(&format!("/{}", target)));
+        };
+
+        if let Some(cmd) = find_cmd(lookup) {
+            let aliases_str = if cmd.aliases.is_empty() {
+                String::new()
+            } else {
+                format!("\n  别名：{}", cmd.aliases.join(", "))
+            };
+            sys_msg(
+                app,
+                &format!(
+                    "📖 **{}** — {}{}\n\n用法：`{}`",
+                    cmd.name, cmd.desc, aliases_str, cmd.usage,
+                ),
+            );
+        } else {
+            sys_msg(app, &format!("❌ 没有 `{}` 命令。输入 `/help` 查看所有命令。", target));
+        }
+        return true;
+    }
+
+    // ── /help — categorized overview ─────────────────────────────────────
+    let cat_order = [
+        CmdCategory::Help,
+        CmdCategory::Session,
+        CmdCategory::Model,
+        CmdCategory::Config,
+        CmdCategory::Goal,
+        CmdCategory::Workflow,
+    ];
+
+    let mut lines = vec!["**📋 可用斜杠命令：**".to_string(), String::new()];
+    for cat in &cat_order {
+        let cmds: Vec<&CmdDef> = COMMANDS.iter().filter(|c| c.category == *cat).collect();
+        if cmds.is_empty() {
+            continue;
+        }
+        lines.push(format!("**{}**", cat.label()));
+        for cmd in &cmds {
+            lines.push(format!("  `{}` — {}", cmd.name, cmd.desc));
+        }
         lines.push(String::new());
     }
-    lines.push("提示：斜杠命令仅在输入框第一字符为 `/` 时触发。".to_string());
+    lines.push("💡 使用 `/help <命令名>` 查看单个命令的详细用法和别名。".to_string());
     sys_msg(app, &lines.join("\n"));
     true
 }
 
-fn cmd_clear(app: &mut App) -> bool {
+fn cmd_clear(app: &mut App, _args: Option<&str>) -> bool {
     app.chat_state.messages.clear();
     app.chat_state.streaming_text.clear();
     app.chat_state.scroll_offset = 0;
@@ -191,7 +335,7 @@ fn cmd_model(app: &mut App, args: Option<&str>) -> bool {
     true
 }
 
-fn cmd_reset(app: &mut App) -> bool {
+fn cmd_reset(app: &mut App, _args: Option<&str>) -> bool {
     app.chat_state.messages.clear();
     app.chat_state.streaming_text.clear();
     app.chat_state.scroll_offset = 0;
@@ -204,7 +348,7 @@ fn cmd_reset(app: &mut App) -> bool {
     true
 }
 
-fn cmd_exit(app: &mut App) -> bool {
+fn cmd_exit(app: &mut App, _args: Option<&str>) -> bool {
     app.should_quit = true;
     true
 }
@@ -275,340 +419,447 @@ fn mcp_add_duplicate_check(app: &mut App, name: &str) -> bool {
 }
 
 fn cmd_mcp(app: &mut App, args: Option<&str>) -> bool {
-    let args = args.unwrap_or("");
-    let trimmed = args.trim();
+    let (sub, rest) = subcmd(args);
 
-    // 无参数或 `list` — 列出所有
-    if trimmed.is_empty() || trimmed == "list" {
-        if app.settings.mcp.is_empty() {
-            sys_msg(
-                app,
-                &format!("📋 未配置 MCP 服务器。\n\n{}", format_mcp_usage()),
-            );
-        } else {
-            let mut lines = vec![format!(
-                "📋 已配置 {} 个 MCP 服务器：",
-                app.settings.mcp.len()
-            )];
-            for (i, server) in app.settings.mcp.iter().enumerate() {
-                lines.push(String::new());
-                lines.push(format_mcp_server_detail(i, server));
-            }
-            sys_msg(app, &lines.join("\n"));
-        }
-        return true;
-    }
-
-    // `show <name>` — 查看详情
-    if let Some(name) = trimmed.strip_prefix("show ") {
-        let name = name.trim();
-        if let Some(server) = app.settings.mcp.iter().find(|s| s.name == name) {
-            let detail = format_mcp_server_detail(
-                app.settings
-                    .mcp
-                    .iter()
-                    .position(|s| s.name == name)
-                    .unwrap(),
-                server,
-            );
-            sys_msg(app, &detail);
-        } else {
-            sys_msg(app, &format!("❌ 未找到 MCP 服务器：`{}`", name));
-        }
-        return true;
-    }
-
-    // `add <name> stdio <command> [args...]`
-    if let Some(rest) = trimmed.strip_prefix("add ") {
-        let parts: Vec<&str> = rest.splitn(3, ' ').collect();
-        if parts.len() < 3 || parts[0].trim().is_empty() || parts[1].trim().is_empty() {
-            sys_msg(app, &format!("❌ 参数不足。\n\n{}", format_mcp_usage()));
-            return true;
-        }
-        let name = parts[0].trim();
-        let transport_type = parts[1].trim();
-
-        if mcp_add_duplicate_check(app, name) {
-            return true;
-        }
-
-        match transport_type {
-            "stdio" => {
-                let cmd_rest = parts[2].trim();
-                let cmd_parts: Vec<&str> = cmd_rest.split_whitespace().collect();
-                if cmd_parts.is_empty() {
-                    sys_msg(app, "❌ 请指定 stdio 命令。");
-                    return true;
-                }
-                let command = cmd_parts[0].to_string();
-                let args_vec: Vec<String> = cmd_parts[1..].iter().map(|s| s.to_string()).collect();
-
-                app.settings.mcp.push(McpServerConfig {
-                    name: name.to_string(),
-                    transport: McpTransport::Stdio {
-                        command,
-                        args: args_vec,
-                    },
-                    allowed_tools: Vec::new(),
-                    env: std::collections::HashMap::new(),
-                    cwd: None,
-                    auto_reconnect: true,
-                    timeout_secs: 30,
-                });
-                sys_msg(app, &format!("✅ 已添加 MCP 服务器：`{}`（stdio）", name));
-            }
-            "http" => {
-                let url = parts[2].trim().to_string();
-                if url.is_empty() {
-                    sys_msg(app, "❌ 请指定 HTTP URL。");
-                    return true;
-                }
-                app.settings.mcp.push(McpServerConfig {
-                    name: name.to_string(),
-                    transport: McpTransport::Http { url },
-                    allowed_tools: Vec::new(),
-                    env: std::collections::HashMap::new(),
-                    cwd: None,
-                    auto_reconnect: true,
-                    timeout_secs: 30,
-                });
-                sys_msg(app, &format!("✅ 已添加 MCP 服务器：`{}`（HTTP）", name));
-            }
-            other => {
+    match sub {
+        // 无参数或 `list` — 列出所有
+        "" | "list" => {
+            if app.settings.mcp.is_empty() {
                 sys_msg(
                     app,
-                    &format!("❌ 不支持的传输类型：`{}`。支持：`stdio`、`http`", other),
+                    &format!("📋 未配置 MCP 服务器。\n\n{}", format_mcp_usage()),
                 );
+            } else {
+                let mut lines = vec![format!(
+                    "📋 已配置 {} 个 MCP 服务器：",
+                    app.settings.mcp.len()
+                )];
+                for (i, server) in app.settings.mcp.iter().enumerate() {
+                    lines.push(String::new());
+                    lines.push(format_mcp_server_detail(i, server));
+                }
+                sys_msg(app, &lines.join("\n"));
             }
         }
-        return true;
-    }
 
-    // `remove <name>`
-    if let Some(name) = trimmed.strip_prefix("remove ") {
-        let name = name.trim();
-        if name.is_empty() {
-            sys_msg(app, "❌ 用法：`/mcp remove <name>`");
-            return true;
+        // `show <name>` — 查看详情
+        "show" => {
+            let name = match nth_arg(rest, 0) {
+                Some(n) => n,
+                None => {
+                    sys_msg(app, "❌ 用法：`/mcp show <name>`");
+                    return true;
+                }
+            };
+            if let Some(server) = app.settings.mcp.iter().find(|s| s.name == name) {
+                let idx = app.settings.mcp.iter().position(|s| s.name == name).unwrap();
+                sys_msg(app, &format_mcp_server_detail(idx, server));
+            } else {
+                sys_msg(app, &format!("❌ 未找到 MCP 服务器：`{}`", name));
+            }
         }
-        let len_before = app.settings.mcp.len();
-        app.settings.mcp.retain(|s| s.name != name);
-        if app.settings.mcp.len() < len_before {
-            sys_msg(app, &format!("🗑️ 已移除 MCP 服务器：`{}`", name));
-        } else {
-            sys_msg(app, &format!("❌ 未找到 MCP 服务器：`{}`", name));
-        }
-        return true;
-    }
 
-    sys_msg(app, &format!("❌ 未知子命令。\n\n{}", format_mcp_usage()));
+        // `add <name> stdio <command> [args...]` 或 `add <name> http <url>`
+        "add" => {
+            let name = match nth_arg(rest, 0) {
+                Some(n) => n,
+                None => {
+                    sys_msg(app, &format!("❌ 参数不足。\n\n{}", format_mcp_usage()));
+                    return true;
+                }
+            };
+            let transport_type = match nth_arg(rest, 1) {
+                Some(t) => t,
+                None => {
+                    sys_msg(app, &format!("❌ 缺少传输类型。\n\n{}", format_mcp_usage()));
+                    return true;
+                }
+            };
+
+            if mcp_add_duplicate_check(app, name) {
+                return true;
+            }
+
+            match transport_type {
+                "stdio" => {
+                    let cmd_parts: Vec<&str> = match rest {
+                        Some(r) => r.split_whitespace().skip(2).collect(),
+                        None => vec![],
+                    };
+                    if cmd_parts.is_empty() {
+                        sys_msg(app, "❌ 用法：`/mcp add <name> stdio <command> [args...]`");
+                        return true;
+                    }
+                    let command = cmd_parts[0].to_string();
+                    let args_vec: Vec<String> = cmd_parts[1..].iter().map(|s| s.to_string()).collect();
+                    app.settings.mcp.push(McpServerConfig {
+                        name: name.to_string(),
+                        transport: McpTransport::Stdio { command, args: args_vec },
+                        allowed_tools: Vec::new(),
+                        env: std::collections::HashMap::new(),
+                        cwd: None,
+                        auto_reconnect: true,
+                        timeout_secs: 30,
+                    });
+                    sys_msg(app, &format!("✅ 已添加 MCP 服务器：`{}`（stdio）", name));
+                }
+                "http" => {
+                    let url = nth_arg(rest, 2).unwrap_or("");
+                    if url.is_empty() {
+                        sys_msg(app, "❌ 用法：`/mcp add <name> http <url>`");
+                        return true;
+                    }
+                    app.settings.mcp.push(McpServerConfig {
+                        name: name.to_string(),
+                        transport: McpTransport::Http { url: url.to_string() },
+                        allowed_tools: Vec::new(),
+                        env: std::collections::HashMap::new(),
+                        cwd: None,
+                        auto_reconnect: true,
+                        timeout_secs: 30,
+                    });
+                    sys_msg(app, &format!("✅ 已添加 MCP 服务器：`{}`（HTTP）", name));
+                }
+                other => {
+                    sys_msg(
+                        app,
+                        &format!("❌ 不支持的传输类型：`{}`。支持：`stdio`、`http`", other),
+                    );
+                }
+            }
+        }
+
+        // `remove <name>`
+        "remove" => {
+            let name = match nth_arg(rest, 0) {
+                Some(n) => n,
+                None => {
+                    sys_msg(app, "❌ 用法：`/mcp remove <name>`");
+                    return true;
+                }
+            };
+            let len_before = app.settings.mcp.len();
+            app.settings.mcp.retain(|s| s.name != name);
+            if app.settings.mcp.len() < len_before {
+                sys_msg(app, &format!("🗑️ 已移除 MCP 服务器：`{}`", name));
+            } else {
+                sys_msg(app, &format!("❌ 未找到 MCP 服务器：`{}`", name));
+            }
+        }
+
+        other => {
+            sys_msg(app, &format!("❌ 未知子命令 `{}`。\n\n{}", other, format_mcp_usage()));
+        }
+    }
     true
 }
 
 fn cmd_skill(app: &mut App, args: Option<&str>) -> bool {
-    let args = args.unwrap_or("");
-    let trimmed = args.trim();
+    let (sub, rest) = subcmd(args);
 
-    // 无参数 — 显示状态
-    if trimmed.is_empty() {
-        let dir_info = match &app.settings.skills_dir {
-            Some(path) => format!("`{}`", path.display()),
-            None => "未设置（使用默认路径）".to_string(),
-        };
-        let mut lines = vec![format!("📂 Skills 目录：{}", dir_info), String::new()];
+    match sub {
+        // 无参数 — 显示状态
+        "" => {
+            let dir_info = match &app.settings.skills_dir {
+                Some(path) => format!("`{}`", path.display()),
+                None => "未设置（使用默认路径）".to_string(),
+            };
+            let mut lines = vec![format!("📂 Skills 目录：{}", dir_info), String::new()];
 
-        // source list 作为状态视图的一部分
-        if app.settings.skill_sources.is_empty() {
-            lines.push("技能源：无".to_string());
-        } else {
-            lines.push(format!(
-                "技能源（{} 个）：",
-                app.settings.skill_sources.len()
-            ));
-            for (i, src) in app.settings.skill_sources.iter().enumerate() {
-                let branch = src
-                    .branch
-                    .as_ref()
-                    .map(|b| format!(" @{}", b))
-                    .unwrap_or_default();
+            if app.settings.skill_sources.is_empty() {
+                lines.push("技能源：无".to_string());
+            } else {
                 lines.push(format!(
-                    "  {}. [{}] {}{}",
-                    i + 1,
-                    src.source_type,
-                    src.location,
-                    branch
+                    "技能源（{} 个）：",
+                    app.settings.skill_sources.len()
                 ));
+                for (i, src) in app.settings.skill_sources.iter().enumerate() {
+                    let branch = src
+                        .branch
+                        .as_ref()
+                        .map(|b| format!(" @{}", b))
+                        .unwrap_or_default();
+                    lines.push(format!(
+                        "  {}. [{}] {}{}",
+                        i + 1,
+                        src.source_type,
+                        src.location,
+                        branch
+                    ));
+                }
             }
+            lines.push(String::new());
+            lines.push("用法：".to_string());
+            lines.push("  `/skill` — 查看当前状态".to_string());
+            lines.push("  `/skill dir <path>` — 设置 Skills 目录".to_string());
+            lines.push("  `/skill source list` — 列出技能源".to_string());
+            lines.push("  `/skill source add <type> <location> [branch]` — 添加技能源".to_string());
+            lines.push("  `/skill source remove <index>` — 移除技能源".to_string());
+            sys_msg(app, &lines.join("\n"));
         }
-        lines.push(String::new());
-        lines.push("用法：".to_string());
-        lines.push("  `/skill` — 查看当前状态".to_string());
-        lines.push("  `/skill dir <path>` — 设置 Skills 目录".to_string());
-        lines.push("  `/skill source list` — 列出技能源".to_string());
-        lines.push("  `/skill source add <type> <location> [branch]` — 添加技能源".to_string());
-        lines.push("  `/skill source remove <index>` — 移除技能源".to_string());
-        sys_msg(app, &lines.join("\n"));
-        return true;
-    }
 
-    // `dir <path>`
-    if let Some(path) = trimmed.strip_prefix("dir ") {
-        let path = path.trim();
-        if path.is_empty() {
-            sys_msg(app, "❌ 用法：`/skill dir <path>`");
-            return true;
+        // `dir <path>`
+        "dir" => {
+            let path = match nth_arg(rest, 0) {
+                Some(p) => p,
+                None => {
+                    sys_msg(app, "❌ 用法：`/skill dir <path>`");
+                    return true;
+                }
+            };
+            app.settings.skills_dir = Some(std::path::PathBuf::from(path));
+            sys_msg(app, &format!("📂 Skills 目录已设置为：`{}`", path));
         }
-        app.settings.skills_dir = Some(std::path::PathBuf::from(path));
-        sys_msg(app, &format!("📂 Skills 目录已设置为：`{}`", path));
-        return true;
-    }
 
-    // `source <subcommand> [args...]`
-    if let Some(rest) = trimmed.strip_prefix("source ") {
-        let rest = rest.trim();
-        return cmd_skill_source(app, rest);
-    }
+        // `source <subcommand> [args...]`
+        "source" => {
+            return cmd_skill_source(app, rest);
+        }
 
-    sys_msg(app, "❌ 未知子命令。↙ 输入 `/skill` 查看用法。");
+        other => {
+            sys_msg(app, &format!("❌ 未知子命令 `{}`。输入 `/skill` 查看用法。", other));
+        }
+    }
     true
 }
 
-fn cmd_skill_source(app: &mut App, args: &str) -> bool {
-    let trimmed = args.trim();
+fn cmd_skill_source(app: &mut App, args: Option<&str>) -> bool {
+    let (sub, rest) = subcmd(args);
 
-    // `source list`
-    if trimmed.is_empty() || trimmed == "list" {
-        let dir_info = match &app.settings.skills_dir {
-            Some(path) => format!("`{}`", path.display()),
-            None => "未设置".to_string(),
-        };
-        let mut lines = vec![format!("📂 Skills 目录：{}", dir_info), String::new()];
-        if app.settings.skill_sources.is_empty() {
-            lines.push("技能源：无".to_string());
-        } else {
-            lines.push(format!(
-                "技能源（{} 个）：",
-                app.settings.skill_sources.len()
-            ));
-            for (i, src) in app.settings.skill_sources.iter().enumerate() {
-                let branch = src
-                    .branch
-                    .as_ref()
-                    .map(|b| format!(" @{}", b))
-                    .unwrap_or_default();
+    match sub {
+        // `source list`
+        "" | "list" => {
+            let dir_info = match &app.settings.skills_dir {
+                Some(path) => format!("`{}`", path.display()),
+                None => "未设置".to_string(),
+            };
+            let mut lines = vec![format!("📂 Skills 目录：{}", dir_info), String::new()];
+            if app.settings.skill_sources.is_empty() {
+                lines.push("技能源：无".to_string());
+            } else {
                 lines.push(format!(
-                    "  {}. [{}] {}{}",
-                    i + 1,
-                    src.source_type,
-                    src.location,
-                    branch
+                    "技能源（{} 个）：",
+                    app.settings.skill_sources.len()
                 ));
+                for (i, src) in app.settings.skill_sources.iter().enumerate() {
+                    let branch = src
+                        .branch
+                        .as_ref()
+                        .map(|b| format!(" @{}", b))
+                        .unwrap_or_default();
+                    lines.push(format!(
+                        "  {}. [{}] {}{}",
+                        i + 1,
+                        src.source_type,
+                        src.location,
+                        branch
+                    ));
+                }
+            }
+            sys_msg(app, &lines.join("\n"));
+        }
+
+        // `source add <type> <location> [branch]`
+        "add" => {
+            let source_type = match nth_arg(rest, 0) {
+                Some(t) => t,
+                None => {
+                    sys_msg(app, "❌ 用法：`/skill source add <type> <location> [branch]`\n类型：`git`、`local`、`url`\n例如：`/skill source add git https://github.com/user/skills main`");
+                    return true;
+                }
+            };
+            let location = match nth_arg(rest, 1) {
+                Some(l) => l.to_string(),
+                None => {
+                    sys_msg(app, "❌ 用法：`/skill source add <type> <location> [branch]`\n类型：`git`、`local`、`url`\n例如：`/skill source add git https://github.com/user/skills main`");
+                    return true;
+                }
+            };
+            let branch = nth_arg(rest, 2).map(|s| s.to_string()).filter(|s| !s.is_empty());
+
+            let branch_info = branch
+                .as_ref()
+                .map(|b| format!(" @{}", b))
+                .unwrap_or_default();
+            sys_msg(
+                app,
+                &format!("✅ 已添加技能源：`[{}] {}{}`", source_type, location, branch_info),
+            );
+
+            app.settings.skill_sources.push(SkillSourceConfig {
+                source_type: source_type.to_string(),
+                location,
+                branch,
+                include: Vec::new(),
+                exclude: Vec::new(),
+            });
+        }
+
+        // `source remove <index>`
+        "remove" => {
+            let idx_str = match nth_arg(rest, 0) {
+                Some(s) => s,
+                None => {
+                    sys_msg(app, "❌ 用法：`/skill source remove <index>`");
+                    return true;
+                }
+            };
+            match idx_str.parse::<usize>() {
+                Ok(idx) if idx > 0 && idx <= app.settings.skill_sources.len() => {
+                    let removed = app.settings.skill_sources.remove(idx - 1);
+                    sys_msg(
+                        app,
+                        &format!("🗑️ 已移除技能源 #{}：`[{}] {}`", idx, removed.source_type, removed.location),
+                    );
+                }
+                Ok(_) | Err(_) => {
+                    sys_msg(
+                        app,
+                        &format!("❌ 无效索引。有效范围：1~{}", app.settings.skill_sources.len()),
+                    );
+                }
             }
         }
-        sys_msg(app, &lines.join("\n"));
+
+        other => {
+            sys_msg(app, &format!("❌ 未知子命令 `{}`。用法：`/skill source list`、`/skill source add <type> <location>`、`/skill source remove <index>`", other));
+        }
+    }
+    true
+}
+
+/// Handle `/goal` — set, check, or clear a completion condition
+fn cmd_goal(app: &mut App, args: Option<&str>) -> bool {
+    let args = args.unwrap_or("").trim();
+
+    // ── /goal clear — clear active goal ──────────────────────
+    if args.eq_ignore_ascii_case("clear")
+        || args.eq_ignore_ascii_case("stop")
+        || args.eq_ignore_ascii_case("off")
+        || args.eq_ignore_ascii_case("reset")
+        || args.eq_ignore_ascii_case("none")
+        || args.eq_ignore_ascii_case("cancel")
+    {
+        if app.goal_state.is_active() {
+            app.goal_state = GoalState::inactive();
+            app.status_bar.goal_active = false;
+            app.status_bar.goal_duration = String::new();
+            app.dirty_flags.status = true;
+            sys_msg(app, "◎ /goal 已清除");
+        } else {
+            sys_msg(app, "当前没有活跃的 /goal");
+        }
         return true;
     }
 
-    // `source add <type> <location> [branch]`
-    if let Some(rest) = trimmed.strip_prefix("add ") {
-        let parts: Vec<&str> = rest.splitn(3, ' ').collect();
-        if parts.len() < 2 || parts[0].trim().is_empty() || parts[1].trim().is_empty() {
-            sys_msg(app, "❌ 用法：`/skill source add <type> <location> [branch]`\n类型：`git`、`local`、`url`\n例如：`/skill source add git https://github.com/user/skills main`");
-            return true;
-        }
-        let source_type = parts[0].trim();
-        let location = parts[1].trim().to_string();
-        let branch = parts
-            .get(2)
-            .map(|s| s.trim().to_string())
-            .filter(|s| !s.is_empty());
-
-        let branch_info = branch
-            .as_ref()
-            .map(|b| format!(" @{}", b))
-            .unwrap_or_default();
-        sys_msg(
-            app,
-            &format!(
-                "✅ 已添加技能源：`[{}] {}{}`",
-                source_type, location, branch_info
-            ),
-        );
-
-        app.settings.skill_sources.push(SkillSourceConfig {
-            source_type: source_type.to_string(),
-            location,
-            branch,
-            include: Vec::new(),
-            exclude: Vec::new(),
-        });
-        return true;
-    }
-
-    // `source remove <index>`
-    if let Some(idx_str) = trimmed.strip_prefix("remove ") {
-        let idx_str = idx_str.trim();
-        match idx_str.parse::<usize>() {
-            Ok(idx) if idx > 0 && idx <= app.settings.skill_sources.len() => {
-                let removed = app.settings.skill_sources.remove(idx - 1);
-                sys_msg(
-                    app,
-                    &format!(
-                        "🗑️ 已移除技能源 #{}：`[{}] {}`",
-                        idx, removed.source_type, removed.location
-                    ),
-                );
-            }
-            Ok(_) | Err(_) => {
-                sys_msg(
-                    app,
-                    &format!(
-                        "❌ 无效索引。有效范围：1~{}",
-                        app.settings.skill_sources.len()
-                    ),
-                );
-            }
+    // ── /goal (no args) — show status ────────────────────────
+    if args.is_empty() {
+        let gs = &app.goal_state;
+        if gs.is_active() {
+            sys_msg(
+                app,
+                &format!(
+                    "◎ /goal 活跃中\n  条件: {}\n  已运行: {} | 轮次: {} | 最近评估: {}",
+                    gs.condition.as_deref().unwrap_or(""),
+                    gs.duration_str(),
+                    gs.turns,
+                    if gs.last_reason.is_empty() {
+                        "等待首次评估…"
+                    } else {
+                        gs.last_reason.as_str()
+                    },
+                ),
+            );
+        } else if gs.achieved {
+            sys_msg(
+                app,
+                &format!(
+                    "✅ /goal 已完成\n  条件: {}\n  轮次: {}",
+                    gs.condition.as_deref().unwrap_or(""),
+                    gs.turns,
+                ),
+            );
+        } else {
+            sys_msg(
+                app,
+                "当前没有活跃的 /goal。使用 `/goal <条件>` 设置一个完成目标。\n  示例: `/goal all tests in test/auth pass`",
+            );
         }
         return true;
     }
 
-    sys_msg(app, "❌ 未知子命令。用法：`/skill source list`、`/skill source add <type> <location>`、`/skill source remove <index>`");
+    // ── /goal <condition> — set new goal ──────────────────────
+    let condition = args.to_string();
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs() as i64;
+
+    app.goal_state = GoalState {
+        condition: Some(condition.clone()),
+        turns: 0,
+        started_at: Some(now),
+        last_reason: String::new(),
+        achieved: false,
+    };
+    app.status_bar.goal_active = true;
+    app.status_bar.goal_duration = String::new();
+    app.dirty_flags.status = true;
+
+    // Inject the goal as a user message to trigger the agent loop
+    app.chat_state.messages.push(ChatMessage {
+        role: MessageRole::User,
+        content: format!(
+            "🎯 目标: {}\n\n请持续工作直到上述条件满足。每完成一轮，我会检查条件并决定是否继续。",
+            condition,
+        ),
+        tool_calls: Vec::new(),
+    });
+
+    sys_msg(
+        app,
+        &format!(
+            "◎ /goal 已设置: {}\nAgent 将持续工作直到条件满足。使用 `/goal` 查看状态，`/goal clear` 清除。",
+            condition,
+        ),
+    );
     true
 }
 
 fn cmd_config(app: &mut App, args: Option<&str>) -> bool {
-    let args = args.unwrap_or("");
-    let trimmed = args.trim();
+    let (sub, _rest) = subcmd(args);
 
-    if trimmed.is_empty() || trimmed == "show" {
-        let path = crate::config::settings::Settings::config_path();
-        sys_msg(
-            app,
-            &format!(
-                "⚙️ 配置路径：`{}`\nMCP 服务器：{} 个\n技能源：{} 个\nSkills 目录：{}\n\n用法：\n  `/config show` — 显示配置路径\n  `/config save` — 保存当前配置到文件",
-                path.display(),
-                app.settings.mcp.len(),
-                app.settings.skill_sources.len(),
-                app.settings.skills_dir.as_ref().map(|p| p.display().to_string()).unwrap_or_else(|| "未设置".to_string())
-            ),
-        );
-        return true;
-    }
+    match sub {
+        "" | "show" => {
+            let path = crate::config::settings::Settings::config_path();
+            sys_msg(
+                app,
+                &format!(
+                    "⚙️ 配置路径：`{}`\nMCP 服务器：{} 个\n技能源：{} 个\nSkills 目录：{}\n\n用法：\n  `/config show` — 显示配置路径\n  `/config save` — 保存当前配置到文件",
+                    path.display(),
+                    app.settings.mcp.len(),
+                    app.settings.skill_sources.len(),
+                    app.settings.skills_dir.as_ref().map(|p| p.display().to_string()).unwrap_or_else(|| "未设置".to_string())
+                ),
+            );
+        }
 
-    if trimmed == "save" {
-        match app.settings.save() {
-            Ok(()) => {
-                let path = crate::config::settings::Settings::config_path();
-                sys_msg(app, &format!("💾 配置已保存到：`{}`", path.display()));
-            }
-            Err(e) => {
-                sys_msg(app, &format!("❌ 保存配置失败：{}", e));
+        "save" => {
+            match app.settings.save() {
+                Ok(()) => {
+                    let path = crate::config::settings::Settings::config_path();
+                    sys_msg(app, &format!("💾 配置已保存到：`{}`", path.display()));
+                }
+                Err(e) => {
+                    sys_msg(app, &format!("❌ 保存配置失败：{}", e));
+                }
             }
         }
-        return true;
-    }
 
-    sys_msg(app, "❌ 未知子命令。用法：`/config show`、`/config save`");
+        other => {
+            sys_msg(app, &format!("❌ 未知子命令 `{}`。用法：`/config show`、`/config save`", other));
+        }
+    }
     true
 }
 
@@ -654,6 +905,8 @@ mod tests {
                 tokens_total: 0,
                 sandbox_mode: "confirm".to_string(),
                 startup_metrics: None,
+                goal_active: false,
+                goal_duration: String::new(),
             },
             settings,
             should_quit: false,
@@ -669,6 +922,7 @@ mod tests {
             config_version: 0,
             skill_registry: SkillRegistry::new(),
             agent_registry: CustomAgentRegistry::new(),
+            goal_state: GoalState::inactive(),
         }
     }
 
@@ -972,5 +1226,168 @@ mod tests {
         assert!(content.contains("配置路径"));
         assert!(content.contains("MCP 服务器"));
         assert!(content.contains("技能源"));
+    }
+
+    // ── Alias tests ─────────────────────────────────────────────────────
+
+    #[test]
+    fn test_alias_help() {
+        let mut app = make_app();
+        assert!(try_handle(&mut app, "/h"));
+        assert!(app.chat_state.messages.last().unwrap().content.contains("/clear"));
+        let mut app2 = make_app();
+        assert!(try_handle(&mut app2, "/?"));
+        assert!(app2.chat_state.messages.last().unwrap().content.contains("/clear"));
+    }
+
+    #[test]
+    fn test_alias_clear() {
+        let mut app = make_app();
+        app.chat_state.messages.push(ChatMessage {
+            role: MessageRole::User,
+            content: "hello".into(),
+            tool_calls: Vec::new(),
+        });
+        assert!(try_handle(&mut app, "/c"));
+        assert_eq!(app.chat_state.messages.len(), 1);
+        assert_eq!(app.chat_state.messages[0].role, MessageRole::System);
+
+        let mut app2 = make_app();
+        app2.chat_state.messages.push(ChatMessage {
+            role: MessageRole::User,
+            content: "hello".into(),
+            tool_calls: Vec::new(),
+        });
+        assert!(try_handle(&mut app2, "/cls"));
+        assert_eq!(app2.chat_state.messages.len(), 1);
+    }
+
+    #[test]
+    fn test_alias_model() {
+        let mut app = make_app();
+        assert!(try_handle(&mut app, "/m mimo-v2.5-pro"));
+        assert_eq!(app.settings.llm.model, "mimo-v2.5-pro");
+    }
+
+    #[test]
+    fn test_alias_reset() {
+        let mut app = make_app();
+        app.chat_state.messages.push(ChatMessage {
+            role: MessageRole::User,
+            content: "test".into(),
+            tool_calls: Vec::new(),
+        });
+        assert!(try_handle(&mut app, "/re"));
+        assert_eq!(app.chat_state.messages.len(), 1);
+    }
+
+    #[test]
+    fn test_alias_exit() {
+        let mut app = make_app();
+        assert!(try_handle(&mut app, "/quit"));
+        assert!(app.should_quit);
+        let mut app2 = make_app();
+        assert!(try_handle(&mut app2, "/q"));
+        assert!(app2.should_quit);
+    }
+
+    #[test]
+    fn test_alias_workflow() {
+        let mut app = make_app();
+        assert!(try_handle(&mut app, "/wf"));
+        assert!(app.chat_state.messages.last().unwrap().content.contains("code-review"));
+    }
+
+    #[test]
+    fn test_alias_skill() {
+        let mut app = make_app();
+        assert!(try_handle(&mut app, "/skills"));
+        let content = &app.chat_state.messages.last().unwrap().content;
+        assert!(content.contains("Skills 目录"));
+    }
+
+    #[test]
+    fn test_alias_config() {
+        let mut app = make_app();
+        assert!(try_handle(&mut app, "/cfg show"));
+        let content = &app.chat_state.messages.last().unwrap().content;
+        assert!(content.contains("配置路径"));
+    }
+
+    #[test]
+    fn test_alias_goal() {
+        let mut app = make_app();
+        assert!(try_handle(&mut app, "/g"));
+        let content = &app.chat_state.messages.last().unwrap().content;
+        // /g without args shows goal status (inactive by default)
+        assert!(content.contains("当前没有活跃"));
+    }
+
+    // ── Help system tests ───────────────────────────────────────────────
+
+    #[test]
+    fn test_help_categorized() {
+        let mut app = make_app();
+        assert!(try_handle(&mut app, "/help"));
+        let content = &app.chat_state.messages.last().unwrap().content;
+        assert!(content.contains("💡 帮助"));
+        assert!(content.contains("📋 会话管理"));
+        assert!(content.contains("🤖 模型配置"));
+        assert!(content.contains("⚙️ 配置管理"));
+        assert!(content.contains("🎯 目标模式"));
+        assert!(content.contains("📦 工作流"));
+        assert!(content.contains("/help <命令名>"));
+    }
+
+    #[test]
+    fn test_help_detail_with_slash() {
+        let mut app = make_app();
+        // /help has aliases [/h, /?] so detail shows aliases section
+        assert!(try_handle(&mut app, "/help /help"));
+        let content = &app.chat_state.messages.last().unwrap().content;
+        assert!(content.contains("/help"));
+        assert!(content.contains("别名"));
+        assert!(content.contains("用法"));
+    }
+
+    #[test]
+    fn test_help_detail_without_slash() {
+        let mut app = make_app();
+        assert!(try_handle(&mut app, "/help clear"));
+        let content = &app.chat_state.messages.last().unwrap().content;
+        assert!(content.contains("/clear"));
+        assert!(content.contains("清空"));
+    }
+
+    #[test]
+    fn test_help_detail_unknown() {
+        let mut app = make_app();
+        assert!(try_handle(&mut app, "/help nonexistent"));
+        let content = &app.chat_state.messages.last().unwrap().content;
+        assert!(content.contains("没有"));
+    }
+
+    // ── Command category correctness ────────────────────────────────────
+
+    #[test]
+    fn test_cmd_category_labels() {
+        // Verify all categories have non-empty labels
+        assert!(!CmdCategory::Help.label().is_empty());
+        assert!(!CmdCategory::Session.label().is_empty());
+        assert!(!CmdCategory::Model.label().is_empty());
+        assert!(!CmdCategory::Config.label().is_empty());
+        assert!(!CmdCategory::Goal.label().is_empty());
+        assert!(!CmdCategory::Workflow.label().is_empty());
+    }
+
+    #[test]
+    fn test_every_command_has_handler() {
+        // Verify every registered command resolves to a valid handler
+        // Note: /exit sets should_quit but doesn't produce output
+        for cmd in COMMANDS {
+            let mut app = make_app();
+            let result = try_handle(&mut app, cmd.name);
+            assert!(result, "Command {} should be handled", cmd.name);
+        }
     }
 }

@@ -1,3 +1,5 @@
+//! Default command definitions — the built-in palette commands shipped with Synerix.
+
 use super::{Command, CommandAction};
 
 /// Build the default palette commands shipped with Synerix.

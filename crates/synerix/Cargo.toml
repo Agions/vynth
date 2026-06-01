@@ -39,5 +39,7 @@ tempfile.workspace = true
 serial_test.workspace = true
 
 [features]
-default = []
+default = ["tui"]
+tui = []
+headless = []
 startup-bench = []

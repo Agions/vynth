@@ -1,3 +1,5 @@
+//! Workflow execution types — step results, state tracking, and runner metadata.
+
 /// Result of executing a single step
 #[derive(Debug, Clone)]
 pub struct StepResult {

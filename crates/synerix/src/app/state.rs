@@ -83,6 +83,8 @@ pub struct App {
     pub skill_registry: SkillRegistry,
     /// Custom agents loaded from `.synerix/agents/` (project-local agents)
     pub agent_registry: CustomAgentRegistry,
+    /// Active /goal state for auto-loop behavior
+    pub goal_state: GoalState,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -158,6 +160,60 @@ pub struct StatusBarState {
     pub tokens_total: usize,
     pub sandbox_mode: String,
     pub startup_metrics: Option<crate::telemetry::StartupMetrics>,
+    pub goal_active: bool,
+    pub goal_duration: String,
+}
+
+/// /goal state — completion condition + auto-loop tracking
+#[derive(Debug, Clone)]
+pub struct GoalState {
+    /// The condition text (e.g. "all tests in test/auth pass")
+    pub condition: Option<String>,
+    /// Turns evaluated so far
+    pub turns: u32,
+    /// When the goal was set (Unix timestamp)
+    pub started_at: Option<i64>,
+    /// The evaluator's last reason
+    pub last_reason: String,
+    /// Whether the goal was achieved
+    pub achieved: bool,
+}
+
+impl GoalState {
+    pub fn inactive() -> Self {
+        Self {
+            condition: None,
+            turns: 0,
+            started_at: None,
+            last_reason: String::new(),
+            achieved: false,
+        }
+    }
+
+    pub fn is_active(&self) -> bool {
+        self.condition.is_some() && !self.achieved
+    }
+
+    /// Human-readable duration string
+    pub fn duration_str(&self) -> String {
+        match self.started_at {
+            None => String::new(),
+            Some(start) => {
+                let elapsed = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_secs() as i64
+                    - start;
+                let mins = elapsed / 60;
+                let secs = elapsed % 60;
+                if mins > 0 {
+                    format!("{}m{}s", mins, secs)
+                } else {
+                    format!("{}s", secs)
+                }
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -234,6 +290,8 @@ impl App {
                 agent_state: AgentState::Idle,
                 sandbox_mode: format!("{:?}", settings.sandbox.mode),
                 startup_metrics: None,
+                goal_active: false,
+                goal_duration: String::new(),
             },
             input_buffer: String::new(),
             input_cursor: 0,
@@ -248,6 +306,7 @@ impl App {
             config_version: 0,
             skill_registry: SkillRegistry::new(),
             agent_registry: CustomAgentRegistry::new(),
+            goal_state: GoalState::inactive(),
         }
     }
 
@@ -285,6 +344,8 @@ impl App {
                 tokens_total: 0,
                 sandbox_mode: "confirm".to_string(),
                 startup_metrics: None,
+                goal_active: false,
+                goal_duration: String::new(),
             },
             input_buffer: String::new(),
             input_cursor: 0,
@@ -299,6 +360,7 @@ impl App {
             config_version: 0,
             skill_registry: SkillRegistry::new(),
             agent_registry: CustomAgentRegistry::new(),
+            goal_state: GoalState::inactive(),
         }
     }
 

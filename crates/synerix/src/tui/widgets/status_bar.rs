@@ -164,6 +164,19 @@ pub fn render_status_bar(frame: &mut Frame, app: &App, area: Rect) {
 
     spans.push(separator.clone());
 
+    // Goal indicator — shown before sandbox
+    if app.status_bar.goal_active {
+        let goal_duration = app.goal_state.duration_str();
+        spans.push(Span::styled(
+            format!(" ◎ {} ", goal_duration),
+            Style::default()
+                .fg(Color::Rgb(224, 175, 104))  // yellow
+                .bg(STATUS_BG)
+                .add_modifier(Modifier::BOLD),
+        ));
+        spans.push(separator.clone());
+    }
+
     // Far right: Sandbox mode with icon
     let sandbox_icon = match app.status_bar.sandbox_mode.to_lowercase().as_str() {
         "auto" => "⚡",

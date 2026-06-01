@@ -1,3 +1,5 @@
+//! Interactive fuzzy-filterable command palette — the UI entry point for running commands.
+
 use super::{Command, CommandAction};
 
 /// An interactive, fuzzy-filterable command palette.

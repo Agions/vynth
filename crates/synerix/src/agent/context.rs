@@ -27,9 +27,21 @@ pub struct TokenBudget {
 }
 
 impl TokenBudget {
+    /// Default system prompt overhead when not configured
+    const DEFAULT_SYSTEM_OVERHEAD: usize = 2000;
+    /// Default tool schema overhead when not configured
+    const DEFAULT_TOOLS_OVERHEAD: usize = 3000;
+    /// Default reserved tokens for model output
+    const DEFAULT_RESERVED: usize = 4096;
+
     /// Create a new token budget with estimated defaults.
     pub fn new(total: usize) -> Self {
-        Self::new_with_overhead(total, 2000, 3000, 4096)
+        Self::new_with_overhead(
+            total,
+            Self::DEFAULT_SYSTEM_OVERHEAD,
+            Self::DEFAULT_TOOLS_OVERHEAD,
+            Self::DEFAULT_RESERVED,
+        )
     }
 
     /// Create a new token budget with explicit overhead values.

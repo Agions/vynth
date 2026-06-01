@@ -8,6 +8,14 @@ use crate::error::AppError;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ApprovalMode {
     /// Auto-approve all operations
+    ///
+    /// # ⚠️ Security Warning
+    /// `Auto` mode bypasses all user approval checks. Any tool call with
+    /// dangerous parameters (e.g., `rm -rf /`, `curl | sh`) will execute
+    /// immediately without user confirmation. Only use `Auto` in:
+    /// - Sandboxed/docker environments
+    /// - CI pipelines with trusted inputs
+    /// - Interactive sessions where the user has explicitly acknowledged the risk
     Auto,
     /// Ask user for confirmation
     Confirm,

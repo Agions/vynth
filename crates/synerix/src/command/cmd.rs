@@ -1,3 +1,5 @@
+//! Command definition — a single executable item in the command palette.
+
 use super::CommandAction;
 
 /// A single executable command that can appear in the command palette.

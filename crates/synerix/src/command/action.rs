@@ -1,3 +1,5 @@
+//! Command action types — the set of all operations the palette can trigger.
+
 /// All built-in palette actions plus a `Custom` escape hatch for plugins.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum CommandAction {
