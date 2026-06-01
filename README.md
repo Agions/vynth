@@ -36,14 +36,16 @@
 
 <table>
 <tr>
-<td width="50%">
+<td colspan="2">
 
 ### GitHub (Global)
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Agions/synerix/main/install.sh | bash
 ```
 </td>
-<td width="50%">
+</tr>
+<tr>
+<td colspan="2">
 
 ### Gitee (China)
 ```bash
