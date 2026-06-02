@@ -133,7 +133,9 @@ pub const COMMANDS: &[CmdDef] = &[
 
 /// Find a command definition by name or alias
 fn find_cmd(input: &str) -> Option<&'static CmdDef> {
-    COMMANDS.iter().find(|c| c.name == input || c.aliases.contains(&input))
+    COMMANDS
+        .iter()
+        .find(|c| c.name == input || c.aliases.contains(&input))
 }
 
 /// Try to handle a slash command. Returns `true` if the input was a slash command.
@@ -227,7 +229,10 @@ fn cmd_help(app: &mut App, args: Option<&str>) -> bool {
                 ),
             );
         } else {
-            sys_msg(app, &format!("❌ 没有 `{}` 命令。输入 `/help` 查看所有命令。", target));
+            sys_msg(
+                app,
+                &format!("❌ 没有 `{}` 命令。输入 `/help` 查看所有命令。", target),
+            );
         }
         return true;
     }
@@ -452,7 +457,12 @@ fn cmd_mcp(app: &mut App, args: Option<&str>) -> bool {
                 }
             };
             if let Some(server) = app.settings.mcp.iter().find(|s| s.name == name) {
-                let idx = app.settings.mcp.iter().position(|s| s.name == name).unwrap();
+                let idx = app
+                    .settings
+                    .mcp
+                    .iter()
+                    .position(|s| s.name == name)
+                    .unwrap();
                 sys_msg(app, &format_mcp_server_detail(idx, server));
             } else {
                 sys_msg(app, &format!("❌ 未找到 MCP 服务器：`{}`", name));
@@ -491,10 +501,14 @@ fn cmd_mcp(app: &mut App, args: Option<&str>) -> bool {
                         return true;
                     }
                     let command = cmd_parts[0].to_string();
-                    let args_vec: Vec<String> = cmd_parts[1..].iter().map(|s| s.to_string()).collect();
+                    let args_vec: Vec<String> =
+                        cmd_parts[1..].iter().map(|s| s.to_string()).collect();
                     app.settings.mcp.push(McpServerConfig {
                         name: name.to_string(),
-                        transport: McpTransport::Stdio { command, args: args_vec },
+                        transport: McpTransport::Stdio {
+                            command,
+                            args: args_vec,
+                        },
                         allowed_tools: Vec::new(),
                         env: std::collections::HashMap::new(),
                         cwd: None,
@@ -511,7 +525,9 @@ fn cmd_mcp(app: &mut App, args: Option<&str>) -> bool {
                     }
                     app.settings.mcp.push(McpServerConfig {
                         name: name.to_string(),
-                        transport: McpTransport::Http { url: url.to_string() },
+                        transport: McpTransport::Http {
+                            url: url.to_string(),
+                        },
                         allowed_tools: Vec::new(),
                         env: std::collections::HashMap::new(),
                         cwd: None,
@@ -548,7 +564,10 @@ fn cmd_mcp(app: &mut App, args: Option<&str>) -> bool {
         }
 
         other => {
-            sys_msg(app, &format!("❌ 未知子命令 `{}`。\n\n{}", other, format_mcp_usage()));
+            sys_msg(
+                app,
+                &format!("❌ 未知子命令 `{}`。\n\n{}", other, format_mcp_usage()),
+            );
         }
     }
     true
@@ -617,7 +636,10 @@ fn cmd_skill(app: &mut App, args: Option<&str>) -> bool {
         }
 
         other => {
-            sys_msg(app, &format!("❌ 未知子命令 `{}`。输入 `/skill` 查看用法。", other));
+            sys_msg(
+                app,
+                &format!("❌ 未知子命令 `{}`。输入 `/skill` 查看用法。", other),
+            );
         }
     }
     true
@@ -675,7 +697,9 @@ fn cmd_skill_source(app: &mut App, args: Option<&str>) -> bool {
                     return true;
                 }
             };
-            let branch = nth_arg(rest, 2).map(|s| s.to_string()).filter(|s| !s.is_empty());
+            let branch = nth_arg(rest, 2)
+                .map(|s| s.to_string())
+                .filter(|s| !s.is_empty());
 
             let branch_info = branch
                 .as_ref()
@@ -683,7 +707,10 @@ fn cmd_skill_source(app: &mut App, args: Option<&str>) -> bool {
                 .unwrap_or_default();
             sys_msg(
                 app,
-                &format!("✅ 已添加技能源：`[{}] {}{}`", source_type, location, branch_info),
+                &format!(
+                    "✅ 已添加技能源：`[{}] {}{}`",
+                    source_type, location, branch_info
+                ),
             );
 
             app.settings.skill_sources.push(SkillSourceConfig {
@@ -709,13 +736,19 @@ fn cmd_skill_source(app: &mut App, args: Option<&str>) -> bool {
                     let removed = app.settings.skill_sources.remove(idx - 1);
                     sys_msg(
                         app,
-                        &format!("🗑️ 已移除技能源 #{}：`[{}] {}`", idx, removed.source_type, removed.location),
+                        &format!(
+                            "🗑️ 已移除技能源 #{}：`[{}] {}`",
+                            idx, removed.source_type, removed.location
+                        ),
                     );
                 }
                 Ok(_) | Err(_) => {
                     sys_msg(
                         app,
-                        &format!("❌ 无效索引。有效范围：1~{}", app.settings.skill_sources.len()),
+                        &format!(
+                            "❌ 无效索引。有效范围：1~{}",
+                            app.settings.skill_sources.len()
+                        ),
                     );
                 }
             }
@@ -844,20 +877,24 @@ fn cmd_config(app: &mut App, args: Option<&str>) -> bool {
             );
         }
 
-        "save" => {
-            match app.settings.save() {
-                Ok(()) => {
-                    let path = crate::config::settings::Settings::config_path();
-                    sys_msg(app, &format!("💾 配置已保存到：`{}`", path.display()));
-                }
-                Err(e) => {
-                    sys_msg(app, &format!("❌ 保存配置失败：{}", e));
-                }
+        "save" => match app.settings.save() {
+            Ok(()) => {
+                let path = crate::config::settings::Settings::config_path();
+                sys_msg(app, &format!("💾 配置已保存到：`{}`", path.display()));
             }
-        }
+            Err(e) => {
+                sys_msg(app, &format!("❌ 保存配置失败：{}", e));
+            }
+        },
 
         other => {
-            sys_msg(app, &format!("❌ 未知子命令 `{}`。用法：`/config show`、`/config save`", other));
+            sys_msg(
+                app,
+                &format!(
+                    "❌ 未知子命令 `{}`。用法：`/config show`、`/config save`",
+                    other
+                ),
+            );
         }
     }
     true
@@ -1234,10 +1271,22 @@ mod tests {
     fn test_alias_help() {
         let mut app = make_app();
         assert!(try_handle(&mut app, "/h"));
-        assert!(app.chat_state.messages.last().unwrap().content.contains("/clear"));
+        assert!(app
+            .chat_state
+            .messages
+            .last()
+            .unwrap()
+            .content
+            .contains("/clear"));
         let mut app2 = make_app();
         assert!(try_handle(&mut app2, "/?"));
-        assert!(app2.chat_state.messages.last().unwrap().content.contains("/clear"));
+        assert!(app2
+            .chat_state
+            .messages
+            .last()
+            .unwrap()
+            .content
+            .contains("/clear"));
     }
 
     #[test]
@@ -1295,7 +1344,13 @@ mod tests {
     fn test_alias_workflow() {
         let mut app = make_app();
         assert!(try_handle(&mut app, "/wf"));
-        assert!(app.chat_state.messages.last().unwrap().content.contains("code-review"));
+        assert!(app
+            .chat_state
+            .messages
+            .last()
+            .unwrap()
+            .content
+            .contains("code-review"));
     }
 
     #[test]

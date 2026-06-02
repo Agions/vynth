@@ -170,7 +170,7 @@ pub fn render_status_bar(frame: &mut Frame, app: &App, area: Rect) {
         spans.push(Span::styled(
             format!(" ◎ {} ", goal_duration),
             Style::default()
-                .fg(Color::Rgb(224, 175, 104))  // yellow
+                .fg(Color::Rgb(224, 175, 104)) // yellow
                 .bg(STATUS_BG)
                 .add_modifier(Modifier::BOLD),
         ));

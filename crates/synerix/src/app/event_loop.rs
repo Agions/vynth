@@ -260,11 +260,7 @@ impl App {
                     self.status_bar.agent_state = AgentState::Thinking;
 
                     // Push a "continue" user message for the agent to pick up
-                    let condition = self
-                        .goal_state
-                        .condition
-                        .as_deref()
-                        .unwrap_or("condition");
+                    let condition = self.goal_state.condition.as_deref().unwrap_or("condition");
                     self.chat_state.messages.push(ChatMessage {
                         role: MessageRole::User,
                         content: format!(
