@@ -35,6 +35,7 @@ async-trait = "0.1"
 bytes = "1"
 uuid = { version = "1", features = ["v4"] }
 criterion = { version = "0.5", features = ["html_reports"] }
+moka = { version = "0.12", features = ["sync"] }
 
 [workspace.dependencies.tempfile]
 version = "3"

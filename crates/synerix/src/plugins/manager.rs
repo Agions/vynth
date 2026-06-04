@@ -41,13 +41,47 @@ impl PluginManager {
         self.plugins.is_empty()
     }
 
-    /// Call `init()` on every registered plugin (in registration order).
+    /// Call `init()` on every registered plugin concurrently.
+    ///
+    /// Errors from individual plugins are collected; a `PluginInitPartialFailure`
+    /// error is returned if **any** plugin fails, preserving the total count for
+    /// diagnostics.
     pub async fn init_all(&mut self) -> Result<(), AppError> {
-        for plugin in &mut self.plugins {
-            tracing::info!("Initialising plugin: {}", plugin.name());
-            plugin.init().await?;
+        let total_count = self.plugins.len();
+        if total_count == 0 {
+            return Ok(());
         }
-        Ok(())
+
+        // SAFETY: Each index in [0, total_count) produces a non-overlapping
+        // mutable reference into the Vec's backing allocation. No other
+        // reference to any element is live while the futures are being polled.
+        let ptr = self.plugins.as_mut_ptr();
+        let mut futures = Vec::with_capacity(total_count);
+
+        for i in 0..total_count {
+            // Safety justification: We are iterating over indices [0, len) of
+            // the Vec.  `ptr.add(i)` points to the `i`-th element and is
+            // guaranteed to be in-bounds and properly aligned.  The resulting
+            // `&mut` references are disjoint because each index is unique.
+            // They are not aliased by any other code path during the `join_all`
+            // call, and the Vec itself is not reallocated or otherwise mutated.
+            let plugin = unsafe { &mut *ptr.add(i) };
+            let name = plugin.name().to_string();
+            tracing::info!("Initialising plugin: {name}");
+            futures.push(plugin.init());
+        }
+
+        let results = futures::future::join_all(futures).await;
+
+        let failed_count = results.iter().filter(|r| r.is_err()).count();
+        if failed_count == 0 {
+            Ok(())
+        } else {
+            Err(AppError::PluginInitPartialFailure {
+                failed_count,
+                total_count,
+            })
+        }
     }
 
     /// Collect all tools contributed by registered plugins.
@@ -280,8 +314,11 @@ mod tests {
         let result = mgr.init_all().await;
         assert!(result.is_err());
         match result.unwrap_err() {
-            AppError::Config(msg) => assert_eq!(msg, "init boom"),
-            other => panic!("expected Config error, got {:?}", other),
+            AppError::PluginInitPartialFailure { failed_count, total_count } => {
+                assert_eq!(failed_count, 1);
+                assert_eq!(total_count, 2);
+            }
+            other => panic!("expected PluginInitPartialFailure, got {:?}", other),
         }
     }
 
