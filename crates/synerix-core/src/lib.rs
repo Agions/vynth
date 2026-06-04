@@ -6,5 +6,6 @@
 //! ## Current contents
 //! - `utils` — date/time and synchronisation utilities
 
+pub mod token_estimator;
 pub mod types;
 pub mod utils;
