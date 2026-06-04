@@ -75,6 +75,9 @@ pub enum AppError {
 
     #[error("YAML parse error: {0}")]
     YamlParse(#[from] serde_yaml::Error),
+
+    #[error("Plugin event partial failure: {failed_count}/{total_count} plugins failed")]
+    PluginEventPartialFailure { failed_count: usize, total_count: usize },
 }
 
 /// Convert channel send errors

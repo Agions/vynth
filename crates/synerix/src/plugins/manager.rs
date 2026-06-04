@@ -64,13 +64,21 @@ impl PluginManager {
     /// Errors from individual plugins are logged but do **not** short-circuit
     /// delivery to subsequent plugins.
     pub async fn emit_event(&self, event: &PluginEvent) -> Result<(), AppError> {
+        let mut errors: Vec<(String, AppError)> = Vec::new();
         for plugin in &self.plugins {
             if let Err(e) = plugin.on_event(event).await {
                 tracing::warn!("Plugin '{}' returned error on event: {}", plugin.name(), e);
-                return Err(e);
+                errors.push((plugin.name().to_string(), e));
             }
         }
-        Ok(())
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(AppError::PluginEventPartialFailure {
+                failed_count: errors.len(),
+                total_count: self.plugins.len(),
+            })
+        }
     }
 }
 
@@ -332,16 +340,21 @@ mod tests {
     async fn test_emit_event_propagates_error() {
         let mut mgr = PluginManager::new();
         mgr.register(Box::new(EventFailPlugin));
+        mgr.register(Box::new(TestPlugin::new("b")));
 
         let event = PluginEvent::Custom {
             name: "test".into(),
             payload: json!(null),
         };
         let result = mgr.emit_event(&event).await;
+        // All plugins receive the event; errors are aggregated
         assert!(result.is_err());
         match result.unwrap_err() {
-            AppError::ExecutionFailed(msg) => assert_eq!(msg, "event boom"),
-            other => panic!("expected ExecutionFailed, got {:?}", other),
+            AppError::PluginEventPartialFailure { failed_count, total_count } => {
+                assert_eq!(failed_count, 1);
+                assert_eq!(total_count, 2);
+            }
+            other => panic!("expected PluginEventPartialFailure, got {:?}", other),
         }
     }
 
