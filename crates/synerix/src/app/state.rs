@@ -121,12 +121,14 @@ pub enum SidebarTab {
 
 pub struct FileEntry {
     pub name: String,
+    #[allow(dead_code)]
     pub path: String,
     pub is_dir: bool,
     pub depth: usize,
 }
 
 /// Diff preview state
+#[allow(dead_code)]
 pub struct DiffState {
     pub visible: bool,
     pub content: String,
@@ -246,6 +248,7 @@ impl DirtyFlags {
             status: true,
         }
     }
+    #[allow(dead_code)]
     pub fn is_clean(&self) -> bool {
         !self.sidebar && !self.chat && !self.diff && !self.input && !self.status
     }
@@ -255,6 +258,7 @@ impl DirtyFlags {
 
 impl App {
     /// Create App with external channel (for testing)
+    #[allow(dead_code)]
     pub fn new_with_channel(
         settings: Settings,
         agent_tx: tokio::sync::mpsc::UnboundedSender<AgentEvent>,

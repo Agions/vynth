@@ -19,6 +19,8 @@
 //!   can_review: true
 //!   can_write_code: false
 //! ```
+// TODO: Custom agent defs — not yet wired
+#![allow(dead_code)]
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

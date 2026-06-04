@@ -1,4 +1,6 @@
 //! TUI event source — crossterm keyboard/mouse → AppEvent
+// TODO: Infrastructure awaiting main-loop integration
+#![allow(dead_code)]
 
 use crossterm::event::{self, Event, KeyEvent, MouseEvent};
 use std::time::Duration;

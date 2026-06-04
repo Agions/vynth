@@ -4,7 +4,7 @@
 //! Claude Code's interaction model, Codex CLI's sandbox mechanism,
 //! and OpenCode's extensible architecture.
 
-#![allow(dead_code, unused_imports, unused_variables)]
+// #![allow(dead_code, unused_imports, unused_variables)] — 已移除，逐模块清理中
 
 mod agent;
 mod app;

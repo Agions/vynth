@@ -1,4 +1,6 @@
 //! Sidebar widget — file tree / session list / skills
+// TODO: Sidebar widget — not yet wired
+#![allow(dead_code)]
 
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Modifier, Style};

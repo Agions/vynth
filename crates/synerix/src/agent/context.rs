@@ -5,6 +5,8 @@
 //! - Shared `estimate_tokens` from `token_estimator` module (cached)
 //! - Pre-calculated token counts to avoid redundant estimation
 //! - Efficient `compress_old_tool_results` with in-place modification
+// TODO: Context manager — not yet wired into agent loop
+#![allow(dead_code)]
 
 use crate::config::LlmConfig;
 use crate::llm::types::{ChatMessage, MessageRole};

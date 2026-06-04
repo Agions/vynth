@@ -1,4 +1,6 @@
 //! LLM Provider adapter trait
+// TODO: Infrastructure awaiting main-loop integration
+#![allow(dead_code)]
 
 use futures::stream::Stream;
 use std::pin::Pin;

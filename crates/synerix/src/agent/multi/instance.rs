@@ -1,4 +1,6 @@
 //! A running agent instance
+// TODO: Agent instance — not yet wired
+#![allow(dead_code)]
 
 use tokio::sync::mpsc;
 

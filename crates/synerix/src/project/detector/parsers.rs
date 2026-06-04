@@ -2,6 +2,8 @@
 //!
 //! Provides extension-based and marker-file-based detection of programming
 //! languages, project types, and well-known config files.
+// TODO: Project parsers — not yet wired
+#![allow(dead_code)]
 
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};

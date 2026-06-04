@@ -1,4 +1,6 @@
 //! Diff view widget — unified and side-by-side diff display
+// TODO: Diff view widget — not yet wired
+#![allow(dead_code)]
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;

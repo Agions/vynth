@@ -1,4 +1,6 @@
 //! Multi-mode input box widget (vim/emacs/natural)
+// TODO: Input box widget — not yet wired
+#![allow(dead_code)]
 
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Style};

@@ -2,6 +2,8 @@
 //!
 //! Tracks timing for each major initialization phase and provides
 //! logging and status-bar display helpers.
+// TODO: Telemetry — status_bar_text not yet wired
+#![allow(dead_code)]
 
 use std::time::Instant;
 

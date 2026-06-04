@@ -1,4 +1,6 @@
 //! Spinner animation widget
+// TODO: Spinner widget — not yet wired
+#![allow(dead_code)]
 
 use std::time::Instant;
 

@@ -3,6 +3,8 @@
 //! Performance: caches tool schemas after first collection to avoid
 //! repeated schema construction on every agent turn.
 //! Uses interior mutability (Mutex) so `all_schemas` works with `&self`.
+// TODO: Tool registry — not yet wired
+#![allow(dead_code)]
 
 use std::collections::HashMap;
 use std::sync::Arc;

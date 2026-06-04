@@ -1,4 +1,6 @@
 //! Agent role definitions
+// TODO: Agent role types — not yet wired
+#![allow(dead_code)]
 
 use serde::{Deserialize, Serialize};
 

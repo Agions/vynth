@@ -1,4 +1,6 @@
 //! Manages a swarm of agents
+// TODO: Agent swarm — not yet wired
+#![allow(dead_code)]
 
 use std::collections::HashMap;
 use std::sync::Arc;

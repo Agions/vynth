@@ -1,4 +1,6 @@
 //! Theme definitions
+// TODO: Theme system — not yet wired
+#![allow(dead_code)]
 
 use ratatui::style::{Color, Modifier, Style};
 

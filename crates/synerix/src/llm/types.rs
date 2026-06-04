@@ -4,6 +4,8 @@
 //! - `to_json()` methods use pre-allocated `serde_json::Map` for fewer allocations
 //! - Role strings are static references (no allocation)
 //! - Tool call serialization avoids intermediate Value creation
+// TODO: LLM types — many variants unused until full streaming
+#![allow(dead_code)]
 
 use serde::{Deserialize, Serialize};
 

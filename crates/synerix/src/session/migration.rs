@@ -1,4 +1,6 @@
 //! Database schema migrations
+// TODO: DB migration — not yet wired
+#![allow(dead_code)]
 
 use crate::error::AppError;
 use rusqlite::Connection;

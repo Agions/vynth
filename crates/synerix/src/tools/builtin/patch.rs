@@ -1,4 +1,6 @@
 //! Patch tool — apply unified diffs
+// TODO: Builtin tool — not yet registered
+#![allow(dead_code)]
 
 use async_trait::async_trait;
 use serde_json::{json, Value};

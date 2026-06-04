@@ -1,4 +1,6 @@
 //! Generic scrollable list selector widget
+// TODO: List select widget — not yet wired
+#![allow(dead_code)]
 
 pub struct ListSelect<T> {
     pub items: Vec<T>,

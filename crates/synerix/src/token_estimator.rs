@@ -7,6 +7,8 @@
 //!
 //! Uses a bounded LRU cache to avoid memory bloat while
 //! maximizing cache hits on repeated content (tool results, prompts).
+// TODO: Token estimator — not yet wired
+#![allow(dead_code)]
 
 use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};

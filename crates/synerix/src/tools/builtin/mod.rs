@@ -1,4 +1,8 @@
 //! Built-in tools
+// TODO: Infrastructure awaiting main-loop integration
+#![allow(dead_code)]
+// TODO: Some re-exports unused until integration is complete
+#![allow(unused_imports)]
 
 pub mod file_read;
 pub mod file_write;

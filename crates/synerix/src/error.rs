@@ -1,4 +1,6 @@
 //! Unified error types for Synerix
+// TODO: Infrastructure awaiting main-loop integration
+#![allow(dead_code)]
 
 use thiserror::Error;
 

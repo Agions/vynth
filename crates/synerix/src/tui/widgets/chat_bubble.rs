@@ -1,4 +1,6 @@
 //! Chat bubble widget with polished visual styling
+// TODO: Chat bubble widget — not yet wired
+#![allow(dead_code)]
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
