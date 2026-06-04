@@ -8,6 +8,7 @@
 
 mod agent;
 mod app;
+mod coding_modes;
 mod config;
 mod error;
 mod llm;
@@ -51,6 +52,10 @@ async fn main() -> Result<(), AppError> {
         .join("synerix")
         .join("config.toml");
     let _config_reload_rx = config::spawn_config_watcher(config_path, 0);
+    // TODO: Wire `_config_reload_rx` into the app event loop for runtime
+    //       hot-reload of settings. Currently kept alive to prevent the
+    //       spawned watcher from getting SendError when it detects changes.
+    //       See: https://github.com/Agions/synerix/issues (hot-reload)
 
     // TUI init is done inside app::run (after App is constructed)
     // DB open is lazy — no metrics to capture here yet

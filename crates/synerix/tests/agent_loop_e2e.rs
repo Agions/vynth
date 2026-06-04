@@ -13,6 +13,7 @@ use tokio::sync::mpsc;
 
 use synerix::agent::{run_agent_loop, ContextManager, TokenBudget};
 use synerix::app::events::AgentEvent;
+use synerix::coding_modes::CodingMode;
 use synerix::error::AppError;
 use synerix::llm::adapter::LlmAdapter;
 use synerix::llm::types::{ChatMessage, ChatResponse, ChunkDelta, StreamChunk, ToolSchema};
@@ -141,7 +142,17 @@ async fn test_agent_loop_e2e() {
     //    Return (result, ctx) so we can inspect the final context.
     let llm = MockLlmAdapter::new();
     let loop_handle = tokio::spawn(async move {
-        let result = run_agent_loop(&llm, &mut ctx, &tools, &mcp, event_tx, 3, 30).await;
+        let result = run_agent_loop(
+            &llm,
+            &mut ctx,
+            &tools,
+            &mcp,
+            event_tx,
+            3,
+            30,
+            CodingMode::Act,
+        )
+        .await;
         (result, ctx)
     });
 

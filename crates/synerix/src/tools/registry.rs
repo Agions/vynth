@@ -1,4 +1,4 @@
-//! Tool registry — HashMap<name, Arc<dyn Tool>>
+//! Tool registry — HashMap&lt;name, Arc&lt;dyn Tool>>
 //!
 //! Performance: caches tool schemas after first collection to avoid
 //! repeated schema construction on every agent turn.

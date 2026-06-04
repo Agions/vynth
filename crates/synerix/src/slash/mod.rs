@@ -4,6 +4,7 @@
 //! instead of sending the message to the AI model.
 
 use crate::app::{App, ChatMessage, GoalState, MessageRole};
+use crate::coding_modes::CodingMode;
 use crate::config::{McpServerConfig, McpTransport, Provider, SkillSourceConfig};
 
 const DEFAULT_MODEL: &str = "deepseek-v4-flash";
@@ -18,6 +19,7 @@ pub enum CmdCategory {
     Model,
     Config,
     Goal,
+    Mode,
     Workflow,
 }
 
@@ -30,6 +32,7 @@ impl CmdCategory {
             CmdCategory::Config => "⚙️ 配置管理",
             CmdCategory::Goal => "🎯 目标模式",
             CmdCategory::Workflow => "📦 工作流",
+            CmdCategory::Mode => "🔀 编码模式",
         }
     }
 }
@@ -128,6 +131,14 @@ pub const COMMANDS: &[CmdDef] = &[
         usage: "/goal [条件] | /goal | /goal clear",
         category: CmdCategory::Goal,
         handler: cmd_goal,
+    },
+    CmdDef {
+        name: "/mode",
+        aliases: &["/md"],
+        desc: "切换编码模式（Plan/Act/Chat/Architect）",
+        usage: "/mode [plan|act|chat|architect] | /mode",
+        category: CmdCategory::Mode,
+        handler: cmd_mode,
     },
 ];
 
@@ -859,6 +870,56 @@ fn cmd_goal(app: &mut App, args: Option<&str>) -> bool {
     true
 }
 
+/// Handle `/mode` — switch or display coding mode
+fn cmd_mode(app: &mut App, args: Option<&str>) -> bool {
+    let args = args.map(|a| a.trim()).unwrap_or("");
+
+    if args.is_empty() {
+        // Show current mode + all available modes
+        let mut lines = vec![format!("当前编码模式：{}", app.coding_mode)];
+        lines.push("".to_string());
+        for mode in CodingMode::all() {
+            let mark = if *mode == app.coding_mode {
+                " ✅ "
+            } else {
+                "   "
+            };
+            lines.push(format!(
+                "{} {} — {}",
+                mark,
+                mode.label(),
+                mode.description()
+            ));
+        }
+        sys_msg(app, &lines.join("\n"));
+        return true;
+    }
+
+    let (subcmd, _) = subcmd(Some(args));
+    if let Some(new_mode) = CodingMode::parse(subcmd) {
+        app.coding_mode = new_mode;
+        app.status_bar.coding_mode = new_mode;
+        app.dirty_flags.status = true;
+        sys_msg(
+            app,
+            &format!(
+                "✅ 编码模式已切换为：{} — {}",
+                new_mode.label(),
+                new_mode.description()
+            ),
+        );
+    } else {
+        sys_msg(
+            app,
+            &format!(
+                "❌ 未知模式 `{}`。可用模式：plan, act, chat, architect",
+                subcmd
+            ),
+        );
+    }
+    true
+}
+
 fn cmd_config(app: &mut App, args: Option<&str>) -> bool {
     let (sub, _rest) = subcmd(args);
 
@@ -944,6 +1005,7 @@ mod tests {
                 startup_metrics: None,
                 goal_active: false,
                 goal_duration: String::new(),
+                coding_mode: crate::coding_modes::CodingMode::Act,
             },
             settings,
             should_quit: false,
@@ -960,6 +1022,7 @@ mod tests {
             skill_registry: SkillRegistry::new(),
             agent_registry: CustomAgentRegistry::new(),
             goal_state: GoalState::inactive(),
+            coding_mode: crate::coding_modes::CodingMode::Act,
         }
     }
 

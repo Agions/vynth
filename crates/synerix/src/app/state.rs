@@ -1,6 +1,7 @@
 //! Application state types — structs, enums, and their constructors.
 
 use crate::agent::CustomAgentRegistry;
+use crate::coding_modes::CodingMode;
 use crate::config::{KeyBindings, KeymapProfile, Settings};
 use crate::skills::SkillRegistry;
 use ratatui::layout::Rect;
@@ -85,6 +86,8 @@ pub struct App {
     pub agent_registry: CustomAgentRegistry,
     /// Active /goal state for auto-loop behavior
     pub goal_state: GoalState,
+    /// Active coding mode (Plan/Act/Chat/Architect)
+    pub coding_mode: CodingMode,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -164,6 +167,8 @@ pub struct StatusBarState {
     pub startup_metrics: Option<crate::telemetry::StartupMetrics>,
     pub goal_active: bool,
     pub goal_duration: String,
+    /// Active coding mode indicator
+    pub coding_mode: CodingMode,
 }
 
 /// /goal state — completion condition + auto-loop tracking
@@ -296,6 +301,7 @@ impl App {
                 startup_metrics: None,
                 goal_active: false,
                 goal_duration: String::new(),
+                coding_mode: CodingMode::Act,
             },
             input_buffer: String::new(),
             input_cursor: 0,
@@ -311,6 +317,7 @@ impl App {
             skill_registry: SkillRegistry::new(),
             agent_registry: CustomAgentRegistry::new(),
             goal_state: GoalState::inactive(),
+            coding_mode: CodingMode::Act,
         }
     }
 
@@ -350,6 +357,7 @@ impl App {
                 startup_metrics: None,
                 goal_active: false,
                 goal_duration: String::new(),
+                coding_mode: CodingMode::Act,
             },
             input_buffer: String::new(),
             input_cursor: 0,
@@ -365,6 +373,7 @@ impl App {
             skill_registry: SkillRegistry::new(),
             agent_registry: CustomAgentRegistry::new(),
             goal_state: GoalState::inactive(),
+            coding_mode: CodingMode::Act,
         }
     }
 

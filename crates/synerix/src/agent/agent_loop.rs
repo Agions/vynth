@@ -14,6 +14,7 @@ use tokio::sync::mpsc;
 use crate::agent::context::ContextManager;
 use crate::agent::tool_dispatcher::{dispatch_with_timeout, PendingToolCall};
 use crate::app::AgentEvent;
+use crate::coding_modes::CodingMode;
 use crate::error::AppError;
 use crate::llm::adapter::LlmAdapter;
 use crate::llm::types::{ChatMessage, ChunkDelta, MessageRole, ToolCall};
@@ -25,6 +26,7 @@ use crate::tools::registry::ToolRegistry;
 ///
 /// Flow: User input → LLM → (text | tool_call)* → Done
 /// Each tool_call: dispatch → result → back to LLM
+#[allow(clippy::too_many_arguments)]
 pub async fn run_agent_loop(
     llm: &dyn LlmAdapter,
     ctx: &mut ContextManager,
@@ -33,6 +35,7 @@ pub async fn run_agent_loop(
     event_tx: mpsc::UnboundedSender<AgentEvent>,
     max_turns: usize,
     tool_timeout_secs: u64,
+    coding_mode: CodingMode,
 ) -> Result<(), AppError> {
     for turn in 0..max_turns {
         tracing::debug!("Agent turn {}/{}", turn + 1, max_turns);
@@ -103,26 +106,36 @@ pub async fn run_agent_loop(
             })
             .collect();
 
-        ctx.push(ChatMessage {
-            role: MessageRole::Assistant,
-            content: if full_text.is_empty() {
-                None
-            } else {
-                Some(full_text.clone())
-            },
-            tool_calls: Some(resolved_calls),
-            tool_call_id: None,
-            name: None,
-        });
+        // Filter tool calls based on coding mode
+        let filtered_calls: Vec<ToolCall> = resolved_calls
+            .into_iter()
+            .filter(|tc| {
+                // Chat mode: block all tools that write/execute
+                if !coding_mode.allow_file_write() && tc.name.starts_with("write_file") {
+                    return false;
+                }
+                if !coding_mode.allow_command_exec() && tc.name.starts_with("execute_command") {
+                    return false;
+                }
+                true
+            })
+            .collect();
 
-        // Execute tool calls in parallel
-        let tool_futures: Vec<_> = tool_calls
-            .values()
+        if filtered_calls.is_empty() && !tool_calls.is_empty() {
+            event_tx.send(AgentEvent::TextDelta(
+                "⚠️ 当前编码模式不允许执行此操作。请切换到 Act 或 Plan 模式。".to_string(),
+            ))?;
+            return Ok(());
+        }
+
+        // Execute tool calls in parallel (iterate first, then clone for ChatMessage)
+        let tool_futures: Vec<_> = filtered_calls
+            .iter()
             .map(|tc| {
-                let args: serde_json::Value = if tc.args_buffer.is_empty() {
+                let args: serde_json::Value = if tc.arguments.is_empty() {
                     serde_json::json!({})
                 } else {
-                    serde_json::from_str(&tc.args_buffer).unwrap_or_else(|_| serde_json::json!({}))
+                    serde_json::from_str(&tc.arguments).unwrap_or_else(|_| serde_json::json!({}))
                 };
 
                 // Emit ToolCallStart event
@@ -148,6 +161,19 @@ pub async fn run_agent_loop(
 
         // Await all tool calls concurrently
         let results = futures::future::join_all(tool_futures).await;
+
+        // Add assistant message with tool calls (clone after iteration)
+        ctx.push(ChatMessage {
+            role: MessageRole::Assistant,
+            content: if full_text.is_empty() {
+                None
+            } else {
+                Some(full_text.clone())
+            },
+            tool_calls: Some(filtered_calls),
+            tool_call_id: None,
+            name: None,
+        });
 
         // Process results
         for (tc_id, tc_name, output, is_error) in results {

@@ -25,7 +25,7 @@ impl PluginManager {
         }
     }
 
-    /// Register a plugin. This does **not** call `init()` — use [`init_all`] for that.
+    /// Register a plugin. This does **not** call `init()` — use [`init_all`](crate::plugins::manager::PluginManager::init_all) for that.
     pub fn register(&mut self, plugin: Box<dyn Plugin>) {
         tracing::info!("Registered plugin: {}", plugin.name());
         self.plugins.push(plugin);

@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum SkillTrigger {
-    /// User explicit: /skill <name>
+    /// User explicit: /skill `&#60;name&#62;`
     Explicit,
     /// Auto-match based on keywords
     #[serde(rename = "auto_match")]

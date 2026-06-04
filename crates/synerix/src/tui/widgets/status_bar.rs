@@ -7,6 +7,7 @@ use ratatui::widgets::Paragraph;
 use ratatui::Frame;
 
 use crate::app::{AgentState, App, InputMode};
+use crate::coding_modes::CodingMode;
 
 /// Dark status background color — matches the dark theme's status_bg
 const STATUS_BG: Color = Color::Rgb(40, 42, 58);
@@ -27,27 +28,37 @@ pub fn format_tokens(count: usize) -> String {
 /// Get the mode label and its display color
 pub fn mode_style(mode: &InputMode) -> (&'static str, Color) {
     match mode {
-        InputMode::Normal => (" NORMAL ", STATUS_BG), // dark bg for normal
-        InputMode::Insert => (" INSERT ", Color::Rgb(30, 100, 50)), // green bg for insert
-        InputMode::Command => (" COMMAND ", Color::Rgb(100, 80, 20)), // yellow bg for command
-        InputMode::Search => (" SEARCH ", Color::Rgb(80, 40, 100)), // purple bg for search
+        InputMode::Normal => (" NORMAL ", STATUS_BG),
+        InputMode::Insert => (" INSERT ", Color::Rgb(30, 100, 50)),
+        InputMode::Command => (" COMMAND ", Color::Rgb(100, 80, 20)),
+        InputMode::Search => (" SEARCH ", Color::Rgb(80, 40, 100)),
     }
 }
 
 /// Get the mode indicator foreground color
 pub fn mode_fg(mode: &InputMode) -> Color {
     match mode {
-        InputMode::Normal => Color::Rgb(125, 207, 255), // cyan
-        InputMode::Insert => Color::Rgb(158, 206, 121), // green
-        InputMode::Command => Color::Rgb(224, 175, 104), // yellow
-        InputMode::Search => Color::Rgb(187, 154, 247), // purple
+        InputMode::Normal => Color::Rgb(125, 207, 255),
+        InputMode::Insert => Color::Rgb(158, 206, 121),
+        InputMode::Command => Color::Rgb(224, 175, 104),
+        InputMode::Search => Color::Rgb(187, 154, 247),
+    }
+}
+
+/// Get coding mode style (background color based on mode)
+pub fn coding_mode_style(mode: &CodingMode) -> Color {
+    match mode {
+        CodingMode::Plan => Color::Rgb(40, 60, 100), // blue-ish
+        CodingMode::Act => Color::Rgb(60, 100, 60),  // green-ish
+        CodingMode::Chat => Color::Rgb(80, 50, 100), // purple-ish
+        CodingMode::Architect => Color::Rgb(100, 80, 60), // brown-ish
     }
 }
 
 /// Render the enhanced status bar into the given area
 pub fn render_status_bar(frame: &mut Frame, app: &App, area: Rect) {
-    let (mode_label, mode_bg) = mode_style(&app.mode);
-    let mode_fg_color = mode_fg(&app.mode);
+    let (_mode_label, _mode_bg) = mode_style(&app.mode);
+    let _mode_fg_color = mode_fg(&app.mode);
 
     // Agent state section
     let (state_str, state_color) = match &app.status_bar.agent_state {
@@ -83,12 +94,24 @@ pub fn render_status_bar(frame: &mut Frame, app: &App, area: Rect) {
 
     let mut spans: Vec<Span> = Vec::new();
 
-    // Left: Mode indicator with background
+    // Left: Coding mode + Input mode indicator
+    let cm_bg = coding_mode_style(&app.coding_mode);
     spans.push(Span::styled(
-        mode_label,
+        app.coding_mode.label(),
         Style::default()
-            .fg(mode_fg_color)
-            .bg(mode_bg)
+            .fg(Color::Rgb(220, 230, 255))
+            .bg(cm_bg)
+            .add_modifier(Modifier::BOLD),
+    ));
+    spans.push(separator.clone());
+
+    let (_mode_label, _mode_bg) = mode_style(&app.mode);
+    let _mode_fg_color = mode_fg(&app.mode);
+    spans.push(Span::styled(
+        _mode_label,
+        Style::default()
+            .fg(_mode_fg_color)
+            .bg(_mode_bg)
             .add_modifier(Modifier::BOLD),
     ));
 
