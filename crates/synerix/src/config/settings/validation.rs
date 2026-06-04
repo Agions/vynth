@@ -70,6 +70,15 @@ impl Settings {
 
     /// Override settings with environment variables
     pub(crate) fn apply_env_overrides(&mut self) {
+        // Expanded env var substitution: support ${VAR} syntax in config values
+        if self.llm.api_key.starts_with("${") && self.llm.api_key.ends_with('}') {
+            let var_name = &self.llm.api_key[2..self.llm.api_key.len() - 1];
+            if let Ok(val) = std::env::var(var_name) {
+                self.llm.api_key = val;
+            }
+        }
+
+        // Direct env var overrides (highest priority)
         if let Ok(key) = std::env::var("SYNERIX_API_KEY") {
             self.llm.api_key = key;
         }

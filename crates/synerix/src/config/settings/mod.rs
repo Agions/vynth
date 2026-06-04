@@ -4,10 +4,11 @@ mod validation;
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fmt;
 use std::path::PathBuf;
 
 /// Top-level application settings
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Settings {
     /// LLM provider configuration
     pub llm: LlmConfig,
@@ -31,7 +32,7 @@ pub struct Settings {
 }
 
 /// LLM provider configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct LlmConfig {
     /// Provider type: deepseek, mimo, custom
     pub provider: Provider,
@@ -54,6 +55,37 @@ pub struct LlmConfig {
     /// Estimated tools schema tokens (for token budget)
     #[serde(default = "default_tools_schema_tokens")]
     pub tools_schema_tokens: usize,
+}
+
+impl fmt::Debug for LlmConfig {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("LlmConfig")
+            .field("provider", &self.provider)
+            .field("api_key", &"***REDACTED***")
+            .field("base_url", &self.base_url)
+            .field("model", &self.model)
+            .field("context_window", &self.context_window)
+            .field("max_output_tokens", &self.max_output_tokens)
+            .field("temperature", &self.temperature)
+            .field("system_prompt_tokens", &self.system_prompt_tokens)
+            .field("tools_schema_tokens", &self.tools_schema_tokens)
+            .finish()
+    }
+}
+
+impl fmt::Debug for Settings {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Settings")
+            .field("llm", &self.llm)
+            .field("ui", &self.ui)
+            .field("sandbox", &self.sandbox)
+            .field("mcp", &self.mcp)
+            .field("skills_dir", &self.skills_dir)
+            .field("skill_sources", &self.skill_sources)
+            .field("agents_dir", &self.agents_dir)
+            .field("agents", &self.agents)
+            .finish()
+    }
 }
 
 fn default_system_prompt_tokens() -> usize {
