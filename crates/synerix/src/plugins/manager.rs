@@ -314,7 +314,10 @@ mod tests {
         let result = mgr.init_all().await;
         assert!(result.is_err());
         match result.unwrap_err() {
-            AppError::PluginInitPartialFailure { failed_count, total_count } => {
+            AppError::PluginInitPartialFailure {
+                failed_count,
+                total_count,
+            } => {
                 assert_eq!(failed_count, 1);
                 assert_eq!(total_count, 2);
             }
@@ -387,7 +390,10 @@ mod tests {
         // All plugins receive the event; errors are aggregated
         assert!(result.is_err());
         match result.unwrap_err() {
-            AppError::PluginEventPartialFailure { failed_count, total_count } => {
+            AppError::PluginEventPartialFailure {
+                failed_count,
+                total_count,
+            } => {
                 assert_eq!(failed_count, 1);
                 assert_eq!(total_count, 2);
             }

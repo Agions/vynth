@@ -39,8 +39,8 @@ impl MockLlmAdapter {
     }
 
     /// Stream that includes a tool call (for the first invocation).
-    fn stream_with_tool_call(
-    ) -> Pin<Box<dyn Stream<Item = Result<StreamChunk, AppError>> + Send>> {
+    fn stream_with_tool_call() -> Pin<Box<dyn Stream<Item = Result<StreamChunk, AppError>> + Send>>
+    {
         let chunks = vec![
             Ok(StreamChunk {
                 delta: ChunkDelta::Text {
@@ -67,8 +67,7 @@ impl MockLlmAdapter {
     }
 
     /// Stream that only has text (no tool call) – allows the loop to finish.
-    fn stream_text_only(
-    ) -> Pin<Box<dyn Stream<Item = Result<StreamChunk, AppError>> + Send>> {
+    fn stream_text_only() -> Pin<Box<dyn Stream<Item = Result<StreamChunk, AppError>> + Send>> {
         let chunks = vec![
             Ok(StreamChunk {
                 delta: ChunkDelta::Text {
@@ -99,8 +98,7 @@ impl LlmAdapter for MockLlmAdapter {
         &self,
         _messages: &[ChatMessage],
         _tools: &[ToolSchema],
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamChunk, AppError>> + Send>>, AppError>
-    {
+    ) -> Result<Pin<Box<dyn Stream<Item = Result<StreamChunk, AppError>> + Send>>, AppError> {
         let count = self.call_count.fetch_add(1, Ordering::SeqCst);
         if count == 0 {
             Ok(Self::stream_with_tool_call())
@@ -171,7 +169,7 @@ async fn test_agent_loop_e2e() {
             AgentEvent::Done => {
                 done_received = true;
                 // Drain any remaining events before closing
-                while let Some(remaining) = event_rx.try_recv().ok() {
+                while let Ok(remaining) = event_rx.try_recv() {
                     if let AgentEvent::TextDelta(t) = remaining {
                         stream_chunks.push(t);
                     }
@@ -186,10 +184,7 @@ async fn test_agent_loop_e2e() {
 
     // 7. Verify events ------------------------------------------------------
 
-    assert!(
-        done_received,
-        "Agent loop should emit a Done event"
-    );
+    assert!(done_received, "Agent loop should emit a Done event");
 
     // We expect at least one TextDelta event
     assert!(
@@ -239,19 +234,10 @@ async fn test_agent_loop_e2e() {
     let has_user = msgs.iter().any(|m| m.role.as_str() == "user");
     let has_assistant = msgs.iter().any(|m| m.role.as_str() == "assistant");
 
-    assert!(
-        has_user,
-        "Context should contain a user message"
-    );
-    assert!(
-        has_assistant,
-        "Context should contain an assistant message"
-    );
+    assert!(has_user, "Context should contain a user message");
+    assert!(has_assistant, "Context should contain an assistant message");
 
     // Also verify there's a tool result message (from the read_file dispatch)
     let has_tool = msgs.iter().any(|m| m.role.as_str() == "tool");
-    assert!(
-        has_tool,
-        "Context should contain a tool result message"
-    );
+    assert!(has_tool, "Context should contain a tool result message");
 }

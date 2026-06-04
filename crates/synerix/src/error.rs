@@ -77,7 +77,10 @@ pub enum AppError {
     YamlParse(#[from] serde_yaml::Error),
 
     #[error("Plugin event partial failure: {failed_count}/{total_count} plugins failed")]
-    PluginEventPartialFailure { failed_count: usize, total_count: usize },
+    PluginEventPartialFailure {
+        failed_count: usize,
+        total_count: usize,
+    },
 
     #[error("Plugin init partial failure: {failed_count}/{total_count} plugin(s) failed")]
     PluginInitPartialFailure {

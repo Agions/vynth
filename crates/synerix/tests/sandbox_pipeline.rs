@@ -13,9 +13,7 @@
 use std::fs;
 use std::path::Path;
 
-use synerix::sandbox::approval::{
-    ApprovalDecision, ApprovalHandler, ApprovalMode, AutoApprove,
-};
+use synerix::sandbox::approval::{ApprovalDecision, ApprovalHandler, ApprovalMode, AutoApprove};
 use synerix::sandbox::risk_classifier::{CommandPreview, RiskLevel};
 use synerix::sandbox::{atomic_write, atomic_write_with_backup};
 
@@ -30,7 +28,10 @@ use synerix::sandbox::{atomic_write, atomic_write_with_backup};
 async fn run_pipeline(
     command: &str,
     mode: ApprovalMode,
-) -> (CommandPreview, Result<ApprovalDecision, synerix::error::AppError>) {
+) -> (
+    CommandPreview,
+    Result<ApprovalDecision, synerix::error::AppError>,
+) {
     let preview = CommandPreview::analyze(command);
 
     let decision = match mode {
@@ -220,7 +221,10 @@ fn test_atomic_write_empty_content() {
 
     atomic_write(&path, b"").expect("atomic_write with empty content");
     let content = fs::read_to_string(&path).unwrap_or_default();
-    assert!(content.is_empty(), "File should be empty after writing empty content");
+    assert!(
+        content.is_empty(),
+        "File should be empty after writing empty content"
+    );
 
     let _ = fs::remove_dir_all(&dir);
 }
@@ -349,7 +353,10 @@ async fn test_full_pipeline_critical_blocked() {
     assert!(matches!(decision, ApprovalDecision::Deny));
 
     // 3. Write should NOT happen — target should not exist
-    assert!(!target.exists(), "Critical command must not execute in PreviewOnly mode");
+    assert!(
+        !target.exists(),
+        "Critical command must not execute in PreviewOnly mode"
+    );
 
     let _ = fs::remove_file(target);
 }
