@@ -533,6 +533,8 @@ cargo test --test workflow_integration  # Workflow integration
 cargo run --features startup_bench
 ```
 
+> 📐 关键架构决策记录（ADR）见 [`docs/adr/`](./docs/adr/)
+
 ---
 
 ## 🛠️ Development
