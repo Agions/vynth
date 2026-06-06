@@ -50,11 +50,7 @@ pub fn render(area: Rect, frame: &mut Frame, app: &App) {
                 let line = Line::from(vec![
                     Span::styled(before, Style::default().fg(p.foreground)),
                     Span::styled(
-                        if after.is_empty() {
-                            " "
-                        } else {
-                            &after[..1]
-                        },
+                        if after.is_empty() { " " } else { &after[..1] },
                         Style::default()
                             .bg(p.accent)
                             .fg(p.background)
@@ -79,28 +75,28 @@ pub fn render(area: Rect, frame: &mut Frame, app: &App) {
         }
         InputMode::Command => {
             let line = Line::from(vec![
-                Span::styled(":", Style::default().fg(p.chat_system).add_modifier(Modifier::BOLD)),
-                Span::styled(&app.input_buffer, Style::default().fg(p.foreground)),
                 Span::styled(
-                    " ",
+                    ":",
                     Style::default()
-                        .bg(p.accent)
-                        .fg(p.background),
+                        .fg(p.chat_system)
+                        .add_modifier(Modifier::BOLD),
                 ),
+                Span::styled(&app.input_buffer, Style::default().fg(p.foreground)),
+                Span::styled(" ", Style::default().bg(p.accent).fg(p.background)),
             ]);
             let paragraph = Paragraph::new(line).block(block);
             frame.render_widget(paragraph, area);
         }
         InputMode::Search => {
             let line = Line::from(vec![
-                Span::styled("/", Style::default().fg(p.chat_tool).add_modifier(Modifier::BOLD)),
-                Span::styled(&app.input_buffer, Style::default().fg(p.foreground)),
                 Span::styled(
-                    " ",
+                    "/",
                     Style::default()
-                        .bg(p.accent)
-                        .fg(p.background),
+                        .fg(p.chat_tool)
+                        .add_modifier(Modifier::BOLD),
                 ),
+                Span::styled(&app.input_buffer, Style::default().fg(p.foreground)),
+                Span::styled(" ", Style::default().bg(p.accent).fg(p.background)),
             ]);
             let paragraph = Paragraph::new(line).block(block);
             frame.render_widget(paragraph, area);

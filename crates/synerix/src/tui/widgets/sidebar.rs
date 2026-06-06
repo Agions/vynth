@@ -83,10 +83,16 @@ pub fn render(area: Rect, frame: &mut Frame, app: &App) {
             }
         }
         SidebarTab::Sessions => {
-            format!("  {}  (no sessions)", Span::styled("📄", Style::default().fg(p.muted_fg)))
+            format!(
+                "  {}  (no sessions)",
+                Span::styled("📄", Style::default().fg(p.muted_fg))
+            )
         }
         SidebarTab::Skills => {
-            format!("  {}  (no skills loaded)", Span::styled("🧩", Style::default().fg(p.muted_fg)))
+            format!(
+                "  {}  (no skills loaded)",
+                Span::styled("🧩", Style::default().fg(p.muted_fg))
+            )
         }
     };
 

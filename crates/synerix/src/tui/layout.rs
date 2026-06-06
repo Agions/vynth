@@ -23,10 +23,10 @@ pub fn compute_layout(area: Rect) -> TerminalLayout {
     let v_chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Min(8),          // Chat — takes remaining space
-            Constraint::Length(10),       // Diff preview — compact
-            Constraint::Length(3),        // Input bar
-            Constraint::Length(1),        // Status bar
+            Constraint::Min(8),     // Chat — takes remaining space
+            Constraint::Length(10), // Diff preview — compact
+            Constraint::Length(3),  // Input bar
+            Constraint::Length(1),  // Status bar
         ])
         .split(h_chunks[1]);
 

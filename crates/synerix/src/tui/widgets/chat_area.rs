@@ -21,11 +21,7 @@ pub fn render(area: Rect, frame: &mut ratatui::Frame, app: &App) {
 
     let block = Block::default()
         .title(" 💬 Chat ")
-        .title_style(
-            Style::default()
-                .fg(p.accent)
-                .add_modifier(Modifier::BOLD),
-        )
+        .title_style(Style::default().fg(p.accent).add_modifier(Modifier::BOLD))
         .borders(Borders::ALL)
         .border_type(theme::BORDER_TYPE)
         .border_style(border_style);
@@ -43,9 +39,7 @@ pub fn render(area: Rect, frame: &mut ratatui::Frame, app: &App) {
 
         let role_span = Span::styled(
             prefix,
-            Style::default()
-                .fg(color)
-                .add_modifier(Modifier::BOLD),
+            Style::default().fg(color).add_modifier(Modifier::BOLD),
         );
 
         lines.push(Line::from(vec![
@@ -64,9 +58,7 @@ pub fn render(area: Rect, frame: &mut ratatui::Frame, app: &App) {
                 Span::styled("    └─ ", Style::default().fg(p.muted_fg)),
                 Span::styled(
                     &tc.name,
-                    Style::default()
-                        .fg(p.accent)
-                        .add_modifier(Modifier::BOLD),
+                    Style::default().fg(p.accent).add_modifier(Modifier::BOLD),
                 ),
                 Span::styled(
                     format!("({})", args_preview),

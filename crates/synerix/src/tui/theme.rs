@@ -40,7 +40,9 @@ pub fn init_theme(dark: bool) {
 
 /// Get the current active palette (panics if not yet initialised).
 pub fn current_palette() -> &'static ColorPalette {
-    CURRENT_THEME.get().expect("theme not initialised — call init_theme() first")
+    CURRENT_THEME
+        .get()
+        .expect("theme not initialised — call init_theme() first")
 }
 
 // ── Border helpers ──────────────────────────────────────────────────────

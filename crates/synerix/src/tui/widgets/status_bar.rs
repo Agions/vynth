@@ -49,11 +49,11 @@ pub fn mode_fg(mode: &InputMode) -> Color {
 /// Get coding mode style (background color based on mode)
 pub fn coding_mode_style(mode: &CodingMode) -> Color {
     match mode {
-        CodingMode::Plan => Color::Rgb(40, 60, 100),    // blue-ish
-        CodingMode::Act => Color::Rgb(60, 100, 60),     // green-ish
-        CodingMode::Chat => Color::Rgb(80, 50, 100),    // purple-ish
+        CodingMode::Plan => Color::Rgb(40, 60, 100), // blue-ish
+        CodingMode::Act => Color::Rgb(60, 100, 60),  // green-ish
+        CodingMode::Chat => Color::Rgb(80, 50, 100), // purple-ish
         CodingMode::Architect => Color::Rgb(100, 80, 60), // brown-ish
-        CodingMode::Vibe => Color::Rgb(80, 120, 130),   // teal — flow state
+        CodingMode::Vibe => Color::Rgb(80, 120, 130), // teal — flow state
     }
 }
 
@@ -64,10 +64,7 @@ pub fn render_status_bar(frame: &mut Frame, app: &App, area: Rect) {
     let _mode_fg_color = mode_fg(&app.mode);
 
     // Build spans
-    let separator = Span::styled(
-        " │ ",
-        Style::default().fg(p.comment).bg(STATUS_BG),
-    );
+    let separator = Span::styled(" │ ", Style::default().fg(p.comment).bg(STATUS_BG));
 
     let mut spans: Vec<Span> = Vec::new();
 
@@ -96,18 +93,11 @@ pub fn render_status_bar(frame: &mut Frame, app: &App, area: Rect) {
 
     // Agent state
     let agent_span = match &app.status_bar.agent_state {
-        AgentState::Idle => {
-            Span::styled(
-                " ● Idle ",
-                Style::default().fg(p.success).bg(STATUS_BG),
-            )
-        }
-        AgentState::Thinking => {
-            Span::styled(
-                " ◌ Thinking… ",
-                Style::default().fg(p.warning).bg(STATUS_BG),
-            )
-        }
+        AgentState::Idle => Span::styled(" ● Idle ", Style::default().fg(p.success).bg(STATUS_BG)),
+        AgentState::Thinking => Span::styled(
+            " ◌ Thinking… ",
+            Style::default().fg(p.warning).bg(STATUS_BG),
+        ),
         AgentState::RunningTool(name) => {
             let display_name = if name.len() > 15 {
                 format!("{}…", &name[..15])
@@ -193,8 +183,7 @@ pub fn render_status_bar(frame: &mut Frame, app: &App, area: Rect) {
     ));
 
     let line = Line::from(spans);
-    let paragraph =
-        Paragraph::new(line).style(Style::default().bg(STATUS_BG).fg(p.foreground));
+    let paragraph = Paragraph::new(line).style(Style::default().bg(STATUS_BG).fg(p.foreground));
 
     frame.render_widget(paragraph, area);
 }
