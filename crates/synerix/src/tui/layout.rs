@@ -1,4 +1,5 @@
 //! Layout computation — pure function, no side effects
+//! Enhanced with better proportions and visual balance.
 
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 
@@ -12,19 +13,20 @@ pub struct TerminalLayout {
 }
 
 /// Compute the standard 5-zone layout from frame area
+/// with refined proportions for a modern terminal UI.
 pub fn compute_layout(area: Rect) -> TerminalLayout {
     let h_chunks = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Length(30), Constraint::Min(0)])
+        .constraints([Constraint::Length(28), Constraint::Min(60)])
         .split(area);
 
     let v_chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Min(0),
-            Constraint::Length(12),
-            Constraint::Length(3),
-            Constraint::Length(1),
+            Constraint::Min(8),          // Chat — takes remaining space
+            Constraint::Length(10),       // Diff preview — compact
+            Constraint::Length(3),        // Input bar
+            Constraint::Length(1),        // Status bar
         ])
         .split(h_chunks[1]);
 

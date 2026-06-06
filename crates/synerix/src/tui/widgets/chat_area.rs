@@ -1,4 +1,5 @@
 //! Chat area widget — renders the conversation with tool calls and scroll offset
+//! Uses rounded borders and theme-aware colors for a polished look.
 
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
@@ -10,59 +11,74 @@ use crate::tui::theme;
 
 /// Render the chat conversation area with tool call rendering and scroll offset
 pub fn render(area: Rect, frame: &mut ratatui::Frame, app: &App) {
-    let block = Block::default()
-        .title(" Chat ")
-        .borders(Borders::ALL)
-        .border_style(if app.focused_panel == FocusedPanel::Chat {
-            Style::default().fg(theme::COLOR_CYAN)
-        } else {
-            theme::muted_style()
-        });
+    let p = theme::current_palette();
+    let is_focused = app.focused_panel == FocusedPanel::Chat;
+    let border_style = if is_focused {
+        Style::default().fg(p.accent).add_modifier(Modifier::BOLD)
+    } else {
+        Style::default().fg(p.border)
+    };
 
-    let inner_height = area.height.saturating_sub(2) as usize; // subtract top/bottom border
+    let block = Block::default()
+        .title(" 💬 Chat ")
+        .title_style(
+            Style::default()
+                .fg(p.accent)
+                .add_modifier(Modifier::BOLD),
+        )
+        .borders(Borders::ALL)
+        .border_type(theme::BORDER_TYPE)
+        .border_style(border_style);
+
+    let inner_height = area.height.saturating_sub(2) as usize;
     let mut lines: Vec<Line> = Vec::new();
 
     for msg in &app.chat_state.messages {
         let (prefix, color) = match msg.role {
-            MessageRole::User => ("  You: ", theme::COLOR_CYAN),
-            MessageRole::Assistant => ("  AI:  ", theme::COLOR_GREEN),
-            MessageRole::System => ("  Sys: ", theme::COLOR_YELLOW),
-            MessageRole::Tool => ("  Tool:", theme::COLOR_MAGENTA),
+            MessageRole::User => ("  ▸ You:   ", p.chat_user),
+            MessageRole::Assistant => ("  ◆ AI:    ", p.chat_assistant),
+            MessageRole::System => ("  ◇ Sys:   ", p.chat_system),
+            MessageRole::Tool => ("  ⚙ Tool:  ", p.chat_tool),
         };
 
+        let role_span = Span::styled(
+            prefix,
+            Style::default()
+                .fg(color)
+                .add_modifier(Modifier::BOLD),
+        );
+
         lines.push(Line::from(vec![
-            Span::styled(
-                prefix,
-                Style::default().fg(color).add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(&msg.content),
+            role_span,
+            Span::styled(&msg.content, Style::default().fg(p.foreground)),
         ]));
 
         // Render tool calls for this message
         for tc in &msg.tool_calls {
-            // Tool call header: 🔧 tool_name with args preview
             let args_preview = if tc.args_preview.len() > 60 {
                 format!("{}…", &tc.args_preview[..60])
             } else {
                 tc.args_preview.clone()
             };
             lines.push(Line::from(vec![
-                Span::styled("    🔧 ", Style::default().fg(theme::COLOR_CYAN)),
+                Span::styled("    └─ ", Style::default().fg(p.muted_fg)),
                 Span::styled(
                     &tc.name,
                     Style::default()
-                        .fg(theme::COLOR_CYAN)
+                        .fg(p.accent)
                         .add_modifier(Modifier::BOLD),
                 ),
-                Span::styled(format!("({})", args_preview), theme::muted_style()),
+                Span::styled(
+                    format!("({})", args_preview),
+                    Style::default().fg(p.muted_fg),
+                ),
             ]));
 
-            // Tool result line
             if let Some(ref result) = tc.result {
                 let (icon, result_color) = if tc.is_error {
-                    ("❌", theme::COLOR_RED)
+                    ("✗", p.error)
                 } else {
-                    ("✅", theme::COLOR_GREEN)
+                    ("✓", p.success)
                 };
                 let result_preview = if result.len() > 80 {
                     format!("{}…", &result[..80])
@@ -70,10 +86,9 @@ pub fn render(area: Rect, frame: &mut ratatui::Frame, app: &App) {
                     result.clone()
                 };
                 lines.push(Line::from(vec![
-                    Span::raw("       "),
-                    Span::styled(icon, Style::default().fg(result_color)),
+                    Span::raw("      "),
                     Span::styled(
-                        format!(" {}", result_preview),
+                        format!("{} {}", icon, result_preview),
                         Style::default().fg(result_color),
                     ),
                 ]));
@@ -85,28 +100,32 @@ pub fn render(area: Rect, frame: &mut ratatui::Frame, app: &App) {
     if app.chat_state.is_streaming {
         lines.push(Line::from(vec![
             Span::styled(
-                "  AI:  ",
+                "  ◆ AI:    ",
                 Style::default()
-                    .fg(theme::COLOR_GREEN)
+                    .fg(p.chat_assistant)
                     .add_modifier(Modifier::BOLD),
             ),
             Span::raw(&app.chat_state.streaming_text),
-            Span::styled("▌", Style::default().fg(theme::COLOR_GREEN)),
+            Span::styled(
+                " ▌",
+                Style::default()
+                    .fg(p.streaming_cursor)
+                    .add_modifier(Modifier::SLOW_BLINK),
+            ),
         ]));
     }
 
     if lines.is_empty() {
         lines.push(Line::from(Span::styled(
-            "  Ready — type to start chatting (Esc → Normal mode)",
-            theme::muted_style(),
+            "  Ready — type to start (Esc = Normal mode)",
+            Style::default().fg(p.muted_fg),
         )));
     }
 
-    // Apply scroll offset: skip lines from the top based on scroll_offset
+    // Apply scroll offset
     let scroll_offset = app.chat_state.scroll_offset;
     let visible_lines: Vec<Line> = if lines.len() > inner_height {
         let total = lines.len();
-        // scroll_offset = number of lines hidden from bottom (0 = latest at bottom)
         let end = total.saturating_sub(scroll_offset);
         let start = end.saturating_sub(inner_height);
         lines[start..end].to_vec()

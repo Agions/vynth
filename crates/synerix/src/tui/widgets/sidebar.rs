@@ -1,6 +1,5 @@
 //! Sidebar widget — file tree / session list / skills
-// TODO: Sidebar widget — not yet wired
-#![allow(dead_code)]
+//! Enhanced with rounded borders, icon indicators, and theme-aware styling.
 
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Modifier, Style};
@@ -8,45 +7,13 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph};
 use ratatui::Frame;
 
-use crate::app::{App, FileEntry, SidebarTab};
+use crate::app::{App, SidebarTab};
 use crate::tui::theme;
 
-pub struct Sidebar {
-    pub active_tab: SidebarTab,
-    pub file_tree: Vec<FileEntry>,
-    pub scroll_offset: usize,
-}
-
-impl Default for Sidebar {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl Sidebar {
-    pub fn new() -> Self {
-        Self {
-            active_tab: SidebarTab::Files,
-            file_tree: Vec::new(),
-            scroll_offset: 0,
-        }
-    }
-
-    pub fn switch_tab(&mut self, tab: SidebarTab) {
-        self.active_tab = tab;
-    }
-
-    pub fn scroll_down(&mut self) {
-        self.scroll_offset = self.scroll_offset.saturating_add(1);
-    }
-
-    pub fn scroll_up(&mut self) {
-        self.scroll_offset = self.scroll_offset.saturating_sub(1);
-    }
-}
-
-/// Render sidebar panel with tab bar
+/// Render sidebar panel with tab bar and content area
 pub fn render(area: Rect, frame: &mut Frame, app: &App) {
+    let p = theme::current_palette();
+
     // Split area into tab bar (1 row) + content
     let chunks = Layout::default()
         .direction(Direction::Vertical)
@@ -56,11 +23,11 @@ pub fn render(area: Rect, frame: &mut Frame, app: &App) {
         ])
         .split(area);
 
-    // Tab bar
+    // ── Tab bar ──────────────────────────────────────────────────────────
     let tabs = [
-        ("Files", SidebarTab::Files),
-        ("Sessions", SidebarTab::Sessions),
-        ("Skills", SidebarTab::Skills),
+        ("📁 Files", SidebarTab::Files),
+        ("📋 Sessions", SidebarTab::Sessions),
+        ("🧩 Skills", SidebarTab::Skills),
     ];
 
     let tab_spans: Vec<Span> = tabs
@@ -69,11 +36,9 @@ pub fn render(area: Rect, frame: &mut Frame, app: &App) {
         .flat_map(|(i, (label, tab))| {
             let is_active = app.sidebar_state.active_tab == *tab;
             let style = if is_active {
-                Style::default()
-                    .fg(theme::COLOR_CYAN)
-                    .add_modifier(Modifier::BOLD | Modifier::UNDERLINED)
+                Style::default().fg(p.accent).add_modifier(Modifier::BOLD)
             } else {
-                theme::muted_style()
+                Style::default().fg(p.muted_fg)
             };
             let sep = if i > 0 { " " } else { "" };
             vec![Span::raw(sep), Span::styled(*label, style)]
@@ -84,19 +49,24 @@ pub fn render(area: Rect, frame: &mut Frame, app: &App) {
     let tab_paragraph = Paragraph::new(tab_line).block(
         Block::default()
             .borders(Borders::TOP | Borders::LEFT | Borders::RIGHT)
-            .border_style(theme::muted_style()),
+            .border_type(theme::BORDER_TYPE)
+            .border_style(Style::default().fg(p.border)),
     );
     frame.render_widget(tab_paragraph, chunks[0]);
 
-    // Content area
+    // ── Content area ─────────────────────────────────────────────────────
     let content_block = Block::default()
         .borders(Borders::ALL)
-        .border_style(theme::muted_style());
+        .border_type(theme::BORDER_TYPE)
+        .border_style(Style::default().fg(p.border));
 
     let content_text = match app.sidebar_state.active_tab {
         SidebarTab::Files => {
             if app.sidebar_state.file_tree.is_empty() {
-                "  (no files loaded)".to_string()
+                format!(
+                    "  {}  (no files loaded)",
+                    Span::styled("📂", Style::default().fg(p.muted_fg))
+                )
             } else {
                 let scroll = app.sidebar_state.scroll_offset;
                 app.sidebar_state
@@ -112,13 +82,17 @@ pub fn render(area: Rect, frame: &mut Frame, app: &App) {
                     .join("\n")
             }
         }
-        SidebarTab::Sessions => "  (no sessions)".to_string(),
-        SidebarTab::Skills => "  (no skills loaded)".to_string(),
+        SidebarTab::Sessions => {
+            format!("  {}  (no sessions)", Span::styled("📄", Style::default().fg(p.muted_fg)))
+        }
+        SidebarTab::Skills => {
+            format!("  {}  (no skills loaded)", Span::styled("🧩", Style::default().fg(p.muted_fg)))
+        }
     };
 
     let paragraph = Paragraph::new(content_text)
         .block(content_block)
-        .style(Style::default().fg(theme::COLOR_GRAY));
+        .style(Style::default().fg(p.muted_fg));
 
     frame.render_widget(paragraph, chunks[1]);
 }

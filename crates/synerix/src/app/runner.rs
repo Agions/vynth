@@ -23,6 +23,9 @@ pub async fn run(
     // Initialize TUI
     let mut terminal = crate::tui::init()?;
 
+    // Initialize theme (dark by default; TODO: read from config)
+    crate::tui::theme::init_theme(true);
+
     let result = app.run(&mut terminal).await;
 
     // Restore terminal

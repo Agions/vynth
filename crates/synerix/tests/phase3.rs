@@ -4,12 +4,12 @@ use synerix::tui::diff_renderer::{
     parse_diff, render_diff, render_side_by_side, render_unified, DiffViewMode,
 };
 use synerix::tui::syntax::highlight_line;
-use synerix::tui::theme::Theme;
+use synerix::tui::theme::{dark_theme, light_theme};
 // ── Theme System ──────────────────────────────────────────
 
 #[test]
 fn test_theme_dark_resolves() {
-    let palette = Theme::Dark.resolve();
+    let palette = dark_theme();
     // Dark theme should have dark background
     assert_ne!(palette.background, palette.foreground);
     assert_ne!(palette.accent, palette.border);
@@ -17,42 +17,39 @@ fn test_theme_dark_resolves() {
 
 #[test]
 fn test_theme_light_resolves() {
-    let palette = Theme::Light.resolve();
+    let palette = light_theme();
     // Light theme should have light background
     assert_ne!(palette.background, palette.foreground);
 }
 
 #[test]
 fn test_theme_has_all_colors() {
-    let dark = Theme::Dark.resolve();
-    let light = Theme::Light.resolve();
+    let dark = dark_theme();
+    let light = light_theme();
 
     // Both themes must define all semantic colors
     for palette in [&dark, &light] {
         // Chat roles
         assert_ne!(palette.chat_user, palette.chat_assistant);
         assert_ne!(palette.chat_system, palette.chat_tool);
-        // Sidebar
-        assert_ne!(palette.sidebar_bg, palette.sidebar_fg);
-        // Diff
-        assert_ne!(palette.diff_add, palette.diff_remove);
-        // Status
-        assert_ne!(palette.status_bg, palette.status_fg);
-        // Streaming
-        assert_ne!(palette.streaming_cursor, palette.background);
+        // Accent distinct from background
+        assert_ne!(palette.accent, palette.background);
+        assert_ne!(palette.accent, palette.border);
+        // Error and success distinct
+        assert_ne!(palette.error, palette.success);
+        // Foreground distinct from muted
+        assert_ne!(palette.foreground, palette.muted_fg);
     }
 }
 
 #[test]
 fn test_theme_enum_variants() {
-    assert_eq!(
-        Theme::Dark.resolve().background,
-        Theme::Dark.resolve().background
-    );
+    let dark = dark_theme();
+    let light = light_theme();
     // Dark and light should have different backgrounds
     assert_ne!(
-        format!("{:?}", Theme::Dark.resolve().background),
-        format!("{:?}", Theme::Light.resolve().background)
+        format!("{:?}", dark.background),
+        format!("{:?}", light.background)
     );
 }
 

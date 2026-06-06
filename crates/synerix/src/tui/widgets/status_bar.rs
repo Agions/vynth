@@ -8,6 +8,7 @@ use ratatui::Frame;
 
 use crate::app::{AgentState, App, InputMode};
 use crate::coding_modes::CodingMode;
+use crate::tui::theme;
 
 /// Dark status background color — matches the dark theme's status_bg
 const STATUS_BG: Color = Color::Rgb(40, 42, 58);
@@ -48,56 +49,32 @@ pub fn mode_fg(mode: &InputMode) -> Color {
 /// Get coding mode style (background color based on mode)
 pub fn coding_mode_style(mode: &CodingMode) -> Color {
     match mode {
-        CodingMode::Plan => Color::Rgb(40, 60, 100), // blue-ish
-        CodingMode::Act => Color::Rgb(60, 100, 60),  // green-ish
-        CodingMode::Chat => Color::Rgb(80, 50, 100), // purple-ish
+        CodingMode::Plan => Color::Rgb(40, 60, 100),    // blue-ish
+        CodingMode::Act => Color::Rgb(60, 100, 60),     // green-ish
+        CodingMode::Chat => Color::Rgb(80, 50, 100),    // purple-ish
         CodingMode::Architect => Color::Rgb(100, 80, 60), // brown-ish
+        CodingMode::Vibe => Color::Rgb(80, 120, 130),   // teal — flow state
     }
 }
 
 /// Render the enhanced status bar into the given area
 pub fn render_status_bar(frame: &mut Frame, app: &App, area: Rect) {
+    let p = theme::current_palette();
     let (_mode_label, _mode_bg) = mode_style(&app.mode);
     let _mode_fg_color = mode_fg(&app.mode);
-
-    // Agent state section
-    let (state_str, state_color) = match &app.status_bar.agent_state {
-        AgentState::Idle => (" ● Idle ", Color::Rgb(158, 206, 121)),
-        AgentState::Thinking => (" ◌ Thinking… ", Color::Rgb(224, 175, 104)),
-        AgentState::RunningTool(name) => {
-            // Truncate tool name if too long
-            let display_name = if name.len() > 15 {
-                format!("{}…", &name[..15])
-            } else {
-                name.clone()
-            };
-            // We return a format string, handled below
-            let _ = display_name;
-            (" tool ", Color::Rgb(125, 207, 255)) // placeholder
-        }
-        AgentState::Error(msg) => {
-            let display_msg = if msg.len() > 20 {
-                format!("{}…", &msg[..20])
-            } else {
-                msg.clone()
-            };
-            let _ = display_msg;
-            (" error ", Color::Rgb(247, 118, 142)) // placeholder
-        }
-    };
 
     // Build spans
     let separator = Span::styled(
         " │ ",
-        Style::default().fg(Color::Rgb(86, 92, 116)).bg(STATUS_BG),
+        Style::default().fg(p.comment).bg(STATUS_BG),
     );
 
     let mut spans: Vec<Span> = Vec::new();
 
-    // Left: Coding mode + Input mode indicator
+    // Left: Coding mode badge
     let cm_bg = coding_mode_style(&app.coding_mode);
     spans.push(Span::styled(
-        app.coding_mode.label(),
+        format!(" {} ", app.coding_mode.label()),
         Style::default()
             .fg(Color::Rgb(220, 230, 255))
             .bg(cm_bg)
@@ -105,33 +82,45 @@ pub fn render_status_bar(frame: &mut Frame, app: &App, area: Rect) {
     ));
     spans.push(separator.clone());
 
-    let (_mode_label, _mode_bg) = mode_style(&app.mode);
-    let _mode_fg_color = mode_fg(&app.mode);
+    // Input mode indicator
+    let (mode_label, mode_bg_color) = mode_style(&app.mode);
+    let mode_fg_color = mode_fg(&app.mode);
     spans.push(Span::styled(
-        _mode_label,
+        format!(" {} ", mode_label.trim()),
         Style::default()
-            .fg(_mode_fg_color)
-            .bg(_mode_bg)
+            .fg(mode_fg_color)
+            .bg(mode_bg_color)
             .add_modifier(Modifier::BOLD),
     ));
-
     spans.push(separator.clone());
 
-    // Center-left: Agent state
-    match &app.status_bar.agent_state {
+    // Agent state
+    let agent_span = match &app.status_bar.agent_state {
+        AgentState::Idle => {
+            Span::styled(
+                " ● Idle ",
+                Style::default().fg(p.success).bg(STATUS_BG),
+            )
+        }
+        AgentState::Thinking => {
+            Span::styled(
+                " ◌ Thinking… ",
+                Style::default().fg(p.warning).bg(STATUS_BG),
+            )
+        }
         AgentState::RunningTool(name) => {
             let display_name = if name.len() > 15 {
                 format!("{}…", &name[..15])
             } else {
                 name.clone()
             };
-            spans.push(Span::styled(
+            Span::styled(
                 format!(" ⚙ {} ", display_name),
                 Style::default()
-                    .fg(Color::Rgb(125, 207, 255))
+                    .fg(p.accent)
                     .bg(STATUS_BG)
                     .add_modifier(Modifier::BOLD),
-            ));
+            )
         }
         AgentState::Error(msg) => {
             let display_msg = if msg.len() > 20 {
@@ -139,68 +128,59 @@ pub fn render_status_bar(frame: &mut Frame, app: &App, area: Rect) {
             } else {
                 msg.clone()
             };
-            spans.push(Span::styled(
+            Span::styled(
                 format!(" ✗ {} ", display_msg),
-                Style::default().fg(Color::Rgb(247, 118, 142)).bg(STATUS_BG),
-            ));
+                Style::default().fg(p.error).bg(STATUS_BG),
+            )
         }
-        _ => {
-            spans.push(Span::styled(
-                state_str,
-                Style::default().fg(state_color).bg(STATUS_BG),
-            ));
-        }
-    }
-
+    };
+    spans.push(agent_span);
     spans.push(separator.clone());
 
-    // Center: Token usage
+    // Token usage with color coding
     let tokens_used_str = format_tokens(app.status_bar.tokens_used);
     let tokens_total_str = format_tokens(app.status_bar.tokens_total);
 
-    // Color tokens based on usage percentage
     let token_color = if app.status_bar.tokens_total > 0 {
         let pct = (app.status_bar.tokens_used as f64 / app.status_bar.tokens_total as f64) * 100.0;
         if pct > 80.0 {
-            Color::Rgb(247, 118, 142) // red - high usage
+            p.error
         } else if pct > 60.0 {
-            Color::Rgb(224, 175, 104) // yellow - moderate usage
+            p.warning
         } else {
-            Color::Rgb(160, 170, 210) // muted - normal
+            p.muted_fg
         }
     } else {
-        Color::Rgb(160, 170, 210)
+        p.muted_fg
     };
 
     spans.push(Span::styled(
         format!(" {} / {} tokens ", tokens_used_str, tokens_total_str),
         Style::default().fg(token_color).bg(STATUS_BG),
     ));
-
     spans.push(separator.clone());
 
-    // Right: Model name
+    // Model name
     spans.push(Span::styled(
         format!(" {} ", app.status_bar.model_name),
-        Style::default().fg(Color::Rgb(160, 170, 210)).bg(STATUS_BG),
+        Style::default().fg(p.muted_fg).bg(STATUS_BG),
     ));
-
     spans.push(separator.clone());
 
-    // Goal indicator — shown before sandbox
+    // Goal indicator
     if app.status_bar.goal_active {
         let goal_duration = app.goal_state.duration_str();
         spans.push(Span::styled(
             format!(" ◎ {} ", goal_duration),
             Style::default()
-                .fg(Color::Rgb(224, 175, 104)) // yellow
+                .fg(p.warning)
                 .bg(STATUS_BG)
                 .add_modifier(Modifier::BOLD),
         ));
         spans.push(separator.clone());
     }
 
-    // Far right: Sandbox mode with icon
+    // Sandbox mode with icon
     let sandbox_icon = match app.status_bar.sandbox_mode.to_lowercase().as_str() {
         "auto" => "⚡",
         "confirm" => "🛡",
@@ -209,12 +189,12 @@ pub fn render_status_bar(frame: &mut Frame, app: &App, area: Rect) {
     };
     spans.push(Span::styled(
         format!(" {} {} ", sandbox_icon, app.status_bar.sandbox_mode),
-        Style::default().fg(Color::Rgb(140, 148, 180)).bg(STATUS_BG),
+        Style::default().fg(p.muted_fg).bg(STATUS_BG),
     ));
 
     let line = Line::from(spans);
     let paragraph =
-        Paragraph::new(line).style(Style::default().bg(STATUS_BG).fg(Color::Rgb(192, 202, 245)));
+        Paragraph::new(line).style(Style::default().bg(STATUS_BG).fg(p.foreground));
 
     frame.render_widget(paragraph, area);
 }

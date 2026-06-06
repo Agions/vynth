@@ -2,6 +2,53 @@
 
 All notable changes to Synerix will be documented in this file.
 
+## [0.2.0] — 2026-06-06
+
+### 🧘 Vibe Coding Mode (沉浸式编程模式)
+
+- **New `/mode vibe`** — 第五种编码模式，专为 AI 驱动心流设计
+- **零阻碍执行**：低/中风险操作自动放行，不打断心流
+- **自动迭代闭环**：编译/测试失败自动回注 LLM 循环修复，无需手动干预
+- **系统提示词驱动**：6条中文指令注入 Vibe 行为规则（沉浸式迭代、错误驱动修复、即时验证）
+- **别名支持**：`/mode v`、`/mode 沉浸`、`/mode 氛围` 均可切换
+- **状态栏标识**：Teal 青绿色 `(#507882)` 视觉区隔，一眼识别 Vibe 模式
+
+### 🎨 TUI 全面美化
+
+- **Tokyo Night 主题统一**：所有面板使用 `BorderType::Rounded` 圆角边框
+- **角色前缀彩色化**：`▸ 用户`(青色) / `◆ AI`(绿色) / `⚙ Tool`(紫色) — 一眼区分消息来源
+- **布局优化**：sidebar 15% / chat 55% / diff 20% / input 10% — 信息密度更合理
+- **输入框增强**：模式图标 (`⌨`/`✏`/`≡`) + 光标视觉效果优化
+- **状态栏重写**：全主题颜色版，Vibe 模式专属茶绿配色
+- **Diff 视图优化**：前置彩色字符（`+`绿 / `-`红 / `~`黄）
+
+### 🪄 SVG 视觉重生
+
+- **新 Logo** (512×512)：渐变 `>_S` 符号 + Vibe 波纹动感
+- **新 Icon** (64×64)：精简版 Logo，适用 favicon / 系统托盘
+- **新 Banner** (1200×340)：含 TUI 模拟截图，适配 README 头图
+- 全部使用 CSS 无依赖内联 SVG，渲染零依赖
+
+### 🧹 死代码清理 (ZERO 警告里程碑)
+
+- **删除 3 个死模块**：`chat_bubble.rs`(342行)、`list_select.rs`(45行)、`spinner.rs`(37行)
+- **theme.rs 精简 50%**：ColorPalette 29→14 字段，删除 Theme 枚举 + ThemeStyles + 9 个死函数 + 6 个死颜色常量
+- **Sidebar/DiffView 纯函数化**：删除 Sidebar/DiffView 结构体及相关 Widget impl，保留纯 render() 函数
+- **零编译器警告**：`#[allow(dead_code)]` 从 26 处降为 0，`cargo clippy -D warnings` 通过
+
+### 📖 README 故事驱动重写
+
+- **352 行全英文**：痛点表格 → 一行安装 → 6 能力卡片（2×3 网格）
+- **叙事结构**：先讲 Why Synerix（痛点驱动），再亮方案，后跟快速上手
+- **Vibe Coding 章节**：完整文档化新模式的启用方式和工作原则
+- **配置精炼**：去样板化，只保留关键可调参数
+
+### 🧪 测试
+
+- **706 测试全过**，零失败，零警告
+- 新增 5 项 Vibe 模式测试：权限验证、别名解析、display 标签
+- 更新 phase3 集成测试适配精简后的 theme API
+
 ## [0.1.1] — 2026-06-01
 
 ### 🎛️ Slash Command System Redesign

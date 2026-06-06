@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
   <defs>
-    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#00D4FF"/>
-      <stop offset="50%" style="stop-color:#7B61FF"/>
-      <stop offset="100%" style="stop-color:#FF6B9D"/>
+    <linearGradient id="grad-vibe" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00FF88"/>
+      <stop offset="50%" style="stop-color:#00D4FF"/>
+      <stop offset="100%" style="stop-color:#7B61FF"/>
     </linearGradient>
     <linearGradient id="gc" x1="0%" y1="0%" x2="0%" y2="100%">
       <stop offset="0%" style="stop-color:#00FF88"/>
@@ -11,13 +11,13 @@
     </linearGradient>
   </defs>
   <rect width="64" height="64" rx="14" fill="#0D1117"/>
-  <!-- ">" cursor -->
-  <path d="M14,14 L40,32 L14,50 Z" fill="url(#g)" opacity="0.85"/>
+  <!-- "> cursor with vibe gradient -->
+  <path d="M14,14 L38,32 L14,50 Z" fill="url(#grad-vibe)" opacity="0.85"/>
   <!-- "S" curve -->
-  <path d="M28,12 C46,12 52,22 52,30 C52,38 46,44 30,50 C20,54 14,58 14,58"
-        fill="none" stroke="url(#g)" stroke-width="5" stroke-linecap="round" opacity="0.9"/>
+  <path d="M28,12 C44,12 50,22 50,30 C50,38 44,44 30,50 C20,54 14,58 14,58"
+        fill="none" stroke="url(#grad-vibe)" stroke-width="5" stroke-linecap="round" opacity="0.9"/>
   <!-- Cursor blink -->
-  <rect x="48" y="10" width="2.5" height="14" rx="1.25" fill="url(#gc)" opacity="0.9">
-    <animate attributeName="opacity" values="0.9;0.2;0.9" dur="1.2s" repeatCount="indefinite"/>
+  <rect x="46" y="10" width="2.5" height="14" rx="1.25" fill="url(#gc)" opacity="0.9">
+    <animate attributeName="opacity" values="0.9;0.15;0.9" dur="1.2s" repeatCount="indefinite"/>
   </rect>
 </svg>
