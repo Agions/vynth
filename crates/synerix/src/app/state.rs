@@ -263,16 +263,16 @@ impl DirtyFlags {
 
 impl App {
     /// Create App with external channel (for testing)
-    #[allow(dead_code)]
     pub fn new_with_channel(
         settings: Settings,
         agent_tx: tokio::sync::mpsc::UnboundedSender<AgentEvent>,
         agent_rx: tokio::sync::mpsc::UnboundedReceiver<AgentEvent>,
+        mode: InputMode,
     ) -> Self {
         let (_config_reload_tx, config_reload_rx) = tokio::sync::mpsc::unbounded_channel();
         let keybindings = Self::create_keybindings(&settings);
         Self {
-            mode: InputMode::Normal,
+            mode,
             dirty_flags: DirtyFlags::all_dirty(),
             focused_panel: FocusedPanel::Input,
             chat_state: ChatState {
@@ -323,58 +323,7 @@ impl App {
 
     pub fn new(settings: Settings) -> Self {
         let (agent_tx, agent_rx) = tokio::sync::mpsc::unbounded_channel();
-        let (_config_reload_tx, config_reload_rx) = tokio::sync::mpsc::unbounded_channel();
-        let keybindings = Self::create_keybindings(&settings);
-        let model_name = settings.llm.model.clone();
-
-        Self {
-            mode: InputMode::Insert,
-            dirty_flags: DirtyFlags::all_dirty(),
-            focused_panel: FocusedPanel::Input,
-            chat_state: ChatState {
-                messages: Vec::new(),
-                streaming_text: String::new(),
-                is_streaming: false,
-                scroll_offset: 0,
-            },
-            sidebar_state: SidebarState {
-                active_tab: SidebarTab::Files,
-                file_tree: Vec::new(),
-                scroll_offset: 0,
-            },
-            diff_state: DiffState {
-                visible: false,
-                content: String::new(),
-                hunks: Vec::new(),
-                scroll_offset: 0,
-            },
-            status_bar: StatusBarState {
-                agent_state: AgentState::Idle,
-                model_name,
-                tokens_used: 0,
-                tokens_total: 0,
-                sandbox_mode: "confirm".to_string(),
-                startup_metrics: None,
-                goal_active: false,
-                goal_duration: String::new(),
-                coding_mode: CodingMode::Act,
-            },
-            input_buffer: String::new(),
-            input_cursor: 0,
-            keybindings,
-            yank_buffer: String::new(),
-            layout_state: LayoutState::default(),
-            settings,
-            should_quit: false,
-            agent_rx,
-            agent_tx,
-            config_reload_rx,
-            config_version: 0,
-            skill_registry: SkillRegistry::new(),
-            agent_registry: CustomAgentRegistry::new(),
-            goal_state: GoalState::inactive(),
-            coding_mode: CodingMode::Act,
-        }
+        Self::new_with_channel(settings, agent_tx, agent_rx, InputMode::Insert)
     }
 
     pub(crate) fn create_keybindings(settings: &Settings) -> KeyBindings {

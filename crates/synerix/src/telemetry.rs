@@ -1,9 +1,7 @@
 //! Startup metrics collection and reporting
 //!
 //! Tracks timing for each major initialization phase and provides
-//! logging and status-bar display helpers.
-// TODO: Telemetry — status_bar_text not yet wired
-#![allow(dead_code)]
+//! logging helpers.
 
 use std::time::Instant;
 
@@ -14,8 +12,6 @@ pub struct StartupMetrics {
     pub config_load_ms: u64,
     /// Time to initialize TUI terminal (ms)
     pub tui_init_ms: u64,
-    /// Time to open SQLite session store (ms)
-    pub db_open_ms: u64,
     /// Total wall-clock startup time (ms)
     pub total_ms: u64,
 }
@@ -26,7 +22,6 @@ impl StartupMetrics {
         tracing::info!(
             config_load_ms = self.config_load_ms,
             tui_init_ms = self.tui_init_ms,
-            db_open_ms = self.db_open_ms,
             total_ms = self.total_ms,
             "Startup metrics"
         );
@@ -35,14 +30,9 @@ impl StartupMetrics {
     /// Print metrics to stderr (for `startup-bench` feature flag)
     pub fn eprint(&self) {
         eprintln!(
-            "[startup-bench] config_load={}ms  tui_init={}ms  db_open={}ms  total={}ms",
-            self.config_load_ms, self.tui_init_ms, self.db_open_ms, self.total_ms
+            "[startup-bench] config_load={}ms  tui_init={}ms  total={}ms",
+            self.config_load_ms, self.tui_init_ms, self.total_ms
         );
-    }
-
-    /// Format a short summary suitable for the status bar
-    pub fn status_bar_text(&self) -> String {
-        format!("startup: {}ms", self.total_ms)
     }
 }
 
@@ -106,13 +96,13 @@ mod tests {
     }
 
     #[test]
-    fn metrics_status_bar_text() {
+    fn metrics_log_does_not_panic() {
         let metrics = StartupMetrics {
             config_load_ms: 5,
             tui_init_ms: 20,
-            db_open_ms: 15,
             total_ms: 42,
         };
-        assert_eq!(metrics.status_bar_text(), "startup: 42ms");
+        // Should not panic when called
+        metrics.log();
     }
 }

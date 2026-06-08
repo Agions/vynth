@@ -122,15 +122,14 @@ fn test_tool_registry_schema_caching() {
     let mut registry = synerix::tools::ToolRegistry::new();
     synerix::tools::builtin::register_builtins(&mut registry);
 
-    // First call builds cache
+    // First call builds schemas
     let schemas1 = registry.all_schemas();
-    assert!(registry.cached_schemas().is_some());
 
-    // Second call returns cached
+    // Second call returns schemas
     let schemas2 = registry.all_schemas();
     assert_eq!(schemas1.len(), schemas2.len());
 
-    // Verify cached schemas match
+    // Verify schemas match across calls
     for (s1, s2) in schemas1.iter().zip(schemas2.iter()) {
         assert_eq!(s1.function.name, s2.function.name);
     }

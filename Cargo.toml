@@ -7,7 +7,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 license = "MIT"
 rust-version = "1.75"
@@ -34,7 +34,7 @@ async-stream = "0.3"
 async-trait = "0.1"
 bytes = "1"
 uuid = { version = "1", features = ["v4"] }
-criterion = { version = "0.5", features = ["html_reports"] }
+criterion = { version = "0.5" }
 moka = { version = "0.12", features = ["sync"] }
 
 [workspace.dependencies.tempfile]
@@ -44,8 +44,17 @@ version = "3"
 version = "3"
 
 [workspace.lints.clippy]
-# Suppress in-progress warnings during migration — will be tightened
-pedantic = "allow"
+# Selected pedantic lints that improve code quality
+single_match = "warn"
+redundant_clone = "warn"
+needless_borrow = "warn"
+needless_pass_by_value = "warn"
+map_unwrap_or = "warn"
+unnecessary_literal_unwrap = "warn"
+manual_filter_map = "warn"
+manual_find_map = "warn"
+unnecessary_wraps = "warn"
+match_same_arms = "warn"
 
 [profile.release]
 opt-level = 3

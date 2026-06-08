@@ -34,7 +34,7 @@ impl SkillRegistry {
             return Ok(Self { skills });
         }
 
-        for entry in walk_dir(path).await {
+        for entry in crate::util::walk_dir(path).await {
             if entry.extension().is_some_and(|ext| ext == "md") {
                 match load_skill_file(&entry).await {
                     Ok(skill) => {
@@ -97,24 +97,6 @@ impl SkillRegistry {
     pub fn list_names(&self) -> Vec<&str> {
         self.skills.iter().map(|s| s.name.as_str()).collect()
     }
-}
-
-/// Simple recursive directory walker
-async fn walk_dir(path: &Path) -> Vec<std::path::PathBuf> {
-    let mut result = Vec::new();
-    let mut read_dir = match tokio::fs::read_dir(path).await {
-        Ok(rd) => rd,
-        Err(_) => return result,
-    };
-    while let Ok(Some(entry)) = read_dir.next_entry().await {
-        let path = entry.path();
-        if path.is_dir() {
-            result.extend(Box::pin(walk_dir(&path)).await);
-        } else {
-            result.push(path);
-        }
-    }
-    result
 }
 
 #[cfg(test)]

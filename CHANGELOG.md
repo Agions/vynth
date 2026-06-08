@@ -2,6 +2,34 @@
 
 All notable changes to Synerix will be documented in this file.
 
+## [0.2.1] — 2026-06-08
+
+### 🧹 全面死代码清理
+
+- **删除 2 个死目录**：`tests/`（5 个文件）、`git/` 模块（433 行，零引用）
+- **删除 9 个 `AppError` 死变体**（`ApprovalDenied`、`SessionNotFound`、`StreamClosed` 等）
+- **删除假指标**：`db_open_ms` 启动指标、假字段移除
+- **净删除 4,117 行**，净新增仅 96 行
+
+### ♻️ DRY 原则 — 消除 4 处重复
+
+- **`walk_dir()` 提取**：3 处复制 → `crate::util` 共享函数
+- **`handle_command_key` / `handle_search_key` 合并**：30 行重复 → `handle_common_key` 共享
+- **`App::new()` / `App::new_with_channel()` 合并**：45 行重复 → 3 行包装器
+- **`Settings::defaults()` 默认值委托**：11 处硬编码转移到 `default_*()` 函数
+
+### 🧩 架构精简
+
+- **ToolRegistry 移除 Mutex 缓存**：44 行缓存 → 直接 HashMap 迭代，文件 203→159 行
+- **Cargo.toml**：移除 `moka` 依赖、`criterion html_reports` 冗余 features
+- **clippy 收紧**：`pedantic = "allow"` → 10 个精选 pedantic lint（`single_match`、`redundant_clone` 等），代码库已完全合规
+
+### 🧪 测试
+
+- **694 测试全过**，零失败
+- `cargo check` 零错误零警告
+- `cargo clippy` 全绿
+
 ## [0.2.0] — 2026-06-06
 
 ### 🧘 Vibe Coding Mode (沉浸式编程模式)

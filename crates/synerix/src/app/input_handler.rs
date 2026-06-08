@@ -107,37 +107,19 @@ impl App {
         &mut self,
         key: crossterm::event::KeyEvent,
     ) -> Result<(), AppError> {
-        match key.code {
-            crossterm::event::KeyCode::Esc => {
-                self.clear_input();
-                self.mode = InputMode::Normal;
-                self.dirty_flags.input = true;
-            }
-            crossterm::event::KeyCode::Enter => {
-                tracing::debug!("Command: {}", self.input_buffer);
-                self.clear_input();
-                self.mode = InputMode::Normal;
-                self.dirty_flags.input = true;
-            }
-            crossterm::event::KeyCode::Backspace => {
-                self.delete_char_before_cursor();
-                self.dirty_flags.input = true;
-            }
-            crossterm::event::KeyCode::Char(c)
-                if !key
-                    .modifiers
-                    .contains(crossterm::event::KeyModifiers::CONTROL) =>
-            {
-                self.input_buffer.insert(self.input_cursor, c);
-                self.input_cursor += c.len_utf8();
-                self.dirty_flags.input = true;
-            }
-            _ => {}
-        }
-        Ok(())
+        self.handle_common_key(key, "Command").await
     }
 
     async fn handle_search_key(&mut self, key: crossterm::event::KeyEvent) -> Result<(), AppError> {
+        self.handle_common_key(key, "Search").await
+    }
+
+    /// Shared key handling for command/search modes: Esc, Enter, Backspace, regular chars.
+    async fn handle_common_key(
+        &mut self,
+        key: crossterm::event::KeyEvent,
+        debug_label: &str,
+    ) -> Result<(), AppError> {
         match key.code {
             crossterm::event::KeyCode::Esc => {
                 self.clear_input();
@@ -145,7 +127,7 @@ impl App {
                 self.dirty_flags.input = true;
             }
             crossterm::event::KeyCode::Enter => {
-                tracing::debug!("Search: {}", self.input_buffer);
+                tracing::debug!("{}: {}", debug_label, self.input_buffer);
                 self.clear_input();
                 self.mode = InputMode::Normal;
                 self.dirty_flags.input = true;

@@ -22,6 +22,7 @@ mod telemetry;
 mod token_estimator;
 mod tools;
 mod tui;
+mod util;
 
 use config::Settings;
 use error::AppError;
@@ -58,15 +59,11 @@ async fn main() -> Result<(), AppError> {
     //       See: https://github.com/Agions/synerix/issues (hot-reload)
 
     // TUI init is done inside app::run (after App is constructed)
-    // DB open is lazy — no metrics to capture here yet
-    let db_open_ms: u64 = 0;
-
     let total_ms = timer.total_elapsed_ms();
 
     let metrics = StartupMetrics {
         config_load_ms,
         tui_init_ms: 0, // will be set during app::run when TUI is initialized
-        db_open_ms,
         total_ms,
     };
 

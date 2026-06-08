@@ -119,7 +119,7 @@ impl CustomAgentRegistry {
             return Ok(registry);
         }
 
-        for entry in walk_dir(path).await {
+        for entry in crate::util::walk_dir(path).await {
             let ext = entry.extension().and_then(|e| e.to_str()).unwrap_or("");
 
             if ext == "yaml" || ext == "yml" || ext == "toml" {
@@ -190,24 +190,6 @@ async fn load_agent_file(path: &Path) -> Result<CustomAgentDef, AppError> {
             ext
         ))),
     }
-}
-
-/// Recursively walk a directory for files
-async fn walk_dir(path: &Path) -> Vec<PathBuf> {
-    let mut results = Vec::new();
-    let mut read_dir = match tokio::fs::read_dir(path).await {
-        Ok(rd) => rd,
-        Err(_) => return results,
-    };
-    while let Ok(Some(entry)) = read_dir.next_entry().await {
-        let path = entry.path();
-        if path.is_dir() {
-            results.extend(Box::pin(walk_dir(&path)).await);
-        } else {
-            results.push(path);
-        }
-    }
-    results
 }
 
 #[cfg(test)]

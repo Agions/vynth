@@ -1,8 +1,4 @@
-//! Tool registry — HashMap&lt;name, Arc&lt;dyn Tool>>
-//!
-//! Performance: caches tool schemas after first collection to avoid
-//! repeated schema construction on every agent turn.
-//! Uses interior mutability (Mutex) so `all_schemas` works with `&self`.
+//! Tool registry — HashMap<name, Arc<dyn Tool>>
 // TODO: Tool registry — not yet wired
 #![allow(dead_code)]
 
@@ -12,12 +8,9 @@ use std::sync::Arc;
 use crate::llm::types::ToolSchema;
 use crate::tools::traits::Tool;
 
-/// Tool registry with cached schemas (interior mutability)
+/// Tool registry with thread-local tools
 pub struct ToolRegistry {
     tools: HashMap<String, Arc<dyn Tool>>,
-    /// Cached schema list (populated on first `all_schemas()` call)
-    /// Protected by Mutex for interior mutability — allows `&self` access
-    cached_schemas: std::sync::Mutex<Option<Vec<ToolSchema>>>,
 }
 
 impl Default for ToolRegistry {
@@ -30,17 +23,12 @@ impl ToolRegistry {
     pub fn new() -> Self {
         Self {
             tools: HashMap::new(),
-            cached_schemas: std::sync::Mutex::new(None),
         }
     }
 
     /// Register a tool (called once at startup)
     pub fn register(&mut self, tool: Arc<dyn Tool>) {
         self.tools.insert(tool.name().to_string(), tool);
-        // Invalidate schema cache when tools change
-        if let Ok(mut cache) = self.cached_schemas.lock() {
-            *cache = None;
-        }
     }
 
     /// Find tool by name (O(1) lookup)
@@ -48,24 +36,9 @@ impl ToolRegistry {
         self.tools.get(name).cloned()
     }
 
-    /// Export all tool schemas for LLM (cached after first call)
-    ///
-    /// Since tools are registered once at startup and don't change,
-    /// we cache the schema list to avoid repeated construction.
-    /// Uses interior mutability — works with `&self`.
+    /// Export all tool schemas for LLM (built fresh each call)
     pub fn all_schemas(&self) -> Vec<ToolSchema> {
-        // Fast path: return cached schemas if available
-        {
-            if let Ok(cache) = self.cached_schemas.lock() {
-                if let Some(ref schemas) = *cache {
-                    return schemas.clone();
-                }
-            }
-        }
-
-        // Slow path: build schemas and cache them
-        let schemas: Vec<ToolSchema> = self
-            .tools
+        self.tools
             .values()
             .map(|tool| {
                 let schema = tool.schema();
@@ -78,21 +51,7 @@ impl ToolRegistry {
                     },
                 }
             })
-            .collect();
-
-        if let Ok(mut cache) = self.cached_schemas.lock() {
-            *cache = Some(schemas.clone());
-        }
-
-        schemas
-    }
-
-    /// Get cached schemas without building (returns None if not yet cached)
-    pub fn cached_schemas(&self) -> Option<Vec<ToolSchema>> {
-        self.cached_schemas
-            .lock()
-            .ok()
-            .and_then(|cache| cache.clone())
+            .collect()
     }
 
     /// List all registered tool names
@@ -155,18 +114,16 @@ mod tests {
             name: "test_tool".to_string(),
         }));
 
-        // First call: builds cache
         let schemas1 = registry.all_schemas();
         assert_eq!(schemas1.len(), 1);
-        assert!(registry.cached_schemas().is_some());
 
-        // Second call: returns cached (should be identical)
+        // Second call returns identical results
         let schemas2 = registry.all_schemas();
         assert_eq!(schemas1, schemas2);
     }
 
     #[test]
-    fn test_cache_invalidation_on_register() {
+    fn test_register_updates_schemas() {
         let mut registry = ToolRegistry::new();
         registry.register(Arc::new(MockTool {
             name: "tool1".to_string(),
@@ -175,11 +132,10 @@ mod tests {
         let schemas1 = registry.all_schemas();
         assert_eq!(schemas1.len(), 1);
 
-        // Register another tool: cache should be invalidated
+        // Register another tool: schemas should be up-to-date
         registry.register(Arc::new(MockTool {
             name: "tool2".to_string(),
         }));
-        assert!(registry.cached_schemas().is_none());
 
         let schemas2 = registry.all_schemas();
         assert_eq!(schemas2.len(), 2);

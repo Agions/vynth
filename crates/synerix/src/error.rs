@@ -1,6 +1,6 @@
 //! Unified error types for Synerix
-// TODO: Infrastructure awaiting main-loop integration
-#![allow(dead_code)]
+//!
+//! Application-wide error enum with conversions from standard library types.
 
 use thiserror::Error;
 
@@ -46,42 +46,23 @@ pub enum AppError {
     #[error("Execution failed: {0}")]
     ExecutionFailed(String),
 
-    #[error("Sandbox approval denied")]
-    ApprovalDenied,
-
     #[error("Channel send error: {0}")]
     ChannelSend(String),
-
-    #[error("Session not found: {0}")]
-    SessionNotFound(String),
-
-    #[error("Invalid transport type")]
-    InvalidTransport,
-
-    #[error("Stream closed unexpectedly")]
-    StreamClosed,
-
-    #[error("Mutex poisoned: {0}")]
-    MutexPoisoned(String),
-
-    #[error("Token budget exceeded: used={used}, limit={limit}")]
-    TokenBudgetExceeded { used: usize, limit: usize },
-
-    #[error("Workflow failed: {0}")]
-    WorkflowFailed(String),
-
-    #[error("Step '{step_id}' failed: {reason}")]
-    StepFailed { step_id: String, reason: String },
 
     #[error("YAML parse error: {0}")]
     YamlParse(#[from] serde_yaml::Error),
 
+    #[error("Mutex poisoned: {0}")]
+    MutexPoisoned(String),
+
+    #[allow(dead_code)]
     #[error("Plugin event partial failure: {failed_count}/{total_count} plugins failed")]
     PluginEventPartialFailure {
         failed_count: usize,
         total_count: usize,
     },
 
+    #[allow(dead_code)]
     #[error("Plugin init partial failure: {failed_count}/{total_count} plugin(s) failed")]
     PluginInitPartialFailure {
         failed_count: usize,
@@ -140,40 +121,6 @@ mod tests {
     }
 
     #[test]
-    fn test_error_display_token_budget() {
-        let err = AppError::TokenBudgetExceeded {
-            used: 1000,
-            limit: 500,
-        };
-        let s = err.to_string();
-        assert!(s.contains("1000"));
-        assert!(s.contains("500"));
-    }
-
-    #[test]
-    fn test_error_display_step_failed() {
-        let err = AppError::StepFailed {
-            step_id: "build".into(),
-            reason: "timeout".into(),
-        };
-        let s = err.to_string();
-        assert!(s.contains("build"));
-        assert!(s.contains("timeout"));
-    }
-
-    #[test]
-    fn test_error_display_approval_denied() {
-        let err = AppError::ApprovalDenied;
-        assert!(err.to_string().contains("denied"));
-    }
-
-    #[test]
-    fn test_error_display_stream_closed() {
-        let err = AppError::StreamClosed;
-        assert!(err.to_string().contains("Stream closed"));
-    }
-
-    #[test]
     fn test_error_from_io() {
         let io_err = std::io::Error::new(std::io::ErrorKind::NotFound, "file missing");
         let app_err: AppError = io_err.into();
@@ -188,22 +135,8 @@ mod tests {
     }
 
     #[test]
-    fn test_error_from_channel_send() {
-        // Use a full channel to get a SendError (not TrySendError)
-        let (tx, rx) = tokio::sync::mpsc::channel::<String>(1);
-        // Fill the channel
-        tx.try_send("fill".into()).unwrap();
-        // Now a blocking send would fail, but we can't do that in a sync test.
-        // Instead, test the Display formatting directly.
-        let app_err = AppError::ChannelSend("test channel error".into());
-        assert!(app_err.to_string().contains("Channel send"));
-        drop(rx);
-    }
-
-    #[test]
-    fn test_error_debug() {
+    fn test_error_display_execution_failed() {
         let err = AppError::ExecutionFailed("boom".into());
-        let debug = format!("{:?}", err);
-        assert!(debug.contains("ExecutionFailed"));
+        assert!(err.to_string().contains("Execution failed"));
     }
 }

@@ -110,7 +110,7 @@ async fn load_from_local(
 ) -> Result<Vec<SkillDef>, AppError> {
     let mut skills = Vec::new();
 
-    for entry in walk_dir(dir).await {
+    for entry in crate::util::walk_dir(dir).await {
         let ext = entry.extension().and_then(|e| e.to_str()).unwrap_or("");
 
         if ext != "md" {
@@ -279,24 +279,6 @@ fn dir_name(url: &str) -> String {
 /// Extract filename from URL
 fn url_filename(url: &str) -> String {
     url.split('/').next_back().unwrap_or("skill.md").to_string()
-}
-
-/// Recursively walk a directory
-async fn walk_dir(path: &Path) -> Vec<PathBuf> {
-    let mut results = Vec::new();
-    let mut read_dir = match tokio::fs::read_dir(path).await {
-        Ok(rd) => rd,
-        Err(_) => return results,
-    };
-    while let Ok(Some(entry)) = read_dir.next_entry().await {
-        let path = entry.path();
-        if path.is_dir() {
-            results.extend(Box::pin(walk_dir(&path)).await);
-        } else {
-            results.push(path);
-        }
-    }
-    results
 }
 
 #[cfg(test)]

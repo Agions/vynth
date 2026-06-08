@@ -4,7 +4,11 @@ use std::path::PathBuf;
 
 use crate::error::AppError;
 
-use super::{LlmConfig, Provider, SandboxConfig, SandboxMode, Settings, UiConfig};
+use super::{
+    default_keymap, default_sandbox_mode, default_temperature, default_theme, default_tool_timeout,
+    default_tools_schema_tokens, default_true, default_typing_delay, LlmConfig, Provider,
+    SandboxConfig, Settings, UiConfig,
+};
 
 impl Settings {
     /// Load settings from config file, with environment variable overrides
@@ -35,7 +39,7 @@ impl Settings {
             .join("config.toml")
     }
 
-    /// Create default settings
+    /// Create default settings — delegates to modular default_* functions
     pub(crate) fn defaults() -> Self {
         Self {
             llm: LlmConfig {
@@ -45,20 +49,20 @@ impl Settings {
                 model: "deepseek-v4-flash".to_string(),
                 context_window: 128_000,
                 max_output_tokens: 8192,
-                temperature: 0.7,
+                temperature: default_temperature(),
                 system_prompt_tokens: 2000,
-                tools_schema_tokens: 3000,
+                tools_schema_tokens: default_tools_schema_tokens(),
             },
             ui: UiConfig {
-                theme: "dark".to_string(),
-                keymap: "default".to_string(),
-                diff_line_numbers: true,
-                typing_delay_ms: 10,
+                theme: default_theme(),
+                keymap: default_keymap(),
+                diff_line_numbers: default_true(),
+                typing_delay_ms: default_typing_delay(),
             },
             sandbox: SandboxConfig {
-                mode: SandboxMode::Confirm,
-                atomic_writes: true,
-                tool_timeout_secs: 120,
+                mode: default_sandbox_mode(),
+                atomic_writes: default_true(),
+                tool_timeout_secs: default_tool_timeout(),
             },
             mcp: Vec::new(),
             skills_dir: None,
@@ -109,6 +113,7 @@ impl Settings {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::SandboxMode;
     use serial_test::serial;
 
     #[test]
