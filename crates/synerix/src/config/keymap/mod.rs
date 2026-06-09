@@ -1,6 +1,7 @@
 //! Keymap profiles — maps (InputMode, KeyEvent) → Action
 
 mod actions;
+mod pending;
 mod profiles;
 
 pub use actions::Action;

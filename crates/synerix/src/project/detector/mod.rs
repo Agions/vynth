@@ -1,5 +1,5 @@
 //! Project detection logic — language detection, type inference, root finding.
-// TODO: Project detector — not yet wired
+//! TODO: Project detector — not yet wired
 #![allow(dead_code)]
 
 mod parsers;
@@ -34,14 +34,14 @@ pub async fn detect_project(dir: Option<&Path>) -> ProjectInfo {
     let languages = detect_languages(&root).await;
     let project_type = detect_project_type(&root, &languages);
     let has_git = root.join(".git").exists();
-    let has_docker = root.join("Dockerfile").exists()
-        || root.join("docker-compose.yml").exists()
-        || root.join("docker-compose.yaml").exists();
-    let has_ci = root.join(".github").exists()
-        || root.join(".gitlab-ci.yml").exists()
-        || root.join("Jenkinsfile").exists()
-        || root.join(".circleci").exists();
-
+    let has_docker = has_any_file(
+        &root,
+        &["Dockerfile", "docker-compose.yml", "docker-compose.yaml"],
+    );
+    let has_ci = has_any_file(
+        &root,
+        &[".github", ".gitlab-ci.yml", "Jenkinsfile", ".circleci"],
+    );
     let config_files = detect_config_files(&root);
 
     ProjectInfo {
@@ -61,7 +61,7 @@ pub async fn detect_project(dir: Option<&Path>) -> ProjectInfo {
 /// Returns the first ancestor (inclusive) that contains a known marker file,
 /// or `None` if none is found before reaching the filesystem root.
 pub fn find_project_root(start: &Path) -> Option<PathBuf> {
-    let markers = [
+    const MARKERS: &[&str] = &[
         "Cargo.toml",
         "package.json",
         "pyproject.toml",
@@ -82,10 +82,8 @@ pub fn find_project_root(start: &Path) -> Option<PathBuf> {
     };
 
     loop {
-        for marker in &markers {
-            if current.join(marker).exists() {
-                return Some(current);
-            }
+        if MARKERS.iter().any(|m| current.join(m).exists()) {
+            return Some(current);
         }
 
         if !current.pop() {
@@ -97,9 +95,6 @@ pub fn find_project_root(start: &Path) -> Option<PathBuf> {
 }
 
 /// Find `.synerix` directory in the project root.
-///
-/// Looks for `.synerix/` under the project root (determined by `find_project_root`).
-/// Returns `None` if no project root or no `.synerix` directory exists.
 pub fn find_synerix_dir(start: &Path) -> Option<PathBuf> {
     let root = find_project_root(start)?;
     let synerix = root.join(".synerix");
@@ -112,29 +107,42 @@ pub fn find_synerix_dir(start: &Path) -> Option<PathBuf> {
 
 /// Find `.synerix/skills/` directory, if it exists.
 pub fn find_synerix_skills_dir(start: &Path) -> Option<PathBuf> {
-    let synerix = find_synerix_dir(start)?;
-    let skills = synerix.join("skills");
-    if skills.is_dir() {
-        Some(skills)
-    } else {
-        None
-    }
+    find_synerix_subdir(start, "skills")
 }
 
 /// Find `.synerix/agents/` directory, if it exists.
 pub fn find_synerix_agents_dir(start: &Path) -> Option<PathBuf> {
-    let synerix = find_synerix_dir(start)?;
-    let agents = synerix.join("agents");
-    if agents.is_dir() {
-        Some(agents)
-    } else {
-        None
-    }
+    find_synerix_subdir(start, "agents")
 }
 
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
+
+/// Check if any of the given file paths exist under `root`.
+fn has_any_file(root: &Path, paths: &[&str]) -> bool {
+    paths.iter().any(|p| root.join(p).exists())
+}
+
+/// Convert bool to "yes" / "no" for human-readable output.
+const fn yesno(v: bool) -> &'static str {
+    if v {
+        "yes"
+    } else {
+        "no"
+    }
+}
+
+/// Find a `.synerix/{sub_path}` directory, if it exists.
+fn find_synerix_subdir(start: &Path, sub_path: &str) -> Option<PathBuf> {
+    let synerix = find_synerix_dir(start)?;
+    let dir = synerix.join(sub_path);
+    if dir.is_dir() {
+        Some(dir)
+    } else {
+        None
+    }
+}
 
 pub(crate) fn suggest_skills(pt: &ProjectType) -> Vec<String> {
     match pt {
@@ -144,7 +152,9 @@ pub(crate) fn suggest_skills(pt: &ProjectType) -> Vec<String> {
         ProjectType::Go => vec!["code_review".into(), "refactor".into(), "go_test".into()],
         ProjectType::Java => vec!["code_review".into(), "refactor".into()],
         ProjectType::Flutter => vec!["code_review".into(), "refactor".into()],
-        ProjectType::Mixed | ProjectType::Unknown => vec!["code_review".into(), "refactor".into()],
+        ProjectType::Mixed | ProjectType::Unknown => {
+            vec!["code_review".into(), "refactor".into()]
+        }
     }
 }
 
@@ -177,9 +187,9 @@ pub(crate) fn build_prompt_hint(info: &ProjectInfo) -> String {
         } else {
             langs
         },
-        if info.has_git { "yes" } else { "no" },
-        if info.has_docker { "yes" } else { "no" },
-        if info.has_ci { "yes" } else { "no" },
+        yesno(info.has_git),
+        yesno(info.has_docker),
+        yesno(info.has_ci),
     )
 }
 

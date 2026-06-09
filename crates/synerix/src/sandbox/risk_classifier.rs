@@ -57,10 +57,135 @@ impl CommandPreview {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Risk classification pipeline — each level extracted as its own function
+// ---------------------------------------------------------------------------
+
+/// Classify a command by risk level.
+///
+/// Pipeline: injection → critical → high → medium → low → safe → fallback.
+/// First match wins.
+fn classify_command(cmd: &str) -> (RiskLevel, String, Vec<String>) {
+    // Step 0: Injection detection — overrides everything
+    if let Some(result) = detect_injection(cmd) {
+        return result;
+    }
+
+    let cmd_lower = cmd.to_lowercase();
+
+    // Chain: first match wins, ordered by severity
+    if let Some(result) = check_critical(cmd, &cmd_lower) {
+        return result;
+    }
+    if let Some(result) = check_high(&cmd_lower) {
+        return result;
+    }
+    if let Some(result) = check_medium(cmd, &cmd_lower) {
+        return result;
+    }
+    if let Some(result) = check_low(&cmd_lower) {
+        return result;
+    }
+    if let Some(result) = check_safe(&cmd_lower) {
+        return result;
+    }
+
+    (RiskLevel::Low, "General command".to_string(), vec![])
+}
+
+/// Critical: destructive operations (rm -rf, mkfs, dd)
+fn check_critical(_cmd: &str, cmd_lower: &str) -> Option<(RiskLevel, String, Vec<String>)> {
+    if cmd_lower.contains("rm -rf") || cmd_lower.contains("rm -r /") {
+        return Some((
+            RiskLevel::Critical,
+            "Recursive delete — will permanently remove files".to_string(),
+            vec!["/ (recursive delete)".to_string()],
+        ));
+    }
+
+    if cmd_lower.contains("mkfs") || cmd_lower.contains("dd if=") {
+        return Some((
+            RiskLevel::Critical,
+            "Disk operation — may overwrite data".to_string(),
+            vec![],
+        ));
+    }
+
+    None
+}
+
+/// High: system modifications (chmod -R, chown -R, sudo)
+fn check_high(cmd_lower: &str) -> Option<(RiskLevel, String, Vec<String>)> {
+    if cmd_lower.contains("chmod -r") || cmd_lower.contains("chown -r") {
+        return Some((
+            RiskLevel::High,
+            "Recursive permission change".to_string(),
+            vec![],
+        ));
+    }
+
+    if cmd_lower.contains("sudo ") {
+        return Some((
+            RiskLevel::High,
+            "Elevated privilege command".to_string(),
+            vec![],
+        ));
+    }
+
+    None
+}
+
+/// Medium: file writes (>, >>), git push/force
+fn check_medium(cmd: &str, cmd_lower: &str) -> Option<(RiskLevel, String, Vec<String>)> {
+    // File redirection
+    if cmd.contains(" > ") || cmd.contains(" >> ") {
+        let mut paths = vec![];
+        if let Some(pos) = cmd.find(" > ") {
+            let path = cmd[pos + 3..].split_whitespace().next().unwrap_or("?");
+            paths.push(path.to_string());
+        }
+        return Some((
+            RiskLevel::Medium,
+            "File write/redirection".to_string(),
+            paths,
+        ));
+    }
+
+    // Git push/force
+    if cmd_lower.starts_with("git ") && (cmd_lower.contains("push") || cmd_lower.contains("force"))
+    {
+        return Some((RiskLevel::Medium, "Git push operation".to_string(), vec![]));
+    }
+
+    None
+}
+
+/// Low: non-destructive git operations
+fn check_low(cmd_lower: &str) -> Option<(RiskLevel, String, Vec<String>)> {
+    if cmd_lower.starts_with("git ") {
+        return Some((RiskLevel::Low, "Git operation".to_string(), vec![]));
+    }
+    None
+}
+
+/// Safe: read-only commands (ls, cat, echo, pwd, which, grep, find)
+fn check_safe(cmd_lower: &str) -> Option<(RiskLevel, String, Vec<String>)> {
+    const SAFE_COMMANDS: &[&str] = &["ls", "cat", "echo", "pwd", "which", "grep", "find"];
+    let first_word = cmd_lower.split_whitespace().next()?;
+    if SAFE_COMMANDS.contains(&first_word) {
+        return Some((RiskLevel::Safe, "Read-only operation".to_string(), vec![]));
+    }
+    None
+}
+
+// ---------------------------------------------------------------------------
+// Injection detection
+// ---------------------------------------------------------------------------
+
 /// Detect shell command injection via metacharacters outside of quoted strings.
 ///
-/// Returns `(RiskLevel, description)` if injection is detected, `None` otherwise.
-fn detect_injection(cmd: &str) -> Option<(RiskLevel, String)> {
+/// Returns `(RiskLevel, description, paths)` if injection is detected, `None` otherwise.
+fn detect_injection(cmd: &str) -> Option<(RiskLevel, String, Vec<String>)> {
     let mut in_single_quote = false;
     let mut in_double_quote = false;
     let mut prev_char: Option<char> = None;
@@ -71,15 +196,22 @@ fn detect_injection(cmd: &str) -> Option<(RiskLevel, String)> {
             '"' if !in_single_quote => in_double_quote = !in_double_quote,
             '$' if !in_single_quote && !in_double_quote => {
                 // Check for $(...) command substitution
-                let rest = &cmd[i..];
-                if rest.starts_with("$(") {
+                if cmd[i..].starts_with("$(") {
                     return Some((
                         RiskLevel::Critical,
                         "Command substitution ($(...)) detected".into(),
+                        vec!["unknown (injection)".to_string()],
                     ));
                 }
             }
             ';' | '|' | '&' | '`' | '\n' | '\r' if !in_single_quote && !in_double_quote => {
+                // Allow `|` immediately after `time` or `command -v`
+                if ch == '|' && prev_char.map(|c| c.is_whitespace()).unwrap_or(false) {
+                    let before = cmd[..i].trim_end();
+                    if before.ends_with('|') || before.is_empty() {
+                        continue;
+                    }
+                }
                 let desc = match ch {
                     ';' => "Command separator (;) detected — potential injection",
                     '|' => "Pipeline (|) detected — potential injection",
@@ -88,101 +220,17 @@ fn detect_injection(cmd: &str) -> Option<(RiskLevel, String)> {
                     '\n' | '\r' => "Newline injected — potential command injection",
                     _ => "Shell metacharacter detected",
                 };
-                // Allow `|` immediately after `time` or `command -v` (common pattern)
-                if ch == '|' && prev_char.map(|c| c.is_whitespace()).unwrap_or(false) {
-                    let before = &cmd[..i].trim_end();
-                    if before.ends_with("|") || before.is_empty() {
-                        continue;
-                    }
-                }
-                return Some((RiskLevel::Critical, desc.into()));
+                return Some((
+                    RiskLevel::Critical,
+                    desc.into(),
+                    vec!["unknown (injection)".to_string()],
+                ));
             }
             _ => {}
         }
         prev_char = Some(ch);
     }
     None
-}
-
-/// Classify a command by risk level
-fn classify_command(cmd: &str) -> (RiskLevel, String, Vec<String>) {
-    // Step 0: Command injection detection — run BEFORE keyword matching
-    if let Some((risk, desc)) = detect_injection(cmd) {
-        return (risk, desc, vec!["unknown (injection)".to_string()]);
-    }
-
-    let cmd_lower = cmd.to_lowercase();
-    let mut paths = Vec::new();
-
-    // Critical: destructive operations
-    if cmd_lower.contains("rm -rf") || cmd_lower.contains("rm -r /") {
-        paths.push("/ (recursive delete)".to_string());
-        return (
-            RiskLevel::Critical,
-            "Recursive delete — will permanently remove files".to_string(),
-            paths,
-        );
-    }
-
-    if cmd_lower.contains("mkfs") || cmd_lower.contains("dd if=") {
-        return (
-            RiskLevel::Critical,
-            "Disk operation — may overwrite data".to_string(),
-            paths,
-        );
-    }
-
-    // High: system modifications
-    if cmd_lower.contains("chmod -r") || cmd_lower.contains("chown -r") {
-        return (
-            RiskLevel::High,
-            "Recursive permission change".to_string(),
-            paths,
-        );
-    }
-
-    if cmd_lower.contains("sudo ") {
-        return (
-            RiskLevel::High,
-            "Elevated privilege command".to_string(),
-            paths,
-        );
-    }
-
-    // Medium: file writes
-    if cmd.contains(" > ") || cmd.contains(" >> ") {
-        if let Some(pos) = cmd.find(" > ") {
-            let path = cmd[pos + 3..].split_whitespace().next().unwrap_or("?");
-            paths.push(path.to_string());
-        }
-        return (
-            RiskLevel::Medium,
-            "File write/redirection".to_string(),
-            paths,
-        );
-    }
-
-    // Low: git operations
-    if cmd_lower.starts_with("git ") {
-        if cmd_lower.contains("push") || cmd_lower.contains("force") {
-            return (RiskLevel::Medium, "Git push operation".to_string(), paths);
-        }
-        return (RiskLevel::Low, "Git operation".to_string(), paths);
-    }
-
-    // Safe: read-only commands
-    if cmd_lower.starts_with("ls")
-        || cmd_lower.starts_with("cat")
-        || cmd_lower.starts_with("echo")
-        || cmd_lower.starts_with("pwd")
-        || cmd_lower.starts_with("which")
-        || cmd_lower.starts_with("grep")
-        || cmd_lower.starts_with("find")
-    {
-        return (RiskLevel::Safe, "Read-only operation".to_string(), paths);
-    }
-
-    (RiskLevel::Low, "General command".to_string(), paths)
 }
 
 #[cfg(test)]
@@ -355,14 +403,12 @@ mod tests {
 
     #[test]
     fn test_quoted_semicolon_is_safe() {
-        // Semicolon inside quotes should NOT trigger injection
         let preview = CommandPreview::analyze("echo 'safe;not injection'");
         assert_eq!(preview.risk_level, RiskLevel::Safe);
     }
 
     #[test]
     fn test_quoted_pipe_is_safe() {
-        // Pipe inside quotes should NOT trigger injection
         let preview = CommandPreview::analyze("echo \"safe|pipe\"");
         assert_eq!(preview.risk_level, RiskLevel::Safe);
     }

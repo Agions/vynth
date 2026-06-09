@@ -10,13 +10,14 @@
 use std::fmt;
 
 /// The active coding mode, which governs agent autonomy and permission levels.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum CodingMode {
     /// 🧠 Plan first — analyse, propose a plan, then execute step-by-step with approval.
     /// The agent should outline what it intends to do before making any changes.
     Plan,
     /// ⚡ Act — direct execution. Low/medium-risk operations are auto-approved;
     /// high-risk and critical operations still require confirmation.
+    #[default]
     Act,
     /// 💬 Chat — read-only Q&A. The agent can read files and answer questions,
     /// but **must not** write files, execute commands, or modify state.

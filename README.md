@@ -41,15 +41,39 @@ Synerix collapses the AI coding workflow from **6 tools × 3 contexts** into **1
 
 ## ⚡ Installation
 
+### Linux / macOS
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Agions/synerix/main/install.sh | bash
 ```
+
+### Windows (PowerShell 5.1+)
+
+```powershell
+# Recommended — one-liner (equivalent to curl | bash)
+iwr -useb https://raw.githubusercontent.com/Agions/synerix/main/install.ps1 | iex
+```
+
+> **Alternative package managers** (once published):
+>
+> | Manager | Command | Notes |
+> |---|---|---|
+> | **winget** | `winget install Agions.synerix` | Built into Win10/11 |
+> | **scoop** | `scoop bucket add Agions; scoop install synerix` | Dev favourite |
+> | **choco** | `choco install synerix` | Enterprise |
+> | **cargo** | `cargo install synerix` | Rust toolchain required |
 
 <details>
 <summary><b>China mirror (Gitee)</b></summary>
 
 ```bash
+# Linux / macOS
 curl -fsSL https://gitee.com/Agions/synerix/raw/main/install.sh | bash
+```
+
+```powershell
+# Windows
+iwr -useb https://gitee.com/Agions/synerix/raw/main/install.ps1 | iex
 ```
 </details>
 
@@ -59,7 +83,7 @@ curl -fsSL https://gitee.com/Agions/synerix/raw/main/install.sh | bash
 ```bash
 git clone https://github.com/Agions/synerix.git
 cd synerix && cargo build --release
-# Binary → target/release/synerix
+# Binary → target/release/synerix (or synerix.exe on Windows)
 ```
 </details>
 
@@ -67,11 +91,14 @@ cd synerix && cargo build --release
 <summary><b>Uninstall</b></summary>
 
 ```bash
-# Keep config
+# Linux / macOS — Keep config
 curl -fsSL https://raw.githubusercontent.com/Agions/synerix/main/uninstall.sh | bash
 
-# Wipe everything
+# Linux / macOS — Wipe everything
 curl -fsSL https://raw.githubusercontent.com/Agions/synerix/main/uninstall.sh | bash -s -- --all
+
+# Windows — Remove binary
+Remove-Item "$env:LOCALAPPDATA\Programs\synerix" -Recurse -Force
 ```
 </details>
 

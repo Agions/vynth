@@ -10,35 +10,23 @@ use super::events::AgentEvent;
 use super::message::{ChatMessage, MessageRole};
 
 /// Which panel currently has focus
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum FocusedPanel {
     Chat,
     Diff,
     Sidebar,
+    #[default]
     Input,
 }
 
 /// Layout rects stored from the last render pass for mouse hit-testing
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct LayoutState {
     pub sidebar_rect: Rect,
     pub chat_rect: Rect,
     pub diff_rect: Rect,
     pub input_rect: Rect,
     pub status_rect: Rect,
-}
-
-impl Default for LayoutState {
-    fn default() -> Self {
-        let zero = Rect::new(0, 0, 0, 0);
-        Self {
-            sidebar_rect: zero,
-            chat_rect: zero,
-            diff_rect: zero,
-            input_rect: zero,
-            status_rect: zero,
-        }
-    }
 }
 
 /// Global application state
@@ -90,15 +78,17 @@ pub struct App {
     pub coding_mode: CodingMode,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum InputMode {
     Normal,
+    #[default]
     Insert,
     Command,
     Search,
 }
 
 /// Chat conversation state
+#[derive(Debug, Clone, Default)]
 pub struct ChatState {
     pub messages: Vec<ChatMessage>,
     pub streaming_text: String,
@@ -108,6 +98,7 @@ pub struct ChatState {
 }
 
 /// Sidebar panel state
+#[derive(Debug, Clone, Default)]
 pub struct SidebarState {
     pub active_tab: SidebarTab,
     pub file_tree: Vec<FileEntry>,
@@ -115,13 +106,15 @@ pub struct SidebarState {
     pub scroll_offset: usize,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum SidebarTab {
+    #[default]
     Files,
     Sessions,
     Skills,
 }
 
+#[derive(Debug, Clone, Default)]
 pub struct FileEntry {
     pub name: String,
     #[allow(dead_code)]
@@ -132,6 +125,7 @@ pub struct FileEntry {
 
 /// Diff preview state
 #[allow(dead_code)]
+#[derive(Debug, Clone, Default)]
 pub struct DiffState {
     pub visible: bool,
     pub content: String,
@@ -140,24 +134,28 @@ pub struct DiffState {
     pub scroll_offset: usize,
 }
 
+#[derive(Debug, Clone, Default)]
 pub struct DiffHunk {
     pub header: String,
     pub lines: Vec<DiffLine>,
 }
 
+#[derive(Debug, Clone, Default)]
 pub struct DiffLine {
     pub kind: DiffLineKind,
     pub content: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum DiffLineKind {
     Add,
     Remove,
+    #[default]
     Context,
 }
 
 /// Status bar state
+#[derive(Debug, Clone, Default)]
 pub struct StatusBarState {
     pub agent_state: AgentState,
     pub model_name: String,
@@ -171,8 +169,7 @@ pub struct StatusBarState {
     pub coding_mode: CodingMode,
 }
 
-/// /goal state — completion condition + auto-loop tracking
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct GoalState {
     /// The condition text (e.g. "all tests in test/auth pass")
     pub condition: Option<String>,
@@ -188,13 +185,7 @@ pub struct GoalState {
 
 impl GoalState {
     pub fn inactive() -> Self {
-        Self {
-            condition: None,
-            turns: 0,
-            started_at: None,
-            last_reason: String::new(),
-            achieved: false,
-        }
+        Self::default()
     }
 
     pub fn is_active(&self) -> bool {
@@ -223,8 +214,9 @@ impl GoalState {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub enum AgentState {
+    #[default]
     Idle,
     Thinking,
     RunningTool(String),
@@ -253,10 +245,6 @@ impl DirtyFlags {
             status: true,
         }
     }
-    #[allow(dead_code)]
-    pub fn is_clean(&self) -> bool {
-        !self.sidebar && !self.chat && !self.diff && !self.input && !self.status
-    }
 }
 
 // ── Constructors ──────────────────────────────────────────────
@@ -275,34 +263,10 @@ impl App {
             mode,
             dirty_flags: DirtyFlags::all_dirty(),
             focused_panel: FocusedPanel::Input,
-            chat_state: ChatState {
-                messages: Vec::new(),
-                streaming_text: String::new(),
-                is_streaming: false,
-                scroll_offset: 0,
-            },
-            sidebar_state: SidebarState {
-                active_tab: SidebarTab::Files,
-                file_tree: Vec::new(),
-                scroll_offset: 0,
-            },
-            diff_state: DiffState {
-                visible: false,
-                content: String::new(),
-                hunks: Vec::new(),
-                scroll_offset: 0,
-            },
-            status_bar: StatusBarState {
-                model_name: settings.llm.model.clone(),
-                tokens_used: 0,
-                tokens_total: settings.llm.context_window,
-                agent_state: AgentState::Idle,
-                sandbox_mode: format!("{:?}", settings.sandbox.mode),
-                startup_metrics: None,
-                goal_active: false,
-                goal_duration: String::new(),
-                coding_mode: CodingMode::Act,
-            },
+            chat_state: ChatState::default(),
+            sidebar_state: SidebarState::default(),
+            diff_state: DiffState::default(),
+            status_bar: StatusBarState::default(),
             input_buffer: String::new(),
             input_cursor: 0,
             keybindings,

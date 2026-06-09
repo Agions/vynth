@@ -5,6 +5,7 @@
 //! - Shared `estimate_tokens` from `token_estimator` module (cached)
 //! - Pre-calculated token counts to avoid redundant estimation
 //! - Efficient `compress_old_tool_results` with in-place modification
+//! - `trim_to_budget` uses `std::mem::take` + `into_iter().filter()` for O(n) bulk removal
 // TODO: Context manager — not yet wired into agent loop
 #![allow(dead_code)]
 
@@ -117,7 +118,8 @@ impl ContextManager {
     /// 2. Drop oldest non-system messages (keep last 3 turns)
     /// 3. Always preserve: system + last 3 turns
     ///
-    /// Optimized: uses `retain` instead of repeated `Vec::remove` (O(n) vs O(n²))
+    /// Optimized: uses `std::mem::take` + `into_iter().filter()` for O(n) bulk removal
+    /// instead of drain + reinsert (O(n²)).
     fn trim_to_budget(&mut self) {
         let target = (self.budget.available as f64 * 0.6) as usize;
 
@@ -125,51 +127,52 @@ impl ContextManager {
         self.compress_old_tool_results();
 
         // Strategy 2: Drop oldest non-system messages (keep last 3 turns = 6 messages)
-        let min_keep = 6;
-        if self.messages.len() <= min_keep {
+        const MIN_KEEP: usize = 6;
+        if self.messages.len() <= MIN_KEEP || self.estimated_tokens <= target {
             return;
         }
 
-        // Calculate how many messages to remove from the front (skip system messages)
-        let keep_from = self.messages.len().saturating_sub(min_keep);
-        let mut tokens_to_remove = 0usize;
-        let mut remove_indices: Vec<usize> = Vec::new();
+        let keep_start = self.messages.len().saturating_sub(MIN_KEEP);
 
-        // First pass: identify non-system messages to remove (oldest first)
-        for (i, msg) in self.messages.iter().take(keep_from).enumerate() {
-            if !matches!(msg.role, MessageRole::System) {
-                if self.estimated_tokens - tokens_to_remove <= target {
-                    break;
+        // Identify oldest non-system messages to drop from the front
+        let mut tokens_to_remove = 0usize;
+        let drop_indices: Vec<usize> = self
+            .messages
+            .iter()
+            .enumerate()
+            .take(keep_start)
+            .filter_map(|(i, msg)| {
+                if matches!(msg.role, MessageRole::System) {
+                    return None; // Never drop system messages
+                }
+                if self.estimated_tokens.saturating_sub(tokens_to_remove) <= target {
+                    return None; // Already under budget
                 }
                 tokens_to_remove += estimate_tokens(msg.content.as_deref().unwrap_or(""));
-                remove_indices.push(i);
-            }
-        }
+                Some(i)
+            })
+            .collect();
 
-        if remove_indices.is_empty() {
+        if drop_indices.is_empty() {
             return;
         }
 
-        // Use `retain` with index tracking for efficient bulk removal
-        // We need to remove specific indices, so drain from front
-        // SAFETY: remove_indices is non-empty (checked above)
-        let drain_up_to = *remove_indices.last().expect("remove_indices non-empty") + 1;
-        let removed: Vec<ChatMessage> = self.messages.drain(..drain_up_to).collect();
+        // Bulk removal: take messages, filter by position, assign back — O(n)
+        let drop_set: std::collections::HashSet<usize> = drop_indices.into_iter().collect();
+        let drained = std::mem::take(&mut self.messages);
+        self.messages = drained
+            .into_iter()
+            .enumerate()
+            .filter(|(i, _)| !drop_set.contains(i))
+            .map(|(_, msg)| msg)
+            .collect();
 
-        // Re-insert any system messages that were drained
-        for msg in removed.into_iter() {
-            if matches!(msg.role, MessageRole::System) {
-                self.messages.insert(0, msg);
-            }
-        }
-
-        let removed_tokens: usize = tokens_to_remove;
-        self.estimated_tokens = self.estimated_tokens.saturating_sub(removed_tokens);
+        self.estimated_tokens = self.estimated_tokens.saturating_sub(tokens_to_remove);
 
         tracing::debug!(
             "Context trimmed: removed {} messages, {} tokens. Now: {} messages, ~{} tokens (budget: {})",
-            remove_indices.len(),
-            removed_tokens,
+            drop_set.len(),
+            tokens_to_remove,
             self.messages.len(),
             self.estimated_tokens,
             self.budget.available
@@ -190,12 +193,12 @@ impl ContextManager {
             .map(|(i, _)| i)
             .collect();
 
-        let keep_recent = 4;
-        if tool_indices.len() <= keep_recent {
+        const KEEP_RECENT: usize = 4;
+        if tool_indices.len() <= KEEP_RECENT {
             return;
         }
 
-        let compress_indices = &tool_indices[..tool_indices.len() - keep_recent];
+        let compress_indices = &tool_indices[..tool_indices.len() - KEEP_RECENT];
 
         // Process in reverse to maintain index validity
         for &idx in compress_indices.iter().rev() {
@@ -254,21 +257,17 @@ impl ContextManager {
         self.estimated_tokens = 0;
     }
 
-    /// Get message count by role
+    /// Get message count by role — single pass with fold.
     pub fn count_by_role(&self) -> (usize, usize, usize, usize) {
-        let mut system = 0;
-        let mut user = 0;
-        let mut assistant = 0;
-        let mut tool = 0;
-        for msg in &self.messages {
-            match msg.role {
-                MessageRole::System => system += 1,
-                MessageRole::User => user += 1,
-                MessageRole::Assistant => assistant += 1,
-                MessageRole::Tool => tool += 1,
-            }
-        }
-        (system, user, assistant, tool)
+        self.messages.iter().fold(
+            (0usize, 0usize, 0usize, 0usize),
+            |(system, user, assistant, tool), msg| match msg.role {
+                MessageRole::System => (system + 1, user, assistant, tool),
+                MessageRole::User => (system, user + 1, assistant, tool),
+                MessageRole::Assistant => (system, user, assistant + 1, tool),
+                MessageRole::Tool => (system, user, assistant, tool + 1),
+            },
+        )
     }
 }
 
@@ -300,8 +299,7 @@ fn summarize_tool_result(content: &str) -> String {
         result.push_str(&format!("\n... ({} lines omitted) ...\n", lines.len() - 5));
 
         // Last 2 lines
-        let last_two = &lines[lines.len() - 2..];
-        for (i, line) in last_two.iter().enumerate() {
+        for (i, line) in lines[lines.len() - 2..].iter().enumerate() {
             if i > 0 {
                 result.push('\n');
             }

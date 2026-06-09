@@ -14,6 +14,22 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            os_name: linux
+            arch: x86_64
+            ext: .tar.gz
+            pack_cmd: tar -czf
+          - os: macos-latest
+            os_name: macos
+            arch: aarch64
+            ext: .tar.gz
+            pack_cmd: tar -czf
+          - os: windows-latest
+            os_name: windows
+            arch: x86_64
+            ext: .zip
+            pack_cmd: powershell Compress-Archive -Path
 
     steps:
       - uses: actions/checkout@v4
@@ -27,13 +43,20 @@ jobs:
       - name: Package binary
         shell: bash
         run: |
+          TAG="${GITHUB_REF#refs/tags/}"
           mkdir -p dist
           cp target/release/synerix dist/ 2>/dev/null || cp target/release/synerix.exe dist/ 2>/dev/null || true
-          cp README.md LICENSE dist/ 2>/dev/null || true
-          tar -czf synerix-${{ runner.os }}-${{ github.ref_name }}.tar.gz -C dist .
+          cp README.md LICENSE CHANGELOG.md dist/ 2>/dev/null || true
+          ARCHIVE_NAME="synerix-${TAG}-${{ matrix.os_name }}-${{ matrix.arch }}${{ matrix.ext }}"
+          if [ "${{ matrix.os_name }}" = "windows" ]; then
+            powershell "Compress-Archive -Path dist/* -DestinationPath ${ARCHIVE_NAME} -Force"
+          else
+            tar -czf "${ARCHIVE_NAME}" -C dist .
+          fi
+          echo "archive=${ARCHIVE_NAME}" >> $GITHUB_ENV
 
       - name: Upload release artifact
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
-          files: synerix-*.tar.gz
+          files: synerix-*
           generate_release_notes: true

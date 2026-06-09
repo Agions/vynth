@@ -2,6 +2,29 @@
 
 All notable changes to Synerix will be documented in this file.
 
+## [0.2.2] — 2026-06-09
+
+### 🪟 Windows 原生安装支持
+
+- **新增 `install.ps1`** — Windows PowerShell 安装脚本，等效 `curl | bash`
+  - 一行命令：`iwr -useb https://raw.githubusercontent.com/Agions/synerix/main/install.ps1 | iex`
+  - 自动检测架构（x86_64 / aarch64），下载对应预编译二进制
+  - GitHub 优先 + Gitee 兜底的双源下载策略
+  - 自动安装到 `%LOCALAPPDATA%\Programs\synerix`
+  - 自动添加到用户 PATH（后续终端生效）
+  - 支持 `$env:SYNERIX_HOME` 自定义安装目录
+
+- **优化 `release.yml`** — Windows 构建产物改为 `.zip` 格式
+  - 统一发布文件命名：`synerix-{tag}-{os}-{arch}.{ext}`
+  - Linux: `.tar.gz` / macOS: `.tar.gz` / Windows: `.zip`
+
+### 📖 文档
+
+- **README 安装章节重构**：
+  - 分平台展示（Linux/macOS / Windows）
+  - Gitee 国内镜像同时展示 bash + powershell 命令
+  - Windows 卸载指引
+
 ## [0.2.1] — 2026-06-08
 
 ### 🧹 全面死代码清理

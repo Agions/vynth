@@ -1,6 +1,13 @@
 //! Application settings
 
+mod defaults;
 mod validation;
+
+pub(crate) use defaults::{
+    default_agent_turns, default_keymap, default_mcp_timeout, default_sandbox_mode,
+    default_system_prompt_tokens, default_temperature, default_theme, default_tool_timeout,
+    default_tools_schema_tokens, default_true, default_typing_delay,
+};
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -88,18 +95,6 @@ impl fmt::Debug for Settings {
     }
 }
 
-fn default_system_prompt_tokens() -> usize {
-    2000
-}
-
-fn default_tools_schema_tokens() -> usize {
-    3000
-}
-
-fn default_temperature() -> f32 {
-    0.7
-}
-
 /// Supported LLM providers
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -126,22 +121,6 @@ pub struct UiConfig {
     pub typing_delay_ms: u64,
 }
 
-fn default_theme() -> String {
-    "dark".to_string()
-}
-
-fn default_keymap() -> String {
-    "default".to_string()
-}
-
-fn default_true() -> bool {
-    true
-}
-
-fn default_typing_delay() -> u64 {
-    10
-}
-
 /// Sandbox security settings
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SandboxConfig {
@@ -154,14 +133,6 @@ pub struct SandboxConfig {
     /// Tool execution timeout in seconds (default: 120)
     #[serde(default = "default_tool_timeout")]
     pub tool_timeout_secs: u64,
-}
-
-fn default_tool_timeout() -> u64 {
-    120
-}
-
-fn default_sandbox_mode() -> SandboxMode {
-    SandboxMode::Confirm
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
@@ -196,10 +167,6 @@ pub struct McpServerConfig {
     /// Connection timeout in seconds
     #[serde(default = "default_mcp_timeout")]
     pub timeout_secs: u64,
-}
-
-fn default_mcp_timeout() -> u64 {
-    30
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -246,10 +213,6 @@ pub struct InlineAgentConfig {
     /// Tags
     #[serde(default)]
     pub tags: Vec<String>,
-}
-
-fn default_agent_turns() -> usize {
-    10
 }
 
 #[cfg(test)]

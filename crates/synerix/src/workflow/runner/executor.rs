@@ -1,4 +1,10 @@
 //! Workflow execution engine — parallel step execution with DAG validation.
+//!
+//! # 优化说明
+//! - `run()` 从 112 行降至 32 行：提取 `prepare_step` / `handle_step_result`
+//! - `run_step()` 和 `run()` 共享 `StepParams` 参数封装，消除参数提取重复
+//! - `status()` 从 4 次 `values().filter()` 合并为单次遍历
+//! - `RetryConfig` 封装重试参数，消除跨方法的参数列表重复
 
 use std::collections::{HashMap, HashSet};
 
@@ -10,6 +16,48 @@ use crate::workflow::definition::{WorkflowDef, WorkflowStep};
 use super::helpers;
 use super::retry::execute_step_with_retry;
 use super::types::{StepResult, StepStatus, WorkflowStatus};
+
+/// 封装步骤执行参数，消除 run() 和 run_step() 间的参数提取重复
+struct StepParams {
+    step_id: String,
+    agent_id: String,
+    prompt: String,
+    output_variable: Option<String>,
+    max_retries: u32,
+    retry_delay_ms: u64,
+    timeout_secs: u64,
+}
+
+/// 从 WorkflowStep 提取 StepParams
+///
+/// # 优化说明
+/// 原逻辑在 run() 和 run_step() 中分别 inline，共 40+ 行重复代码。
+/// 提取后两处共用一个函数。
+fn extract_params(step: &WorkflowStep, prompt: String, agent_id: String) -> StepParams {
+    StepParams {
+        step_id: step.id.clone(),
+        agent_id,
+        prompt,
+        output_variable: step.output_variable.clone(),
+        max_retries: step.retry_count.unwrap_or(0),
+        retry_delay_ms: step.retry_delay_ms.unwrap_or(1000),
+        timeout_secs: step.timeout_secs.unwrap_or(300),
+    }
+}
+
+/// 将 StepParams 转化为 execute_step_with_retry 调用
+async fn spawn_step(params: StepParams) -> Result<StepResult, AppError> {
+    execute_step_with_retry(
+        params.step_id,
+        params.agent_id,
+        params.prompt,
+        params.output_variable,
+        params.max_retries,
+        params.retry_delay_ms,
+        params.timeout_secs,
+    )
+    .await
+}
 
 /// Workflow execution engine.
 pub struct WorkflowRunner {
@@ -58,10 +106,10 @@ impl WorkflowRunner {
     /// Run the entire workflow — executes independent steps in parallel.
     pub async fn run(&mut self) -> Result<WorkflowStatus, AppError> {
         let total = self.workflow.steps.len();
-        let mut completed = 0;
-        let mut failed = 0;
-        let mut skipped = 0;
-        let mut timed_out = 0;
+        let mut completed = 0usize;
+        let mut failed = 0usize;
+        let mut skipped = 0usize;
+        let mut timed_out = 0usize;
 
         loop {
             let executable = self.get_executable_steps();
@@ -71,92 +119,14 @@ impl WorkflowRunner {
 
             let mut futures = Vec::new();
             for step in &executable {
-                // Check condition before spawning
-                if let Some(ref cond) = step.condition {
-                    if !self.evaluate_condition(cond) {
-                        self.step_results.insert(
-                            step.id.clone(),
-                            StepResult {
-                                step_id: step.id.clone(),
-                                output: String::new(),
-                                status: StepStatus::Skipped,
-                                duration_ms: 0,
-                                attempts: 0,
-                            },
-                        );
-                        skipped += 1;
-                        continue;
-                    }
+                match self.prepare_step(step) {
+                    Some(params) => futures.push(spawn_step(params)),
+                    None => skipped += 1,
                 }
-
-                let prompt = self.resolve_prompt(&step.prompt);
-                let agent_id = match self.agent_map.get(&step.agent_role) {
-                    Some(id) => id.clone(),
-                    None => {
-                        self.step_results.insert(
-                            step.id.clone(),
-                            StepResult {
-                                step_id: step.id.clone(),
-                                output: format!("No agent for role '{}'", step.agent_role),
-                                status: StepStatus::Failed(format!(
-                                    "No agent for role '{}'",
-                                    step.agent_role
-                                )),
-                                duration_ms: 0,
-                                attempts: 0,
-                            },
-                        );
-                        failed += 1;
-                        continue;
-                    }
-                };
-
-                let max_retries = step.retry_count.unwrap_or(0);
-                let retry_delay = step.retry_delay_ms.unwrap_or(1000);
-                let timeout_secs = step.timeout_secs.unwrap_or(300);
-
-                futures.push(execute_step_with_retry(
-                    step.id.clone(),
-                    agent_id,
-                    prompt,
-                    step.output_variable.clone(),
-                    max_retries,
-                    retry_delay,
-                    timeout_secs,
-                ));
             }
 
-            let results = futures::future::join_all(futures).await;
-
-            for result in results {
-                match result {
-                    Ok(step_result) => {
-                        if let StepStatus::Success = &step_result.status {
-                            completed += 1;
-                            if let Some(step) = self
-                                .workflow
-                                .steps
-                                .iter()
-                                .find(|s| s.id == step_result.step_id)
-                            {
-                                if let Some(ref var) = step.output_variable {
-                                    self.variables
-                                        .insert(var.clone(), step_result.output.clone());
-                                }
-                            }
-                        } else if matches!(&step_result.status, StepStatus::TimedOut) {
-                            timed_out += 1;
-                        } else {
-                            failed += 1;
-                        }
-                        self.step_results
-                            .insert(step_result.step_id.clone(), step_result);
-                    }
-                    Err(e) => {
-                        tracing::error!("Step execution error: {}", e);
-                        failed += 1;
-                    }
-                }
+            for result in futures::future::join_all(futures).await {
+                self.handle_step_result(&mut completed, &mut failed, &mut timed_out, result);
             }
         }
 
@@ -168,6 +138,96 @@ impl WorkflowRunner {
             running: 0,
             timed_out,
         })
+    }
+
+    /// 条件检查 + 代理查找 + 参数封装：为一步骤准备执行环境
+    ///
+    /// 返回 None 表示跳过该步骤，Some(params) 可立即 spawn 执行。
+    fn prepare_step(&mut self, step: &WorkflowStep) -> Option<StepParams> {
+        // 条件检查
+        if let Some(ref cond) = step.condition {
+            if !self.evaluate_condition(cond) {
+                self.step_results.insert(
+                    step.id.clone(),
+                    StepResult {
+                        step_id: step.id.clone(),
+                        output: String::new(),
+                        status: StepStatus::Skipped,
+                        duration_ms: 0,
+                        attempts: 0,
+                    },
+                );
+                return None;
+            }
+        }
+
+        // 代理查找
+        let agent_id = self.agent_map.get(&step.agent_role).cloned();
+        let agent_id = match agent_id {
+            Some(id) => id,
+            None => {
+                self.step_results.insert(
+                    step.id.clone(),
+                    StepResult {
+                        step_id: step.id.clone(),
+                        output: format!("No agent for role '{}'", step.agent_role),
+                        status: StepStatus::Failed(format!(
+                            "No agent for role '{}'",
+                            step.agent_role
+                        )),
+                        duration_ms: 0,
+                        attempts: 0,
+                    },
+                );
+                return None;
+            }
+        };
+
+        let prompt = self.resolve_prompt(&step.prompt);
+        Some(extract_params(step, prompt, agent_id))
+    }
+
+    /// 处理单步执行结果：更新计数 + 变量存储 + 结果记录
+    fn handle_step_result(
+        &mut self,
+        completed: &mut usize,
+        failed: &mut usize,
+        timed_out: &mut usize,
+        result: Result<StepResult, AppError>,
+    ) {
+        match result {
+            Ok(step_result) => {
+                if let StepStatus::Success = &step_result.status {
+                    *completed += 1;
+                    self.save_output_variable(&step_result);
+                } else if matches!(&step_result.status, StepStatus::TimedOut) {
+                    *timed_out += 1;
+                } else {
+                    *failed += 1;
+                }
+                self.step_results
+                    .insert(step_result.step_id.clone(), step_result);
+            }
+            Err(e) => {
+                tracing::error!("Step execution error: {}", e);
+                *failed += 1;
+            }
+        }
+    }
+
+    /// 如果步骤配置了 output_variable，将结果输出存入变量
+    fn save_output_variable(&mut self, step_result: &StepResult) {
+        let step = self
+            .workflow
+            .steps
+            .iter()
+            .find(|s| s.id == step_result.step_id);
+        if let Some(step) = step {
+            if let Some(ref var) = step.output_variable {
+                self.variables
+                    .insert(var.clone(), step_result.output.clone());
+            }
+        }
     }
 
     /// Execute a single step by id.
@@ -189,26 +249,12 @@ impl WorkflowRunner {
             })?
             .clone();
 
-        let max_retries = step.retry_count.unwrap_or(0);
-        let retry_delay = step.retry_delay_ms.unwrap_or(1000);
-        let timeout_secs = step.timeout_secs.unwrap_or(300);
+        let params = extract_params(&step, prompt, agent_id);
+        let result = spawn_step(params).await;
 
-        let result = execute_step_with_retry(
-            step.id.clone(),
-            agent_id,
-            prompt,
-            step.output_variable.clone(),
-            max_retries,
-            retry_delay,
-            timeout_secs,
-        )
-        .await;
-
-        if let Ok(r) = &result {
+        if let Ok(ref r) = result {
             if let StepStatus::Success = &r.status {
-                if let Some(ref var) = step.output_variable {
-                    self.variables.insert(var.clone(), r.output.clone());
-                }
+                self.save_output_variable(r);
             }
             self.step_results.insert(step.id.clone(), r.clone());
         }
@@ -231,30 +277,24 @@ impl WorkflowRunner {
         helpers::get_executable_steps(&self.workflow.steps, &self.step_results)
     }
 
-    /// Get current workflow status.
+    /// Get current workflow status — single pass over step_results.
     pub fn status(&self) -> WorkflowStatus {
         let total = self.workflow.steps.len();
-        let completed = self
-            .step_results
-            .values()
-            .filter(|r| r.status == StepStatus::Success)
-            .count();
-        let failed = self
-            .step_results
-            .values()
-            .filter(|r| matches!(r.status, StepStatus::Failed(_)))
-            .count();
-        let skipped = self
-            .step_results
-            .values()
-            .filter(|r| r.status == StepStatus::Skipped)
-            .count();
-        let timed_out = self
-            .step_results
-            .values()
-            .filter(|r| r.status == StepStatus::TimedOut)
-            .count();
-        let running = total - completed - failed - skipped - timed_out;
+        let mut completed = 0usize;
+        let mut failed = 0usize;
+        let mut skipped = 0usize;
+        let mut timed_out = 0usize;
+
+        for result in self.step_results.values() {
+            match result.status {
+                StepStatus::Success => completed += 1,
+                StepStatus::Failed(_) => failed += 1,
+                StepStatus::TimedOut => timed_out += 1,
+                StepStatus::Skipped => skipped += 1,
+            }
+        }
+
+        let running = total.saturating_sub(completed + failed + skipped + timed_out);
 
         WorkflowStatus {
             total_steps: total,
@@ -304,7 +344,6 @@ variables:
     #[test]
     fn new_creates_agents_for_unique_roles() {
         let runner = sample_runner();
-        // 3 unique roles: coder, reviewer, tester
         assert_eq!(runner.agent_map.len(), 3);
         assert!(runner.agent_map.contains_key("coder"));
         assert!(runner.agent_map.contains_key("reviewer"));
@@ -398,9 +437,6 @@ steps:
                 attempts: 1,
             },
         );
-        // "review" depends on "code" (success) and has condition "code_output"
-        // but code_output variable isn't set, so condition evaluates false → skipped in run()
-        // But get_executable_steps only checks dependencies, not conditions
         let steps = runner.get_executable_steps();
         assert_eq!(steps.len(), 1);
         assert_eq!(steps[0].id, "review");
@@ -494,16 +530,18 @@ steps:
             },
         );
         // Manually simulate what run() does: store output in output_variable
-        // "review" step has output_variable: "review_result"
         let review_step = runner
             .workflow
             .steps
             .iter()
             .find(|s| s.id == "review")
             .unwrap();
+        if let Some(ref var) = review_step.output_variable {
+            runner.variables.insert(var.clone(), "review done".into());
+        }
         assert_eq!(
-            review_step.output_variable.as_deref(),
-            Some("review_result")
+            runner.variables.get("review_result"),
+            Some(&"review done".to_string())
         );
     }
 }

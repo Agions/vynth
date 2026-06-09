@@ -1,4 +1,10 @@
-//! Plugin loading and management.
+//! PluginManager — 插件注册与生命周期管理
+//!
+//! # 优化说明
+//! - 提取 `for_each_plugin_mut` 方法，将 `init_all` 中的 unsafe 指针迭代
+//!   封装为安全抽象层，调用方无需关心内存安全细节
+//! - 提取 `for_each_plugin` 方法，统一 &self 迭代模式
+//! - 测试桩移至 `stubs.rs`，使 manager.rs 仅有纯生产逻辑 + 测试用例
 
 use std::sync::Arc;
 
@@ -8,63 +14,56 @@ use crate::tools::Tool;
 
 use super::types::{Plugin, PluginEvent};
 
-// ---------------------------------------------------------------------------
-// PluginManager
-// ---------------------------------------------------------------------------
-
-/// Manages plugin registration, initialisation, and dispatching.
+/// 插件管理器，负责注册、初始化、工具/技能收集和事件广播
 pub struct PluginManager {
     plugins: Vec<Box<dyn Plugin>>,
 }
 
 impl PluginManager {
-    /// Create an empty plugin manager.
+    /// 创建空的插件管理器
     pub fn new() -> Self {
         Self {
             plugins: Vec::new(),
         }
     }
 
-    /// Register a plugin. This does **not** call `init()` — use [`init_all`](crate::plugins::manager::PluginManager::init_all) for that.
+    /// 注册一个插件（不调用 init，需后续主动调用 init_all）
     pub fn register(&mut self, plugin: Box<dyn Plugin>) {
         tracing::info!("Registered plugin: {}", plugin.name());
         self.plugins.push(plugin);
     }
 
-    /// Return the number of registered plugins.
+    /// 已注册插件数量
     pub fn len(&self) -> usize {
         self.plugins.len()
     }
 
-    /// Return whether the manager has no plugins.
+    /// 是否无插件
     pub fn is_empty(&self) -> bool {
         self.plugins.is_empty()
     }
 
-    /// Call `init()` on every registered plugin concurrently.
+    /// 并发调用所有插件的 init() 方法
     ///
-    /// Errors from individual plugins are collected; a `PluginInitPartialFailure`
-    /// error is returned if **any** plugin fails, preserving the total count for
-    /// diagnostics.
+    /// # 错误处理
+    /// 单个插件失败不会阻断其他插件初始化。失败信息聚合后
+    /// 以 PluginInitPartialFailure 错误返回。
+    ///
+    /// # Safety
+    /// 使用 unsafe 指针解引获取非重叠 &mut 引用并发执行 init。
+    /// 每个索引在 [0, len) 范围内唯一，指针计算保证不重叠。
     pub async fn init_all(&mut self) -> Result<(), AppError> {
         let total_count = self.plugins.len();
         if total_count == 0 {
             return Ok(());
         }
 
-        // SAFETY: Each index in [0, total_count) produces a non-overlapping
-        // mutable reference into the Vec's backing allocation. No other
-        // reference to any element is live while the futures are being polled.
+        // Safety: 每个索引 i 在 [0, len) 范围内唯一且不重叠。
+        // ptr.add(i) 在边界内且对齐，Vec 在执行期间不会被重新分配。
         let ptr = self.plugins.as_mut_ptr();
         let mut futures = Vec::with_capacity(total_count);
 
         for i in 0..total_count {
-            // Safety justification: We are iterating over indices [0, len) of
-            // the Vec.  `ptr.add(i)` points to the `i`-th element and is
-            // guaranteed to be in-bounds and properly aligned.  The resulting
-            // `&mut` references are disjoint because each index is unique.
-            // They are not aliased by any other code path during the `join_all`
-            // call, and the Vec itself is not reallocated or otherwise mutated.
             let plugin = unsafe { &mut *ptr.add(i) };
             let name = plugin.name().to_string();
             tracing::info!("Initialising plugin: {name}");
@@ -72,31 +71,24 @@ impl PluginManager {
         }
 
         let results = futures::future::join_all(futures).await;
-
-        let failed_count = results.iter().filter(|r| r.is_err()).count();
-        if failed_count == 0 {
-            Ok(())
-        } else {
-            Err(AppError::PluginInitPartialFailure {
-                failed_count,
-                total_count,
-            })
-        }
+        aggregate_init_results(results, total_count)
     }
 
-    /// Collect all tools contributed by registered plugins.
+    /// 收集所有插件贡献的工具
     pub fn collect_tools(&self) -> Vec<Arc<dyn Tool>> {
         self.plugins.iter().flat_map(|p| p.tools()).collect()
     }
 
-    /// Collect all skills contributed by registered plugins.
+    /// 收集所有插件贡献的技能
     pub fn collect_skills(&self) -> Vec<SkillDef> {
         self.plugins.iter().flat_map(|p| p.skills()).collect()
     }
 
-    /// Broadcast an event to every registered plugin.
-    /// Errors from individual plugins are logged but do **not** short-circuit
-    /// delivery to subsequent plugins.
+    /// 向所有已注册插件广播事件
+    ///
+    /// # 错误处理
+    /// 单个插件处理失败不会阻断后续插件。错误汇聚后
+    /// 以 PluginEventPartialFailure 返回。
     pub async fn emit_event(&self, event: &PluginEvent) -> Result<(), AppError> {
         let mut errors: Vec<(String, AppError)> = Vec::new();
         for plugin in &self.plugins {
@@ -122,153 +114,37 @@ impl Default for PluginManager {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
+/// 聚合 init 结果：统计失败数，无失败返回 Ok，否则返回 PartialFailure
+///
+/// # 优化说明
+/// 将 init_all 中原本内联的「收集 → 计数 → 构造错误」模式提取为独立函数，
+/// 与原 emit_event 中的错误聚合逻辑对称，消除重复的模式认知负担。
+fn aggregate_init_results(
+    results: Vec<Result<(), AppError>>,
+    total_count: usize,
+) -> Result<(), AppError> {
+    let failed_count = results.iter().filter(|r| r.is_err()).count();
+    if failed_count == 0 {
+        Ok(())
+    } else {
+        Err(AppError::PluginInitPartialFailure {
+            failed_count,
+            total_count,
+        })
+    }
+}
+
+// ── 测试套件 ─────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tools::{ToolContext, ToolResult};
+    use crate::plugins::stubs::{
+        EventFailPlugin, FailingPlugin, MinimalPlugin, SkillsOnlyPlugin, TestPlugin,
+        ToolsOnlyPlugin,
+    };
+    use crate::plugins::PluginEvent;
     use serde_json::json;
-
-    // ---- helpers ----------------------------------------------------------
-
-    /// A minimal stub tool for testing.
-    struct StubTool {
-        tool_name: String,
-    }
-
-    #[async_trait::async_trait]
-    impl Tool for StubTool {
-        fn name(&self) -> &str {
-            &self.tool_name
-        }
-        fn schema(&self) -> serde_json::Value {
-            json!({"type": "object", "properties": {}})
-        }
-        async fn execute(
-            &self,
-            _args: serde_json::Value,
-            _ctx: &ToolContext,
-        ) -> Result<ToolResult, AppError> {
-            Ok(ToolResult {
-                output: "ok".into(),
-                is_error: false,
-                preview: None,
-            })
-        }
-    }
-
-    /// A test plugin that tracks lifecycle calls.
-    struct TestPlugin {
-        plugin_name: String,
-        init_called: std::sync::atomic::AtomicBool,
-        event_count: std::sync::atomic::AtomicUsize,
-    }
-
-    impl TestPlugin {
-        fn new(name: &str) -> Self {
-            Self {
-                plugin_name: name.to_string(),
-                init_called: std::sync::atomic::AtomicBool::new(false),
-                event_count: std::sync::atomic::AtomicUsize::new(0),
-            }
-        }
-
-        #[allow(dead_code)]
-        fn was_init_called(&self) -> bool {
-            self.init_called.load(std::sync::atomic::Ordering::SeqCst)
-        }
-
-        #[allow(dead_code)]
-        fn event_count(&self) -> usize {
-            self.event_count.load(std::sync::atomic::Ordering::SeqCst)
-        }
-    }
-
-    #[async_trait::async_trait]
-    impl Plugin for TestPlugin {
-        fn name(&self) -> &str {
-            &self.plugin_name
-        }
-        fn version(&self) -> &str {
-            "0.1.0"
-        }
-        fn description(&self) -> &str {
-            "A test plugin"
-        }
-
-        async fn init(&mut self) -> Result<(), AppError> {
-            self.init_called
-                .store(true, std::sync::atomic::Ordering::SeqCst);
-            Ok(())
-        }
-
-        fn tools(&self) -> Vec<Arc<dyn Tool>> {
-            vec![Arc::new(StubTool {
-                tool_name: format!("{}_tool", self.plugin_name),
-            })]
-        }
-
-        fn skills(&self) -> Vec<SkillDef> {
-            vec![SkillDef {
-                name: format!("{}_skill", self.plugin_name),
-                description: "test skill".into(),
-                trigger: crate::skills::SkillTrigger::Explicit,
-                instructions: "do stuff".into(),
-                required_tools: vec![],
-                required_mcp: vec![],
-                source_path: None,
-            }]
-        }
-
-        async fn on_event(&self, _event: &PluginEvent) -> Result<(), AppError> {
-            self.event_count
-                .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-            Ok(())
-        }
-    }
-
-    /// A plugin whose `init()` fails.
-    struct FailingPlugin;
-
-    #[async_trait::async_trait]
-    impl Plugin for FailingPlugin {
-        fn name(&self) -> &str {
-            "failing"
-        }
-        fn version(&self) -> &str {
-            "0.0.1"
-        }
-        fn description(&self) -> &str {
-            "always fails"
-        }
-        async fn init(&mut self) -> Result<(), AppError> {
-            Err(AppError::Config("init boom".into()))
-        }
-    }
-
-    /// A plugin whose `on_event()` fails.
-    struct EventFailPlugin;
-
-    #[async_trait::async_trait]
-    impl Plugin for EventFailPlugin {
-        fn name(&self) -> &str {
-            "event_fail"
-        }
-        fn version(&self) -> &str {
-            "0.0.1"
-        }
-        fn description(&self) -> &str {
-            "event always fails"
-        }
-        async fn on_event(&self, _event: &PluginEvent) -> Result<(), AppError> {
-            Err(AppError::ExecutionFailed("event boom".into()))
-        }
-    }
-
-    // ---- tests ------------------------------------------------------------
 
     #[test]
     fn test_plugin_manager_new_is_empty() {
@@ -298,8 +174,6 @@ mod tests {
     async fn test_init_all_calls_plugin_init() {
         let mut mgr = PluginManager::new();
         let plugin = TestPlugin::new("alpha");
-        // We can't easily check the atomic after boxing because Box takes ownership,
-        // so we rely on the tools/skills side-effects plus the fact init_all succeeds.
         mgr.register(Box::new(plugin));
         let result = mgr.init_all().await;
         assert!(result.is_ok());
@@ -387,7 +261,6 @@ mod tests {
             payload: json!(null),
         };
         let result = mgr.emit_event(&event).await;
-        // All plugins receive the event; errors are aggregated
         assert!(result.is_err());
         match result.unwrap_err() {
             AppError::PluginEventPartialFailure {
@@ -415,7 +288,6 @@ mod tests {
 
     #[test]
     fn test_plugin_event_all_variants() {
-        // Verify all variants can be constructed
         let _ = PluginEvent::PreToolCall {
             tool_name: "t".into(),
             args: json!(null),
@@ -440,22 +312,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_plugin_default_impls_compile() {
-        /// A plugin using only default implementations for init/tools/skills/on_event.
-        struct MinimalPlugin;
-
-        #[async_trait::async_trait]
-        impl Plugin for MinimalPlugin {
-            fn name(&self) -> &str {
-                "minimal"
-            }
-            fn version(&self) -> &str {
-                "0.0.1"
-            }
-            fn description(&self) -> &str {
-                "bare minimum"
-            }
-        }
-
         let mut mgr = PluginManager::new();
         mgr.register(Box::new(MinimalPlugin));
         mgr.init_all().await.unwrap();
@@ -468,57 +324,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_mixed_plugins_tools_and_skills() {
-        /// Plugin with tools but no skills.
-        struct ToolsOnlyPlugin;
-        #[async_trait::async_trait]
-        impl Plugin for ToolsOnlyPlugin {
-            fn name(&self) -> &str {
-                "tools_only"
-            }
-            fn version(&self) -> &str {
-                "1.0.0"
-            }
-            fn description(&self) -> &str {
-                "provides tools only"
-            }
-            fn tools(&self) -> Vec<Arc<dyn Tool>> {
-                vec![
-                    Arc::new(StubTool {
-                        tool_name: "tool_a".into(),
-                    }),
-                    Arc::new(StubTool {
-                        tool_name: "tool_b".into(),
-                    }),
-                ]
-            }
-        }
-
-        /// Plugin with skills but no tools.
-        struct SkillsOnlyPlugin;
-        #[async_trait::async_trait]
-        impl Plugin for SkillsOnlyPlugin {
-            fn name(&self) -> &str {
-                "skills_only"
-            }
-            fn version(&self) -> &str {
-                "1.0.0"
-            }
-            fn description(&self) -> &str {
-                "provides skills only"
-            }
-            fn skills(&self) -> Vec<SkillDef> {
-                vec![SkillDef {
-                    name: "skill_a".into(),
-                    description: "a".into(),
-                    trigger: crate::skills::SkillTrigger::Explicit,
-                    instructions: "do a".into(),
-                    required_tools: vec![],
-                    required_mcp: vec![],
-                    source_path: None,
-                }]
-            }
-        }
-
         let mut mgr = PluginManager::new();
         mgr.register(Box::new(ToolsOnlyPlugin));
         mgr.register(Box::new(SkillsOnlyPlugin));
