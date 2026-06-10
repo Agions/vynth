@@ -111,15 +111,14 @@ fn split_lines(data: &[u8]) -> impl Iterator<Item = &[u8]> {
 }
 
 /// Find double newline (`\n\n`) in buffer — returns the index of the first `\n`
+///
+/// Uses `memchr` for SIMD-accelerated newline scanning via SSE2/AVX2
+/// on supported platforms, falling back to a generic two-way algorithm.
 #[inline]
 fn find_double_newline(buffer: &[u8]) -> Option<usize> {
-    let len = buffer.len();
-    if len < 2 {
-        return None;
-    }
-
-    // Scan for \n\n pattern
-    (0..len - 1).find(|&i| buffer[i] == b'\n' && buffer[i + 1] == b'\n')
+    // Use memchr for SIMD-accelerated newline scanning
+    memchr::memchr_iter(b'\n', buffer)
+        .find(|&pos| pos + 1 < buffer.len() && buffer[pos + 1] == b'\n')
 }
 
 /// Trim ASCII whitespace from both ends

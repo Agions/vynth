@@ -1,0 +1,27 @@
+//! Status bar and agent state types.
+
+use crate::coding_modes::CodingMode;
+
+/// Status bar state
+#[derive(Debug, Clone, Default)]
+pub struct StatusBarState {
+    pub agent_state: AgentState,
+    pub model_name: String,
+    pub tokens_used: usize,
+    pub tokens_total: usize,
+    pub sandbox_mode: String,
+    pub startup_metrics: Option<crate::telemetry::StartupMetrics>,
+    pub goal_active: bool,
+    pub goal_duration: String,
+    /// Active coding mode indicator
+    pub coding_mode: CodingMode,
+}
+
+#[derive(Debug, Clone, Default)]
+pub enum AgentState {
+    #[default]
+    Idle,
+    Thinking,
+    RunningTool(String),
+    Error(String),
+}

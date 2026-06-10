@@ -1,33 +1,20 @@
-//! Application state types — structs, enums, and their constructors.
+//! App struct — global application state + constructors.
 
 use crate::agent::CustomAgentRegistry;
 use crate::coding_modes::CodingMode;
 use crate::config::{KeyBindings, KeymapProfile, Settings};
 use crate::skills::SkillRegistry;
-use ratatui::layout::Rect;
 
-use super::events::AgentEvent;
-use super::message::{ChatMessage, MessageRole};
-
-/// Which panel currently has focus
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub enum FocusedPanel {
-    Chat,
-    Diff,
-    Sidebar,
-    #[default]
-    Input,
-}
-
-/// Layout rects stored from the last render pass for mouse hit-testing
-#[derive(Debug, Clone, Default)]
-pub struct LayoutState {
-    pub sidebar_rect: Rect,
-    pub chat_rect: Rect,
-    pub diff_rect: Rect,
-    pub input_rect: Rect,
-    pub status_rect: Rect,
-}
+use super::super::events::AgentEvent;
+use super::super::message::{ChatMessage, MessageRole};
+use super::chat::ChatState;
+use super::diff::DiffState;
+use super::dirty::DirtyFlags;
+use super::goal::GoalState;
+use super::input::InputMode;
+use super::layout::{FocusedPanel, LayoutState};
+use super::sidebar::SidebarState;
+use super::status::StatusBarState;
 
 /// Global application state
 pub struct App {
@@ -77,177 +64,6 @@ pub struct App {
     /// Active coding mode (Plan/Act/Chat/Architect)
     pub coding_mode: CodingMode,
 }
-
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub enum InputMode {
-    Normal,
-    #[default]
-    Insert,
-    Command,
-    Search,
-}
-
-/// Chat conversation state
-#[derive(Debug, Clone, Default)]
-pub struct ChatState {
-    pub messages: Vec<ChatMessage>,
-    pub streaming_text: String,
-    pub is_streaming: bool,
-    /// Number of lines scrolled up from the bottom (0 = latest at bottom)
-    pub scroll_offset: usize,
-}
-
-/// Sidebar panel state
-#[derive(Debug, Clone, Default)]
-pub struct SidebarState {
-    pub active_tab: SidebarTab,
-    pub file_tree: Vec<FileEntry>,
-    /// Scroll offset for file list
-    pub scroll_offset: usize,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub enum SidebarTab {
-    #[default]
-    Files,
-    Sessions,
-    Skills,
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct FileEntry {
-    pub name: String,
-    #[allow(dead_code)]
-    pub path: String,
-    pub is_dir: bool,
-    pub depth: usize,
-}
-
-/// Diff preview state
-#[allow(dead_code)]
-#[derive(Debug, Clone, Default)]
-pub struct DiffState {
-    pub visible: bool,
-    pub content: String,
-    pub hunks: Vec<DiffHunk>,
-    /// Scroll offset for diff content
-    pub scroll_offset: usize,
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct DiffHunk {
-    pub header: String,
-    pub lines: Vec<DiffLine>,
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct DiffLine {
-    pub kind: DiffLineKind,
-    pub content: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub enum DiffLineKind {
-    Add,
-    Remove,
-    #[default]
-    Context,
-}
-
-/// Status bar state
-#[derive(Debug, Clone, Default)]
-pub struct StatusBarState {
-    pub agent_state: AgentState,
-    pub model_name: String,
-    pub tokens_used: usize,
-    pub tokens_total: usize,
-    pub sandbox_mode: String,
-    pub startup_metrics: Option<crate::telemetry::StartupMetrics>,
-    pub goal_active: bool,
-    pub goal_duration: String,
-    /// Active coding mode indicator
-    pub coding_mode: CodingMode,
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct GoalState {
-    /// The condition text (e.g. "all tests in test/auth pass")
-    pub condition: Option<String>,
-    /// Turns evaluated so far
-    pub turns: u32,
-    /// When the goal was set (Unix timestamp)
-    pub started_at: Option<i64>,
-    /// The evaluator's last reason
-    pub last_reason: String,
-    /// Whether the goal was achieved
-    pub achieved: bool,
-}
-
-impl GoalState {
-    pub fn inactive() -> Self {
-        Self::default()
-    }
-
-    pub fn is_active(&self) -> bool {
-        self.condition.is_some() && !self.achieved
-    }
-
-    /// Human-readable duration string
-    pub fn duration_str(&self) -> String {
-        match self.started_at {
-            None => String::new(),
-            Some(start) => {
-                let elapsed = std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap_or_default()
-                    .as_secs() as i64
-                    - start;
-                let mins = elapsed / 60;
-                let secs = elapsed % 60;
-                if mins > 0 {
-                    format!("{}m{}s", mins, secs)
-                } else {
-                    format!("{}s", secs)
-                }
-            }
-        }
-    }
-}
-
-#[derive(Debug, Clone, Default)]
-pub enum AgentState {
-    #[default]
-    Idle,
-    Thinking,
-    RunningTool(String),
-    Error(String),
-}
-
-// ── Dirty Flags ──────────────────────────────────────────
-
-/// Per-widget dirty flags for differential rendering
-#[derive(Debug, Default, Clone, Copy)]
-pub struct DirtyFlags {
-    pub sidebar: bool,
-    pub chat: bool,
-    pub diff: bool,
-    pub input: bool,
-    pub status: bool,
-}
-
-impl DirtyFlags {
-    pub fn all_dirty() -> Self {
-        Self {
-            sidebar: true,
-            chat: true,
-            diff: true,
-            input: true,
-            status: true,
-        }
-    }
-}
-
-// ── Constructors ──────────────────────────────────────────────
 
 impl App {
     /// Create App with external channel (for testing)

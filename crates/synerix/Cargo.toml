@@ -33,6 +33,7 @@ async-stream.workspace = true
 async-trait.workspace = true
 bytes.workspace = true
 uuid.workspace = true
+memchr.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true

@@ -63,7 +63,7 @@ fn mcp_handle_show(app: &mut App, rest: Option<&str>) {
             .mcp
             .iter()
             .position(|s| s.name == name)
-            .unwrap();
+            .unwrap_or(0);
         sys_msg(app, &format_mcp_server_detail(idx, server));
     } else {
         sys_msg(app, &format!("❌ 未找到 MCP 服务器：`{}`", name));

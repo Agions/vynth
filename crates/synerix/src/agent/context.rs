@@ -296,7 +296,8 @@ fn summarize_tool_result(content: &str) -> String {
         }
 
         // Omission notice
-        result.push_str(&format!("\n... ({} lines omitted) ...\n", lines.len() - 5));
+        use std::fmt::Write;
+        let _ = write!(result, "\n... ({} lines omitted) ...\n", lines.len() - 5);
 
         // Last 2 lines
         for (i, line) in lines[lines.len() - 2..].iter().enumerate() {

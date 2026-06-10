@@ -43,6 +43,10 @@ fn fnv1a_hash(text: &str) -> u64 {
 /// Matches original 3-range definition exactly
 #[inline]
 fn count_cjk_chars(text: &str) -> usize {
+    // Fast path: ASCII-only text has zero CJK chars
+    if text.is_ascii() {
+        return 0;
+    }
     text.chars()
         .filter(|c| {
             let cp = *c as u32;
