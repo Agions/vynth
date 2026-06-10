@@ -13,7 +13,7 @@ license = "MIT"
 rust-version = "1.75"
 
 [workspace.dependencies]
-ratatui = "0.28"
+ratatui = { version = "0.30", features = ["layout-cache"] }
 crossterm = "0.28"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "process", "signal", "fs", "io-util", "net"] }
 futures = "0.3"

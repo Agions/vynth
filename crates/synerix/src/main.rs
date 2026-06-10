@@ -47,17 +47,6 @@ async fn main() -> Result<(), AppError> {
     let config_load_ms = timer.mark();
     tracing::info!("Configuration loaded ({}ms)", config_load_ms);
 
-    // Spawn config file watcher (polls mtime + SIGHUP on unix)
-    let config_path = dirs_next::config_dir()
-        .unwrap_or_else(|| std::path::PathBuf::from("."))
-        .join("synerix")
-        .join("config.toml");
-    let _config_reload_rx = config::spawn_config_watcher(config_path, 0);
-    // TODO: Wire `_config_reload_rx` into the app event loop for runtime
-    //       hot-reload of settings. Currently kept alive to prevent the
-    //       spawned watcher from getting SendError when it detects changes.
-    //       See: https://github.com/Agions/synerix/issues (hot-reload)
-
     // TUI init is done inside app::run (after App is constructed)
     let total_ms = timer.total_elapsed_ms();
 

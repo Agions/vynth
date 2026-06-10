@@ -27,7 +27,7 @@ fn test_app_creation() {
     let settings = synerix::config::Settings::load().unwrap();
     let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
     let app =
-        synerix::app::App::new_with_channel(settings, tx, _rx, synerix::app::InputMode::Normal);
+        synerix::app::App::new_with_channel(settings, tx, _rx, { let (_, rx) = tokio::sync::mpsc::unbounded_channel(); rx }, synerix::app::InputMode::Normal);
 
     assert_eq!(app.mode, synerix::app::InputMode::Normal);
     assert!(!app.should_quit);
@@ -40,7 +40,7 @@ fn test_input_mode_transitions() {
     let settings = synerix::config::Settings::load().unwrap();
     let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
     let mut app =
-        synerix::app::App::new_with_channel(settings, tx, _rx, synerix::app::InputMode::Normal);
+        synerix::app::App::new_with_channel(settings, tx, _rx, { let (_, rx) = tokio::sync::mpsc::unbounded_channel(); rx }, synerix::app::InputMode::Normal);
 
     assert_eq!(app.mode, synerix::app::InputMode::Normal);
 

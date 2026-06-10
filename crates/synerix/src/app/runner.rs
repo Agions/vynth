@@ -12,7 +12,15 @@ pub async fn run(
 ) -> Result<(), AppError> {
     tracing::info!("Initializing application");
 
-    let mut app = App::new(settings);
+    // Spawn config file watcher (polls mtime + SIGHUP on unix)
+    let config_path = dirs_next::config_dir()
+        .unwrap_or_else(|| std::path::PathBuf::from("."))
+        .join("synerix")
+        .join("config.toml");
+    let config_reload_rx = crate::config::spawn_config_watcher(config_path, 0);
+
+    // Create app with the config reload channel wired in
+    let mut app = App::new_with_settings(settings, config_reload_rx);
 
     // Load project-local skills and agents from `.synerix/` directory
     load_synerix_resources(&mut app).await;

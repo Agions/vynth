@@ -1,9 +1,9 @@
 //! TUI event source — crossterm keyboard/mouse → AppEvent
-// TODO: Infrastructure awaiting main-loop integration
-#![allow(dead_code)]
+//!
+//! Uses `tokio::task::spawn_blocking` for non-blocking terminal I/O.
+//! This avoids the 50ms busy-poll pattern and lets the OS wake us on input.
 
 use crossterm::event::{self, Event, KeyEvent, MouseEvent};
-use std::time::Duration;
 
 /// Application events
 pub enum AppEvent {
@@ -13,17 +13,20 @@ pub enum AppEvent {
     Tick,
 }
 
-/// Poll for the next event (non-blocking with tick interval)
+/// Read the next terminal event without busy-polling.
+///
+/// Uses `spawn_blocking` so the async runtime is not blocked by crossterm's
+/// synchronous `event::read()`. The OS suspends the thread until input arrives,
+/// consuming zero CPU while waiting.
 pub async fn poll_event() -> Option<AppEvent> {
-    // Poll with a short timeout to allow tick events
-    if event::poll(Duration::from_millis(50)).ok()? {
-        match event::read().ok()? {
+    tokio::task::spawn_blocking(|| event::read().ok())
+        .await
+        .ok()
+        .flatten()
+        .and_then(|evt| match evt {
             Event::Key(key) => Some(AppEvent::Key(key)),
             Event::Mouse(mouse) => Some(AppEvent::Mouse(mouse)),
             Event::Resize(w, h) => Some(AppEvent::Resize(w, h)),
             _ => None,
-        }
-    } else {
-        Some(AppEvent::Tick)
-    }
+        })
 }
