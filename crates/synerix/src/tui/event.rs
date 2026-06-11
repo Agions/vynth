@@ -6,10 +6,12 @@
 use crossterm::event::{self, Event, KeyEvent, MouseEvent};
 
 /// Application events
+#[allow(dead_code)]
 pub enum AppEvent {
     Key(KeyEvent),
     Mouse(MouseEvent),
-    Resize(u16, u16),
+    Resize,
+    #[allow(dead_code)]
     Tick,
 }
 
@@ -26,7 +28,7 @@ pub async fn poll_event() -> Option<AppEvent> {
         .and_then(|evt| match evt {
             Event::Key(key) => Some(AppEvent::Key(key)),
             Event::Mouse(mouse) => Some(AppEvent::Mouse(mouse)),
-            Event::Resize(w, h) => Some(AppEvent::Resize(w, h)),
+            Event::Resize(_w, _h) => Some(AppEvent::Resize),
             _ => None,
         })
 }

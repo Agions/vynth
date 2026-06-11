@@ -69,7 +69,7 @@ impl App {
                 // Delegate to mode-specific handler
                 self.handle_mode_key(key).await?;
             }
-            AppEvent::Resize(_, _) => {
+            AppEvent::Resize => {
                 self.dirty_flags = DirtyFlags::all_dirty();
             }
             AppEvent::Tick => {

@@ -101,6 +101,7 @@ impl App {
         }
     }
 
+    #[allow(dead_code)]
     pub fn new(settings: Settings) -> Self {
         let (agent_tx, agent_rx) = tokio::sync::mpsc::unbounded_channel();
         let (_config_reload_tx, config_reload_rx) = tokio::sync::mpsc::unbounded_channel();
