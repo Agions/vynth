@@ -104,7 +104,13 @@ impl App {
     pub fn new(settings: Settings) -> Self {
         let (agent_tx, agent_rx) = tokio::sync::mpsc::unbounded_channel();
         let (_config_reload_tx, config_reload_rx) = tokio::sync::mpsc::unbounded_channel();
-        Self::new_with_channel(settings, agent_tx, agent_rx, config_reload_rx, InputMode::Insert)
+        Self::new_with_channel(
+            settings,
+            agent_tx,
+            agent_rx,
+            config_reload_rx,
+            InputMode::Insert,
+        )
     }
 
     /// Create App with settings and a config reload channel (used by runner)
@@ -113,7 +119,13 @@ impl App {
         config_reload_rx: tokio::sync::mpsc::UnboundedReceiver<crate::config::ConfigReload>,
     ) -> Self {
         let (agent_tx, agent_rx) = tokio::sync::mpsc::unbounded_channel();
-        Self::new_with_channel(settings, agent_tx, agent_rx, config_reload_rx, InputMode::Insert)
+        Self::new_with_channel(
+            settings,
+            agent_tx,
+            agent_rx,
+            config_reload_rx,
+            InputMode::Insert,
+        )
     }
 
     pub(crate) fn create_keybindings(settings: &Settings) -> KeyBindings {

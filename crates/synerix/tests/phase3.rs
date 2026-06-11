@@ -206,8 +206,16 @@ fn test_highlight_empty_line() {
 fn test_app_input_buffer_insert() {
     let settings = synerix::config::Settings::load().unwrap();
     let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
-    let mut app =
-        synerix::app::App::new_with_channel(settings, tx, _rx, { let (_, rx) = tokio::sync::mpsc::unbounded_channel(); rx }, synerix::app::InputMode::Normal);
+    let mut app = synerix::app::App::new_with_channel(
+        settings,
+        tx,
+        _rx,
+        {
+            let (_, rx) = tokio::sync::mpsc::unbounded_channel();
+            rx
+        },
+        synerix::app::InputMode::Normal,
+    );
 
     // Switch to insert mode
     app.mode = synerix::app::InputMode::Insert;
@@ -228,8 +236,16 @@ fn test_app_input_buffer_insert() {
 fn test_app_submit_message() {
     let settings = synerix::config::Settings::load().unwrap();
     let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
-    let mut app =
-        synerix::app::App::new_with_channel(settings, tx, _rx, { let (_, rx) = tokio::sync::mpsc::unbounded_channel(); rx }, synerix::app::InputMode::Normal);
+    let mut app = synerix::app::App::new_with_channel(
+        settings,
+        tx,
+        _rx,
+        {
+            let (_, rx) = tokio::sync::mpsc::unbounded_channel();
+            rx
+        },
+        synerix::app::InputMode::Normal,
+    );
 
     app.input_buffer = "test message".to_string();
     app.input_cursor = 12;
@@ -249,8 +265,16 @@ fn test_app_submit_message() {
 fn test_app_submit_empty_message() {
     let settings = synerix::config::Settings::load().unwrap();
     let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
-    let mut app =
-        synerix::app::App::new_with_channel(settings, tx, _rx, { let (_, rx) = tokio::sync::mpsc::unbounded_channel(); rx }, synerix::app::InputMode::Normal);
+    let mut app = synerix::app::App::new_with_channel(
+        settings,
+        tx,
+        _rx,
+        {
+            let (_, rx) = tokio::sync::mpsc::unbounded_channel();
+            rx
+        },
+        synerix::app::InputMode::Normal,
+    );
 
     app.input_buffer = "".to_string();
     app.submit_message();
@@ -263,8 +287,16 @@ fn test_app_submit_empty_message() {
 fn test_app_chat_scroll() {
     let settings = synerix::config::Settings::load().unwrap();
     let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
-    let mut app =
-        synerix::app::App::new_with_channel(settings, tx, _rx, { let (_, rx) = tokio::sync::mpsc::unbounded_channel(); rx }, synerix::app::InputMode::Normal);
+    let mut app = synerix::app::App::new_with_channel(
+        settings,
+        tx,
+        _rx,
+        {
+            let (_, rx) = tokio::sync::mpsc::unbounded_channel();
+            rx
+        },
+        synerix::app::InputMode::Normal,
+    );
 
     assert_eq!(app.chat_state.scroll_offset, 0);
 

@@ -210,8 +210,16 @@ fn test_default_enter_submits() {
 fn test_app_has_focused_panel() {
     let settings = Settings::load().unwrap();
     let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
-    let app =
-        synerix::app::App::new_with_channel(settings, tx, _rx, { let (_, rx) = tokio::sync::mpsc::unbounded_channel(); rx }, synerix::app::InputMode::Normal);
+    let app = synerix::app::App::new_with_channel(
+        settings,
+        tx,
+        _rx,
+        {
+            let (_, rx) = tokio::sync::mpsc::unbounded_channel();
+            rx
+        },
+        synerix::app::InputMode::Normal,
+    );
     // Should default to Input focus
     assert_eq!(app.focused_panel, synerix::app::FocusedPanel::Input);
 }
@@ -220,8 +228,16 @@ fn test_app_has_focused_panel() {
 fn test_app_has_layout_state() {
     let settings = Settings::load().unwrap();
     let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
-    let app =
-        synerix::app::App::new_with_channel(settings, tx, _rx, { let (_, rx) = tokio::sync::mpsc::unbounded_channel(); rx }, synerix::app::InputMode::Normal);
+    let app = synerix::app::App::new_with_channel(
+        settings,
+        tx,
+        _rx,
+        {
+            let (_, rx) = tokio::sync::mpsc::unbounded_channel();
+            rx
+        },
+        synerix::app::InputMode::Normal,
+    );
     // Layout state should be initialized (zero rects)
     assert_eq!(app.layout_state.sidebar_rect.width, 0);
 }
@@ -230,8 +246,16 @@ fn test_app_has_layout_state() {
 fn test_app_has_yank_buffer() {
     let settings = Settings::load().unwrap();
     let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
-    let app =
-        synerix::app::App::new_with_channel(settings, tx, _rx, { let (_, rx) = tokio::sync::mpsc::unbounded_channel(); rx }, synerix::app::InputMode::Normal);
+    let app = synerix::app::App::new_with_channel(
+        settings,
+        tx,
+        _rx,
+        {
+            let (_, rx) = tokio::sync::mpsc::unbounded_channel();
+            rx
+        },
+        synerix::app::InputMode::Normal,
+    );
     assert!(app.yank_buffer.is_empty());
 }
 
@@ -239,8 +263,16 @@ fn test_app_has_yank_buffer() {
 fn test_app_has_keybindings() {
     let settings = Settings::load().unwrap();
     let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
-    let _app =
-        synerix::app::App::new_with_channel(settings, tx, _rx, { let (_, rx) = tokio::sync::mpsc::unbounded_channel(); rx }, synerix::app::InputMode::Normal);
+    let _app = synerix::app::App::new_with_channel(
+        settings,
+        tx,
+        _rx,
+        {
+            let (_, rx) = tokio::sync::mpsc::unbounded_channel();
+            rx
+        },
+        synerix::app::InputMode::Normal,
+    );
     // Should have keybindings initialized
 }
 
