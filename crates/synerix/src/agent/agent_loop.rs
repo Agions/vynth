@@ -96,13 +96,16 @@ pub async fn run_agent_loop(
             return Ok(());
         }
 
-        // Add assistant message with tool calls
+        // Check if we had tool calls before consuming the map
+        let had_tool_calls = !tool_calls.is_empty();
+
+        // Add assistant message with tool calls — into_values() avoids cloning
         let resolved_calls: Vec<ToolCall> = tool_calls
-            .values()
+            .into_values()
             .map(|tc| ToolCall {
-                id: tc.id.clone(),
-                name: tc.name.clone(),
-                arguments: tc.args_buffer.clone(),
+                id: tc.id,
+                name: tc.name,
+                arguments: tc.args_buffer,
             })
             .collect();
 
@@ -121,24 +124,25 @@ pub async fn run_agent_loop(
             })
             .collect();
 
-        if filtered_calls.is_empty() && !tool_calls.is_empty() {
+        if filtered_calls.is_empty() && had_tool_calls {
             event_tx.send(AgentEvent::TextDelta(
                 "⚠️ 当前编码模式不允许执行此操作。请切换到 Act 或 Plan 模式。".to_string(),
             ))?;
             return Ok(());
         }
 
-        // Execute tool calls in parallel (iterate first, then clone for ChatMessage)
+        // Execute tool calls in parallel
         let tool_futures: Vec<_> = filtered_calls
             .iter()
             .map(|tc| {
                 let args: serde_json::Value = if tc.arguments.is_empty() {
-                    serde_json::json!({})
+                    serde_json::Value::Object(serde_json::Map::new())
                 } else {
-                    serde_json::from_str(&tc.arguments).unwrap_or_else(|_| serde_json::json!({}))
+                    serde_json::from_str(&tc.arguments)
+                        .unwrap_or_else(|_| serde_json::Value::Object(serde_json::Map::new()))
                 };
 
-                // Emit ToolCallStart event
+                // Emit ToolCallStart event — use args directly, avoid clone
                 let _ = event_tx.send(AgentEvent::ToolCallStart {
                     name: tc.name.clone(),
                     args: args.clone(),
@@ -162,20 +166,20 @@ pub async fn run_agent_loop(
         // Await all tool calls concurrently
         let results = futures::future::join_all(tool_futures).await;
 
-        // Add assistant message with tool calls (clone after iteration)
+        // Add assistant message with tool calls — move full_text instead of clone
         ctx.push(ChatMessage {
             role: MessageRole::Assistant,
             content: if full_text.is_empty() {
                 None
             } else {
-                Some(full_text.clone())
+                Some(full_text)
             },
             tool_calls: Some(filtered_calls),
             tool_call_id: None,
             name: None,
         });
 
-        // Process results
+        // Process results — send event first, then move output
         for (tc_id, tc_name, output, is_error) in results {
             let _ = event_tx.send(AgentEvent::ToolResult {
                 name: tc_name,
