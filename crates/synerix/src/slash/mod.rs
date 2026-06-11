@@ -230,7 +230,7 @@ mod tests {
     use crate::skills::SkillRegistry;
 
     fn make_app() -> App {
-        let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
+        let (_tx, _rx) = tokio::sync::mpsc::unbounded_channel();
         let (_, crx) = tokio::sync::mpsc::unbounded_channel();
         let settings = Settings::defaults();
         App {
@@ -248,7 +248,6 @@ mod tests {
                 scroll_offset: 0,
             },
             diff_state: DiffState {
-                visible: false,
                 content: String::new(),
                 hunks: Vec::new(),
                 scroll_offset: 0,
@@ -273,7 +272,6 @@ mod tests {
             yank_buffer: String::new(),
             layout_state: LayoutState::default(),
             agent_rx: _rx,
-            agent_tx: tx,
             config_reload_rx: crx,
             config_version: 0,
             skill_registry: SkillRegistry::new(),

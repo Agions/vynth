@@ -4,7 +4,6 @@
 //! - Local directories (recursive scan)
 //! - Git repositories (clone + load)
 //! - HTTP URLs (download + load)
-// TODO: External skills — not yet wired
 #![allow(dead_code)]
 
 use std::path::{Path, PathBuf};

@@ -1,5 +1,4 @@
 //! Structured audit logging for sandbox operations.
-// TODO: Audit — awaiting sandbox integration
 #![allow(dead_code)]
 
 use chrono::{DateTime, Utc};

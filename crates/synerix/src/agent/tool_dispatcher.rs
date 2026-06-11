@@ -1,5 +1,4 @@
 //! Tool dispatch with timeout and MCP fallback
-// TODO: Tool dispatch — not yet wired
 #![allow(dead_code)]
 
 use std::time::Duration;

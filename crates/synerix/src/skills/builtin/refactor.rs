@@ -1,5 +1,4 @@
 //! Refactor built-in skill
-// TODO: Builtin skills — not yet wired
 #![allow(dead_code)]
 
 use crate::skills::traits::{SkillDef, SkillTrigger};

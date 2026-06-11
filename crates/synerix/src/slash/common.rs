@@ -49,17 +49,6 @@ pub fn nth_arg(args: Option<&str>, n: usize) -> Option<&str> {
     args?.split_whitespace().nth(n)
 }
 
-/// 从第 N 个位置开始拼接剩余参数
-#[allow(dead_code)]
-pub fn rest_from(args: Option<&str>, n: usize) -> Option<String> {
-    let parts: Vec<&str> = args?.split_whitespace().collect();
-    if n < parts.len() {
-        Some(parts[n..].join(" "))
-    } else {
-        None
-    }
-}
-
 /// 格式化提供商信息显示
 pub fn provider_display(provider: &Provider) -> String {
     match provider {

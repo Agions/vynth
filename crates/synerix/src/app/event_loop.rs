@@ -300,12 +300,6 @@ impl App {
 
     // ── Drawing ────────────────────────────────────────────
 
-    /// Draw the frame (read-only) — kept for API consistency
-    #[allow(dead_code)]
-    pub(crate) fn draw(&self, frame: &mut ratatui::Frame) {
-        crate::tui::renderer::draw_frame(frame, self);
-    }
-
     pub(crate) fn draw_with_layout(&mut self, frame: &mut ratatui::Frame) {
         crate::tui::renderer::draw_frame_with_layout(frame, self);
     }

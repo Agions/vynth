@@ -1,5 +1,4 @@
 //! LLM Provider factory
-// TODO: Provider factory — not yet wired into agent loop
 #![allow(dead_code)]
 
 use crate::config::{LlmConfig, Provider};

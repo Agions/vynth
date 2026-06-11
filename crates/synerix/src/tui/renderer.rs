@@ -9,6 +9,7 @@ use crate::tui::widgets;
 use ratatui::Frame;
 
 /// Draw the entire frame (read-only snapshot; does not clear dirty flags)
+#[allow(dead_code)]
 pub fn draw_frame(frame: &mut Frame, app: &App) {
     let layout = compute_layout(frame.area());
     render_all(frame, app, &layout);
@@ -16,6 +17,7 @@ pub fn draw_frame(frame: &mut Frame, app: &App) {
 
 /// Draw the entire frame and store layout rects in app for mouse hit-testing.
 /// Resets dirty flags after rendering clean widgets (they are now up to date).
+#[allow(dead_code)]
 pub fn draw_frame_with_layout(frame: &mut Frame, app: &mut App) {
     let layout = compute_layout(frame.area());
     app.layout_state.sidebar_rect = layout.sidebar;

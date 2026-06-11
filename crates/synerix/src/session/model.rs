@@ -1,5 +1,4 @@
 //! Session and message models
-// TODO: Session model — not yet wired
 #![allow(dead_code)]
 
 use chrono::{DateTime, Utc};

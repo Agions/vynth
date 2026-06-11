@@ -1,5 +1,4 @@
 //! MCP (Model Context Protocol) client
-// TODO: Some re-exports unused until integration is complete
 #![allow(unused_imports)]
 
 pub mod manager;

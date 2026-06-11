@@ -1,5 +1,4 @@
 //! Project types — `ProjectType`, `ProjectInfo`, and `ProjectContext`.
-// TODO: Project types — not yet wired
 #![allow(dead_code)]
 
 use std::collections::HashSet;

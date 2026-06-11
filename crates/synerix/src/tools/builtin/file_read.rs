@@ -1,5 +1,4 @@
 //! File read tool
-// TODO: Builtin tool — not yet registered
 #![allow(dead_code)]
 
 use async_trait::async_trait;

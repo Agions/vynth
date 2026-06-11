@@ -1,5 +1,4 @@
 //! MCP JSON-RPC message types
-// TODO: MCP types — not yet wired
 #![allow(dead_code)]
 
 use serde::{Deserialize, Serialize};

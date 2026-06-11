@@ -81,7 +81,6 @@ pub fn dark_theme() -> ColorPalette {
 }
 
 /// Light theme
-#[allow(dead_code)]
 pub fn light_theme() -> ColorPalette {
     ColorPalette {
         background: Color::Rgb(252, 252, 250),

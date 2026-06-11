@@ -1,5 +1,4 @@
 //! System prompt builder — context-aware, role-aware, tool-aware
-// TODO: Prompt builders — not yet wired
 #![allow(dead_code)]
 
 use crate::agent::roles::AgentRole;

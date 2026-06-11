@@ -1,5 +1,4 @@
 //! MCP Transport trait
-// TODO: MCP transport — not yet wired
 #![allow(dead_code)]
 
 use crate::error::AppError;

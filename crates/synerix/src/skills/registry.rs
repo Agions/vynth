@@ -1,5 +1,4 @@
 //! Skill registry — load from directory + condition matching
-// TODO: Skill registry — not yet wired
 #![allow(dead_code)]
 
 use std::path::Path;

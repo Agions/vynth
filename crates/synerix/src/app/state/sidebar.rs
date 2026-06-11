@@ -20,8 +20,6 @@ pub enum SidebarTab {
 #[derive(Debug, Clone, Default)]
 pub struct FileEntry {
     pub name: String,
-    #[allow(dead_code)]
-    pub path: String,
     pub is_dir: bool,
     pub depth: usize,
 }

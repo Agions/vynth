@@ -1,5 +1,4 @@
 //! MCP Manager — multi-server management + permission isolation
-// TODO: MCP manager — not yet wired
 #![allow(dead_code)]
 
 use std::collections::HashMap;

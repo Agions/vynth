@@ -3,7 +3,6 @@
 //! Uses `Mutex` instead of `RwLock` because `rusqlite::Connection` is `Send` but not `Sync`,
 //! which means `RwLock<Connection>` (which requires `T: Sync` for shared reads) cannot be
 //! wrapped in `Arc`. With WAL mode and `PRAGMA busy_timeout`, `Mutex` contention is minimal.
-// TODO: Session store — not yet wired
 #![allow(dead_code)]
 
 use rusqlite::Connection;

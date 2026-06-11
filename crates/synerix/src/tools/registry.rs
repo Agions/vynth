@@ -1,5 +1,4 @@
 //! Tool registry — HashMap<name, Arc<dyn Tool>>
-// TODO: Tool registry — not yet wired
 #![allow(dead_code)]
 
 use std::collections::HashMap;

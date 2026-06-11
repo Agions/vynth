@@ -6,7 +6,6 @@
 //! - Pre-calculated token counts to avoid redundant estimation
 //! - Efficient `compress_old_tool_results` with in-place modification
 //! - `trim_to_budget` uses `std::mem::take` + `into_iter().filter()` for O(n) bulk removal
-// TODO: Context manager — not yet wired into agent loop
 #![allow(dead_code)]
 
 use crate::config::LlmConfig;

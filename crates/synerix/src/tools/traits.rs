@@ -1,5 +1,4 @@
 //! Tool trait definition
-// TODO: Tool traits — not yet wired
 #![allow(dead_code)]
 
 use async_trait::async_trait;

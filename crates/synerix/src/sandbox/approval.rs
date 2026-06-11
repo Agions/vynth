@@ -1,5 +1,4 @@
 //! User approval flow for sandbox operations
-// TODO: Approval handlers — not yet wired
 #![allow(dead_code)]
 
 use async_trait::async_trait;

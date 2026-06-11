@@ -1,5 +1,4 @@
 //! Command preview — analyze and display command impact before execution
-// TODO: Risk classifier — not yet wired
 #![allow(dead_code)]
 
 /// Analysis of a shell command's potential impact

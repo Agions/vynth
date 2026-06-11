@@ -1,11 +1,10 @@
 //! Diff preview state types.
 
 /// Diff preview state
-#[allow(dead_code)]
 #[derive(Debug, Clone, Default)]
 pub struct DiffState {
-    pub visible: bool,
     pub content: String,
+    #[allow(dead_code)]
     pub hunks: Vec<DiffHunk>,
     /// Scroll offset for diff content
     pub scroll_offset: usize,

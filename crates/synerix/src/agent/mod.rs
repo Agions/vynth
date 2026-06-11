@@ -1,5 +1,4 @@
 //! Agent — core reasoning loop + multi-agent orchestration
-// TODO: Some re-exports unused until integration is complete
 #![allow(unused_imports)]
 
 pub mod agent_loop;

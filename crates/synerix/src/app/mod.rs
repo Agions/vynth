@@ -8,7 +8,6 @@
 //! - `input_handler` — Keyboard input handlers
 //! - `actions` — Action execution (the big match block)
 //! - `runner` — Application entry point
-// TODO: Some re-exports unused until integration is complete
 #![allow(unused_imports)]
 
 mod actions;

@@ -1,5 +1,4 @@
 //! Session persistence
-// TODO: Some re-exports unused until integration is complete
 #![allow(unused_imports)]
 
 pub mod migration;

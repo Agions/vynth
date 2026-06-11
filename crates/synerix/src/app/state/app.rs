@@ -48,9 +48,6 @@ pub struct App {
     pub layout_state: LayoutState,
     /// Agent event receiver
     pub(crate) agent_rx: tokio::sync::mpsc::UnboundedReceiver<AgentEvent>,
-    /// Agent event sender — kept for future extensibility
-    #[allow(dead_code)]
-    pub(crate) agent_tx: tokio::sync::mpsc::UnboundedSender<AgentEvent>,
     /// Config reload receiver (from watcher/SIGHUP)
     pub(crate) config_reload_rx: tokio::sync::mpsc::UnboundedReceiver<crate::config::ConfigReload>,
     /// Config version counter — incremented on each hot-reload
@@ -69,7 +66,7 @@ impl App {
     /// Create App with external channel (for testing)
     pub fn new_with_channel(
         settings: Settings,
-        agent_tx: tokio::sync::mpsc::UnboundedSender<AgentEvent>,
+        _agent_tx: tokio::sync::mpsc::UnboundedSender<AgentEvent>,
         agent_rx: tokio::sync::mpsc::UnboundedReceiver<AgentEvent>,
         config_reload_rx: tokio::sync::mpsc::UnboundedReceiver<crate::config::ConfigReload>,
         mode: InputMode,
@@ -91,7 +88,6 @@ impl App {
             settings,
             should_quit: false,
             agent_rx,
-            agent_tx,
             config_reload_rx,
             config_version: 0,
             skill_registry: SkillRegistry::new(),

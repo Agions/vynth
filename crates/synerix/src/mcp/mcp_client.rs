@@ -2,7 +2,6 @@
 //!
 //! Performance: caches compiled glob patterns for tool permission checks
 //! to avoid recompilation on every tool call.
-// TODO: MCP client — not yet wired
 #![allow(dead_code)]
 
 use crate::config::McpServerConfig;

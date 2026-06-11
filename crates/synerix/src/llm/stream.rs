@@ -4,7 +4,6 @@
 //! - `BytesMut` buffer: zero-copy append, efficient drain
 //! - Avoids repeated String allocations on each chunk
 //! - Pre-allocated JSON parsing with `serde_json::from_slice`
-// TODO: Infrastructure awaiting main-loop integration
 #![allow(dead_code)]
 
 use bytes::{Buf, BytesMut};

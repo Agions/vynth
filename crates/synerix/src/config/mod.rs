@@ -1,5 +1,4 @@
 //! Configuration management
-// TODO: Some re-exports unused until integration is complete
 
 pub mod config_watcher;
 pub mod keymap;
