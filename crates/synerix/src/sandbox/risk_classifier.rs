@@ -127,19 +127,11 @@ fn check_critical(_cmd: &str, cmd_lower: &str) -> Option<(RiskLevel, &'static st
 /// High: system modifications (chmod -R, chown -R, sudo)
 fn check_high(cmd_lower: &str) -> Option<(RiskLevel, &'static str, Vec<String>)> {
     if cmd_lower.contains("chmod -r") || cmd_lower.contains("chown -r") {
-        return Some((
-            RiskLevel::High,
-            "Recursive permission change",
-            vec![],
-        ));
+        return Some((RiskLevel::High, "Recursive permission change", vec![]));
     }
 
     if cmd_lower.contains("sudo ") {
-        return Some((
-            RiskLevel::High,
-            "Elevated privilege command",
-            vec![],
-        ));
+        return Some((RiskLevel::High, "Elevated privilege command", vec![]));
     }
 
     None
@@ -155,11 +147,7 @@ fn check_medium(cmd: &str, cmd_lower: &str) -> Option<(RiskLevel, &'static str, 
             let path = cmd[pos + 3..].split_whitespace().next().unwrap_or("?");
             paths.push(path.to_string());
         }
-        return Some((
-            RiskLevel::Medium,
-            "File write/redirection",
-            paths,
-        ));
+        return Some((RiskLevel::Medium, "File write/redirection", paths));
     }
 
     // Git push/force
