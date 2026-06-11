@@ -64,7 +64,6 @@ pub fn render_status_bar(frame: &mut Frame, app: &App, area: Rect) {
     let _mode_fg_color = mode_fg(&app.mode);
 
     // Build spans
-    let separator = Span::styled(" │ ", Style::default().fg(p.comment).bg(STATUS_BG));
 
     let mut spans: Vec<Span> = Vec::new();
 
@@ -77,7 +76,10 @@ pub fn render_status_bar(frame: &mut Frame, app: &App, area: Rect) {
             .bg(cm_bg)
             .add_modifier(Modifier::BOLD),
     ));
-    spans.push(separator.clone());
+    spans.push(Span::styled(
+        " │ ",
+        Style::default().fg(p.comment).bg(STATUS_BG),
+    ));
 
     // Input mode indicator
     let (mode_label, mode_bg_color) = mode_style(&app.mode);
@@ -89,7 +91,10 @@ pub fn render_status_bar(frame: &mut Frame, app: &App, area: Rect) {
             .bg(mode_bg_color)
             .add_modifier(Modifier::BOLD),
     ));
-    spans.push(separator.clone());
+    spans.push(Span::styled(
+        " │ ",
+        Style::default().fg(p.comment).bg(STATUS_BG),
+    ));
 
     // Agent state
     let agent_span = match &app.status_bar.agent_state {
@@ -125,7 +130,10 @@ pub fn render_status_bar(frame: &mut Frame, app: &App, area: Rect) {
         }
     };
     spans.push(agent_span);
-    spans.push(separator.clone());
+    spans.push(Span::styled(
+        " │ ",
+        Style::default().fg(p.comment).bg(STATUS_BG),
+    ));
 
     // Token usage with color coding
     let tokens_used_str = format_tokens(app.status_bar.tokens_used);
@@ -148,14 +156,20 @@ pub fn render_status_bar(frame: &mut Frame, app: &App, area: Rect) {
         format!(" {} / {} tokens ", tokens_used_str, tokens_total_str),
         Style::default().fg(token_color).bg(STATUS_BG),
     ));
-    spans.push(separator.clone());
+    spans.push(Span::styled(
+        " │ ",
+        Style::default().fg(p.comment).bg(STATUS_BG),
+    ));
 
     // Model name
     spans.push(Span::styled(
         format!(" {} ", app.status_bar.model_name),
         Style::default().fg(p.muted_fg).bg(STATUS_BG),
     ));
-    spans.push(separator.clone());
+    spans.push(Span::styled(
+        " │ ",
+        Style::default().fg(p.comment).bg(STATUS_BG),
+    ));
 
     // Goal indicator
     if app.status_bar.goal_active {
@@ -167,7 +181,10 @@ pub fn render_status_bar(frame: &mut Frame, app: &App, area: Rect) {
                 .bg(STATUS_BG)
                 .add_modifier(Modifier::BOLD),
         ));
-        spans.push(separator.clone());
+        spans.push(Span::styled(
+            " │ ",
+            Style::default().fg(p.comment).bg(STATUS_BG),
+        ));
     }
 
     // Sandbox mode with icon

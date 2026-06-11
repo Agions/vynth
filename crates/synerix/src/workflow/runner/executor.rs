@@ -232,31 +232,48 @@ impl WorkflowRunner {
 
     /// Execute a single step by id.
     pub async fn run_step(&mut self, step_id: &str) -> Result<StepResult, AppError> {
-        let step = self
+        // Extract only needed fields — avoid cloning the entire WorkflowStep
+        let step_ref = self
             .workflow
             .steps
             .iter()
             .find(|s| s.id == step_id)
-            .ok_or_else(|| AppError::ExecutionFailed(format!("Step '{}' not found", step_id)))?
-            .clone();
+            .ok_or_else(|| AppError::ExecutionFailed(format!("Step '{}' not found", step_id)))?;
 
-        let prompt = self.resolve_prompt(&step.prompt);
+        let step_id_owned = step_ref.id.clone();
+        let agent_role = step_ref.agent_role.clone();
+        let prompt_template = step_ref.prompt.clone();
+        let output_variable = step_ref.output_variable.clone();
+        let max_retries = step_ref.retry_count.unwrap_or(0);
+        let retry_delay_ms = step_ref.retry_delay_ms.unwrap_or(1000);
+        let timeout_secs = step_ref.timeout_secs.unwrap_or(300);
+
+        // Release borrow on self.workflow before calling self.resolve_prompt
+        let prompt = self.resolve_prompt(&prompt_template);
         let agent_id = self
             .agent_map
-            .get(&step.agent_role)
+            .get(&agent_role)
             .ok_or_else(|| {
-                AppError::ExecutionFailed(format!("No agent for role '{}'", step.agent_role))
+                AppError::ExecutionFailed(format!("No agent for role '{}'", agent_role))
             })?
             .clone();
 
-        let params = extract_params(&step, prompt, agent_id);
+        let params = StepParams {
+            step_id: step_id_owned.clone(),
+            agent_id,
+            prompt,
+            output_variable,
+            max_retries,
+            retry_delay_ms,
+            timeout_secs,
+        };
         let result = spawn_step(params).await;
 
         if let Ok(ref r) = result {
             if let StepStatus::Success = &r.status {
                 self.save_output_variable(r);
             }
-            self.step_results.insert(step.id.clone(), r.clone());
+            self.step_results.insert(step_id_owned, r.clone());
         }
 
         result

@@ -24,25 +24,52 @@ pub fn build_system_prompt(
 
 /// Build a role-aware system prompt
 pub fn build_role_prompt(role: &AgentRole, project_context: Option<&ProjectContext>) -> String {
-    let mut prompt = role.system_prompt();
+    // Pre-allocate: system_prompt + estimated context size
+    let base = role.system_prompt();
+    let estimated_extra = project_context
+        .as_ref()
+        .map(|ctx| {
+            let mut extra = 128; // section headers overhead
+            extra += ctx.language.len() + 20; // "- Language: ...\n"
+            extra += ctx.framework.as_ref().map_or(0, |f| f.len() + 18);
+            extra += ctx.build_tool.as_ref().map_or(0, |b| b.len() + 18);
+            if !ctx.test_framework.is_empty() {
+                extra += ctx.test_framework.len() + 24;
+            }
+            extra += ctx.conventions.iter().map(|c| c.len() + 4).sum::<usize>();
+            extra
+        })
+        .unwrap_or(0);
+    let mut prompt = String::with_capacity(base.len() + estimated_extra);
+    prompt.push_str(&base);
 
     // Inject project context if available
     if let Some(ctx) = project_context {
         prompt.push_str("\n\n## Project Context\n");
-        prompt.push_str(&format!("- Language: {}\n", ctx.language));
+        prompt.push_str("- Language: ");
+        prompt.push_str(&ctx.language);
+        prompt.push('\n');
         if let Some(ref framework) = ctx.framework {
-            prompt.push_str(&format!("- Framework: {}\n", framework));
+            prompt.push_str("- Framework: ");
+            prompt.push_str(framework);
+            prompt.push('\n');
         }
         if let Some(ref build_tool) = ctx.build_tool {
-            prompt.push_str(&format!("- Build tool: {}\n", build_tool));
+            prompt.push_str("- Build tool: ");
+            prompt.push_str(build_tool);
+            prompt.push('\n');
         }
         if !ctx.test_framework.is_empty() {
-            prompt.push_str(&format!("- Test framework: {}\n", ctx.test_framework));
+            prompt.push_str("- Test framework: ");
+            prompt.push_str(&ctx.test_framework);
+            prompt.push('\n');
         }
         if !ctx.conventions.is_empty() {
             prompt.push_str("\n## Project Conventions\n");
             for conv in &ctx.conventions {
-                prompt.push_str(&format!("- {}\n", conv));
+                prompt.push_str("- ");
+                prompt.push_str(conv);
+                prompt.push('\n');
             }
         }
     }
@@ -52,13 +79,22 @@ pub fn build_role_prompt(role: &AgentRole, project_context: Option<&ProjectConte
 
 /// Build a tool-aware prompt that tells the agent what tools are available
 pub fn build_tool_aware_prompt(base: &str, available_tools: &[&str]) -> String {
-    let mut prompt = String::from(base);
+    // Pre-allocate: base + header + estimated tool lines (20 chars avg per tool)
+    let extra = if available_tools.is_empty() {
+        0
+    } else {
+        60 + available_tools.iter().map(|t| t.len() + 6).sum::<usize>()
+    };
+    let mut prompt = String::with_capacity(base.len() + extra);
+    prompt.push_str(base);
 
     if !available_tools.is_empty() {
         prompt.push_str("\n\n## Available Tools\n");
         prompt.push_str("You have access to these tools:\n");
         for tool in available_tools {
-            prompt.push_str(&format!("- `{}`\n", tool));
+            prompt.push_str("- `");
+            prompt.push_str(tool);
+            prompt.push_str("`\n");
         }
     }
 
