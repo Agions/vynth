@@ -110,8 +110,9 @@ impl StdioTransport {
         let notification = JsonRpcRequest::new(self.next_id(), "notifications/initialized", None);
 
         if let Some(tx) = &self.stdin_tx {
-            let msg = serde_json::to_string(&notification)?;
-            let _ = tx.send(format!("{}\n", msg)).await;
+            let mut msg = serde_json::to_string(&notification)?;
+            msg.push('\n');
+            let _ = tx.send(msg).await;
         }
 
         Ok(())
@@ -144,10 +145,11 @@ impl StdioTransport {
 impl McpTransport for StdioTransport {
     async fn send_and_wait(&self, request: JsonRpcRequest) -> Result<JsonRpcResponse, AppError> {
         if let Some(tx) = &self.stdin_tx {
-            let msg = serde_json::to_string(&request)?;
-            tx.send(format!("{}\n", msg))
-                .await
-                .map_err(|e| AppError::McpTransport(e.to_string()))?;
+                    let mut msg = serde_json::to_string(&request)?;
+                    msg.push('\n');
+                    tx.send(msg)
+                        .await
+                        .map_err(|e| AppError::McpTransport(e.to_string()))?;
         }
 
         if let Some(rx) = &self.response_rx {

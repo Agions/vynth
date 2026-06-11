@@ -303,11 +303,10 @@ pub fn render_side_by_side(diff_text: &str, col_width: usize) -> Text<'static> {
 
 /// Truncate or pad `text` to exactly `width` chars (single allocation).
 fn format_side(text: &str, width: usize) -> String {
-    let mut s = String::with_capacity(width * 4);
-    let mut char_count = 0;
+    let char_count = text.chars().count();
+    let mut s = String::with_capacity(width.min(char_count));
     for ch in text.chars().take(width) {
         s.push(ch);
-        char_count += 1;
     }
     for _ in char_count..width {
         s.push(' ');
