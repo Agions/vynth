@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Main gradient: cyan → violet → pink -->
+    <linearGradient id="grad-main" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00D4FF"/>
+      <stop offset="40%" style="stop-color:#7B61FF"/>
+      <stop offset="100%" style="stop-color:#FF6B9D"/>
+    </linearGradient>
+    <!-- Vibe gradient: teal → cyan for Vibe mode -->
+    <linearGradient id="grad-vibe" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00FF88"/>
+      <stop offset="50%" style="stop-color:#00D4FF"/>
+      <stop offset="100%" style="stop-color:#7B61FF"/>
+    </linearGradient>
+    <!-- Glow -->
+    <linearGradient id="grad-glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00D4FF;stop-opacity:0.3"/>
+      <stop offset="100%" style="stop-color:#7B61FF;stop-opacity:0.1"/>
+    </linearGradient>
+    <filter id="glow-soft">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow-strong">
+      <feGaussianBlur stdDeviation="14" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="rounded-rect">
+      <rect width="512" height="512" rx="108" ry="108"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="108" ry="108" fill="#0D1117"/>
+
+  <!-- Subtle circuit-board grid -->
+  <g opacity="0.05" clip-path="url(#rounded-rect)">
+    <line x1="0" y1="85" x2="512" y2="85" stroke="#fff" stroke-width="0.8"/>
+    <line x1="0" y1="170" x2="512" y2="170" stroke="#fff" stroke-width="0.8"/>
+    <line x1="0" y1="256" x2="512" y2="256" stroke="#fff" stroke-width="0.8"/>
+    <line x1="0" y1="342" x2="512" y2="342" stroke="#fff" stroke-width="0.8"/>
+    <line x1="0" y1="427" x2="512" y2="427" stroke="#fff" stroke-width="0.8"/>
+    <line x1="85" y1="0" x2="85" y2="512" stroke="#fff" stroke-width="0.8"/>
+    <line x1="170" y1="0" x2="170" y2="512" stroke="#fff" stroke-width="0.8"/>
+    <line x1="256" y1="0" x2="256" y2="512" stroke="#fff" stroke-width="0.8"/>
+    <line x1="342" y1="0" x2="342" y2="512" stroke="#fff" stroke-width="0.8"/>
+    <line x1="427" y1="0" x2="427" y2="512" stroke="#fff" stroke-width="0.8"/>
+    <circle cx="85" cy="85" r="3" fill="#fff"/>
+    <circle cx="427" cy="85" r="3" fill="#fff"/>
+    <circle cx="85" cy="427" r="3" fill="#fff"/>
+    <circle cx="427" cy="427" r="3" fill="#fff"/>
+  </g>
+
+  <!-- Outer glow ring -->
+  <circle cx="256" cy="230" r="170" fill="none" stroke="url(#grad-vibe)" stroke-width="1.5" opacity="0.15" filter="url(#glow-strong)"/>
+
+  <!-- === Central Symbol: Vibe-inspired ">S" merged logo === -->
+  <g transform="translate(256, 220)" filter="url(#glow-soft)">
+    <!-- Glow aura behind the symbol -->
+    <circle cx="0" cy="0" r="100" fill="url(#grad-glow)" opacity="0.3" filter="url(#glow-strong)"/>
+
+    <!-- ">" cursor shape — stylized as a forward arrow -->
+    <path d="M-55,-65 L35,0 L-55,65 Z" fill="url(#grad-vibe)" opacity="0.92"/>
+
+    <!-- "S" letterform — woven through the cursor, flowing curve -->
+    <path d="M-15,-75 C40,-75 58,-50 58,-30 C58,-10 38,0 -5,10 C-35,18 -55,32 -55,52 C-55,72 -35,85 10,85 C50,85 68,65 68,45"
+          fill="none" stroke="url(#grad-vibe)" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
+
+    <!-- Vibe wave lines — subtle flowing curves behind the "S" -->
+    <path d="M-30,-95 C10,-95 30,-80 50,-65 C70,-50 80,-30 80,-10"
+          fill="none" stroke="url(#grad-vibe)" stroke-width="2" stroke-linecap="round" opacity="0.25"/>
+    <path d="M-35,-85 C5,-85 25,-70 45,-55 C65,-40 75,-20 75,0"
+          fill="none" stroke="url(#grad-vibe)" stroke-width="1.5" stroke-linecap="round" opacity="0.15"/>
+
+    <!-- Blinking cursor line -->
+    <rect x="72" y="-80" width="5" height="55" rx="2.5" fill="url(#grad-vibe)" opacity="0.9">
+      <animate attributeName="opacity" values="0.9;0.15;0.9" dur="1.2s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+
+  <!-- === Bottom: "SYNERIX" text === -->
+  <text x="256" y="390" text-anchor="middle"
+        font-family="'SF Pro Display','Inter','Segoe UI',system-ui,-apple-system,sans-serif"
+        font-size="52" font-weight="700" letter-spacing="8" fill="white">
+    SYNERIX
+  </text>
+
+  <!-- Tagline -->
+  <text x="256" y="425" text-anchor="middle"
+        font-family="'JetBrains Mono','Fira Code','SF Mono',monospace"
+        font-size="14" letter-spacing="4" fill="#8B949E">
+    AI-NATIVE CODING TERMINAL
+  </text>
+
+  <!-- Vibe Coding badge -->
+  <rect x="195" y="440" width="122" height="22" rx="11" fill="url(#grad-vibe)" opacity="0.15"/>
+  <text x="256" y="456" text-anchor="middle"
+        font-family="'JetBrains Mono',monospace" font-size="11" fill="#00D4FF">
+    VIBE CODING MODE
+  </text>
+</svg>

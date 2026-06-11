@@ -1,0 +1,28 @@
+{
+  "name": "synerix",
+  "version": "0.2.2",
+  "type": "module",
+  "description": "AI-native coding terminal that thinks, writes, reviews, and fixes code",
+  "scripts": {
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
+  },
+  "devDependencies": {
+    "vitepress": "^1.6.3",
+    "vue": "^3.5.13"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Agions/synerix.git"
+  },
+  "keywords": [
+    "ai",
+    "coding",
+    "terminal",
+    "rust",
+    "llm"
+  ],
+  "author": "Agions",
+  "license": "MIT"
+}

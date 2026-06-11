@@ -9,3 +9,7 @@ Cargo.lock
 *.bak
 node_modules/
 npm-debug.log*
+
+# VitePress 缓存
+docs/.vitepress/cache/
+docs/.vitepress/dist/

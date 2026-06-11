@@ -1,0 +1,46 @@
+/* Synerix 自定义样式 */
+:root {
+  /* 主色调 - 科技蓝 */
+  --vp-c-brand-1: #0066FF;
+  --vp-c-brand-2: #0052CC;
+  --vp-c-brand-3: #003D99;
+  
+  /* 辅助色 */
+  --vp-c-success: #00C896;
+  --vp-c-warning: #FFB800;
+  --vp-c-danger: #FF4D4F;
+}
+
+/* 暗色模式 */
+.dark {
+  --vp-c-brand-1: #4D94FF;
+  --vp-c-brand-2: #3380FF;
+  --vp-c-brand-3: #1A6BFF;
+}
+
+/* 自定义导航栏样式 */
+.VPNav .VPNavBarTitle {
+  font-weight: 700;
+}
+
+/* 代码块样式 */
+.vp-doc div[class*='language-'] {
+  border-radius: 8px;
+}
+
+/* 卡片样式 */
+.VPFeature {
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.VPFeature:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Hero 区域 */
+.VPHero .VPImage {
+  max-width: 200px;
+  margin-bottom: 1rem;
+}
