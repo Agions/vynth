@@ -45,44 +45,56 @@ pub async fn run(
 /// Load skills from `.synerix/skills/` and agents from `.synerix/agents/`
 ///
 /// Follows the same pattern as Claude Code's `.claude/skills/` and `.claude/agents/`.
+/// Both loads run in parallel via `tokio::join!` to reduce startup time.
 async fn load_synerix_resources(app: &mut App) {
     let cwd = match std::env::current_dir() {
         Ok(d) => d,
         Err(e) => {
-            tracing::warn!("Cannot determine current directory: {}", e);
+            tracing::warn!("Cannot determine current directory: {e}");
             return;
         }
     };
 
-    // Load skills from .synerix/skills/
-    if let Some(skills_dir) = crate::project::detector::find_synerix_skills_dir(&cwd) {
-        match SkillRegistry::load_from_dir(&skills_dir).await {
-            Ok(registry) => {
-                let count = registry.list_names().len();
-                app.skill_registry = registry;
-                tracing::info!("Loaded {} skills from .synerix/skills/", count);
-            }
-            Err(e) => {
-                tracing::warn!("Failed to load skills from .synerix/skills/: {}", e);
-            }
-        }
+    // Run both I/O-bound loads in parallel
+    let (skills_result, agents_result) = tokio::join!(load_skills(&cwd), load_agents(&cwd),);
+
+    if let Some(registry) = skills_result {
+        let count = registry.list_names().len();
+        app.skill_registry = registry;
+        tracing::info!("Loaded {count} skills from .synerix/skills/");
     } else {
         tracing::debug!(".synerix/skills/ not found, skipping");
     }
 
-    // Load agents from .synerix/agents/
-    if let Some(agents_dir) = crate::project::detector::find_synerix_agents_dir(&cwd) {
-        match CustomAgentRegistry::load_from_dir(&agents_dir).await {
-            Ok(registry) => {
-                let count = registry.len();
-                app.agent_registry = registry;
-                tracing::info!("Loaded {} agents from .synerix/agents/", count);
-            }
-            Err(e) => {
-                tracing::warn!("Failed to load agents from .synerix/agents/: {}", e);
-            }
-        }
+    if let Some(registry) = agents_result {
+        let count = registry.len();
+        app.agent_registry = registry;
+        tracing::info!("Loaded {count} agents from .synerix/agents/");
     } else {
         tracing::debug!(".synerix/agents/ not found, skipping");
+    }
+}
+
+/// Load skills from `.synerix/skills/` directory.
+async fn load_skills(cwd: &std::path::Path) -> Option<SkillRegistry> {
+    let skills_dir = crate::project::detector::find_synerix_skills_dir(cwd)?;
+    match SkillRegistry::load_from_dir(&skills_dir).await {
+        Ok(registry) => Some(registry),
+        Err(e) => {
+            tracing::warn!("Failed to load skills from .synerix/skills/: {e}");
+            None
+        }
+    }
+}
+
+/// Load custom agents from `.synerix/agents/` directory.
+async fn load_agents(cwd: &std::path::Path) -> Option<CustomAgentRegistry> {
+    let agents_dir = crate::project::detector::find_synerix_agents_dir(cwd)?;
+    match CustomAgentRegistry::load_from_dir(&agents_dir).await {
+        Ok(registry) => Some(registry),
+        Err(e) => {
+            tracing::warn!("Failed to load agents from .synerix/agents/: {e}");
+            None
+        }
     }
 }

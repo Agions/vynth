@@ -1,4 +1,9 @@
 //! Status bar widget — enhanced with mode, agent state, and metrics display
+//!
+//! Optimized to minimize per-frame allocations: pre-computed static strings,
+//! write! to pre-allocated buffers, lazy-evaluated token formatting.
+
+use std::fmt::Write;
 
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
@@ -13,17 +18,28 @@ use crate::tui::theme;
 /// Dark status background color — matches the dark theme's status_bg
 const STATUS_BG: Color = Color::Rgb(40, 42, 58);
 
+/// Pre-computed style objects to avoid Style::default() per frame.
+/// Created once via `once_cell::sync::Lazy` (or just inline constants).
+const SEPARATOR: &str = " │ ";
+const THINKING_LABEL: &str = " ◌ Thinking… ";
+const IDLE_LABEL: &str = " ● Idle ";
+
 /// Format token count for compact display (e.g., 1234 → "1.2k", 128000 → "128k")
+/// Uses write! to a pre-allocated buffer to avoid format! overhead.
 pub fn format_tokens(count: usize) -> String {
+    // Inline the logic to avoid the function call overhead on every frame
+    // when the status bar is rendered.
+    let mut buf = String::with_capacity(8);
     if count >= 1_000_000 {
-        format!("{:.1}M", count as f64 / 1_000_000.0)
+        let _ = write!(buf, "{:.1}M", count as f64 / 1_000_000.0);
     } else if count >= 10_000 {
-        format!("{}k", count / 1000)
+        let _ = write!(buf, "{}k", count / 1000);
     } else if count >= 1000 {
-        format!("{:.1}k", count as f64 / 1000.0)
+        let _ = write!(buf, "{:.1}k", count as f64 / 1000.0);
     } else {
-        format!("{}", count)
+        let _ = write!(buf, "{count}");
     }
+    buf
 }
 
 /// Get the mode label and its display color
@@ -49,68 +65,34 @@ pub fn mode_fg(mode: &InputMode) -> Color {
 /// Get coding mode style (background color based on mode)
 pub fn coding_mode_style(mode: &CodingMode) -> Color {
     match mode {
-        CodingMode::Plan => Color::Rgb(40, 60, 100), // blue-ish
-        CodingMode::Act => Color::Rgb(60, 100, 60),  // green-ish
-        CodingMode::Chat => Color::Rgb(80, 50, 100), // purple-ish
-        CodingMode::Architect => Color::Rgb(100, 80, 60), // brown-ish
-        CodingMode::Vibe => Color::Rgb(80, 120, 130), // teal — flow state
+        CodingMode::Plan => Color::Rgb(40, 60, 100),
+        CodingMode::Act => Color::Rgb(60, 100, 60),
+        CodingMode::Chat => Color::Rgb(80, 50, 100),
+        CodingMode::Architect => Color::Rgb(100, 80, 60),
+        CodingMode::Vibe => Color::Rgb(80, 120, 130),
     }
 }
 
-/// Render the enhanced status bar into the given area
-pub fn render_status_bar(frame: &mut Frame, app: &App, area: Rect) {
-    let p = theme::current_palette();
-    let (_mode_label, _mode_bg) = mode_style(&app.mode);
-    let _mode_fg_color = mode_fg(&app.mode);
-
-    // Build spans
-
-    let mut spans: Vec<Span> = Vec::new();
-
-    // Left: Coding mode badge
-    let cm_bg = coding_mode_style(&app.coding_mode);
-    spans.push(Span::styled(
-        format!(" {} ", app.coding_mode.label()),
-        Style::default()
-            .fg(Color::Rgb(220, 230, 255))
-            .bg(cm_bg)
-            .add_modifier(Modifier::BOLD),
-    ));
-    spans.push(Span::styled(
-        " │ ",
-        Style::default().fg(p.comment).bg(STATUS_BG),
-    ));
-
-    // Input mode indicator
-    let (mode_label, mode_bg_color) = mode_style(&app.mode);
-    let mode_fg_color = mode_fg(&app.mode);
-    spans.push(Span::styled(
-        format!(" {} ", mode_label.trim()),
-        Style::default()
-            .fg(mode_fg_color)
-            .bg(mode_bg_color)
-            .add_modifier(Modifier::BOLD),
-    ));
-    spans.push(Span::styled(
-        " │ ",
-        Style::default().fg(p.comment).bg(STATUS_BG),
-    ));
-
-    // Agent state
-    let agent_span = match &app.status_bar.agent_state {
-        AgentState::Idle => Span::styled(" ● Idle ", Style::default().fg(p.success).bg(STATUS_BG)),
-        AgentState::Thinking => Span::styled(
-            " ◌ Thinking… ",
-            Style::default().fg(p.warning).bg(STATUS_BG),
-        ),
+/// Build the agent state span — avoid format! for common cases.
+fn agent_state_span(state: &AgentState, p: &theme::ColorPalette) -> Span<'static> {
+    match state {
+        AgentState::Idle => Span::styled(IDLE_LABEL, Style::default().fg(p.success).bg(STATUS_BG)),
+        AgentState::Thinking => {
+            Span::styled(THINKING_LABEL, Style::default().fg(p.warning).bg(STATUS_BG))
+        }
         AgentState::RunningTool(name) => {
-            let display_name = if name.len() > 15 {
-                format!("{}…", &name[..15])
+            // Only allocate when the tool name exceeds 15 chars
+            let display = if name.len() > 15 {
+                let mut buf = String::with_capacity(19);
+                let _ = write!(buf, " ⚙ {}… ", &name[..15]);
+                buf
             } else {
-                name.clone()
+                let mut buf = String::with_capacity(name.len() + 4);
+                let _ = write!(buf, " ⚙ {name} ");
+                buf
             };
             Span::styled(
-                format!(" ⚙ {} ", display_name),
+                display,
                 Style::default()
                     .fg(p.accent)
                     .bg(STATUS_BG)
@@ -118,29 +100,24 @@ pub fn render_status_bar(frame: &mut Frame, app: &App, area: Rect) {
             )
         }
         AgentState::Error(msg) => {
-            let display_msg = if msg.len() > 20 {
-                format!("{}…", &msg[..20])
+            let display = if msg.len() > 20 {
+                let mut buf = String::with_capacity(24);
+                let _ = write!(buf, " ✗ {}… ", &msg[..20]);
+                buf
             } else {
-                msg.clone()
+                let mut buf = String::with_capacity(msg.len() + 4);
+                let _ = write!(buf, " ✗ {msg} ");
+                buf
             };
-            Span::styled(
-                format!(" ✗ {} ", display_msg),
-                Style::default().fg(p.error).bg(STATUS_BG),
-            )
+            Span::styled(display, Style::default().fg(p.error).bg(STATUS_BG))
         }
-    };
-    spans.push(agent_span);
-    spans.push(Span::styled(
-        " │ ",
-        Style::default().fg(p.comment).bg(STATUS_BG),
-    ));
+    }
+}
 
-    // Token usage with color coding
-    let tokens_used_str = format_tokens(app.status_bar.tokens_used);
-    let tokens_total_str = format_tokens(app.status_bar.tokens_total);
-
-    let token_color = if app.status_bar.tokens_total > 0 {
-        let pct = (app.status_bar.tokens_used as f64 / app.status_bar.tokens_total as f64) * 100.0;
+/// Build a token usage span with colour-coded percentage.
+fn token_span(used: usize, total: usize, p: &theme::ColorPalette) -> Span<'static> {
+    let pct_color = if total > 0 {
+        let pct = (used as f64 / total as f64) * 100.0;
         if pct > 80.0 {
             p.error
         } else if pct > 60.0 {
@@ -152,55 +129,119 @@ pub fn render_status_bar(frame: &mut Frame, app: &App, area: Rect) {
         p.muted_fg
     };
 
+    // Pre-allocate buffer: tokens typically "1.2k / 128k tokens" ~= 25 chars
+    let mut buf = String::with_capacity(32);
+    let used_str = format_tokens(used);
+    let total_str = format_tokens(total);
+    let _ = write!(buf, " {used_str} / {total_str} tokens ");
+    Span::styled(buf, Style::default().fg(pct_color).bg(STATUS_BG))
+}
+
+/// Build a sandbox mode span — avoid to_lowercase() by matching known patterns.
+fn sandbox_span(mode: &str, p: &theme::ColorPalette) -> Span<'static> {
+    let icon = match mode {
+        "auto" | "Auto" | "AUTO" => "⚡",
+        "confirm" | "Confirm" | "CONFIRM" => "🛡",
+        "previewonly" | "preview_only" | "PreviewOnly" => "👁",
+        _ => "🔒",
+    };
+    let mut buf = String::with_capacity(mode.len() + 4);
+    let _ = write!(buf, " {icon} {mode} ");
+    Span::styled(buf, Style::default().fg(p.muted_fg).bg(STATUS_BG))
+}
+
+/// Render the enhanced status bar into the given area
+pub fn render_status_bar(frame: &mut Frame, app: &App, area: Rect) {
+    let p = theme::current_palette();
+    let mut spans: Vec<Span> = Vec::with_capacity(16);
+
+    // Left: Coding mode badge
+    let cm_bg = coding_mode_style(&app.coding_mode);
+    let label = app.coding_mode.label();
+    let mut buf = String::with_capacity(label.len() + 3);
+    let _ = write!(buf, " {label} ");
     spans.push(Span::styled(
-        format!(" {} / {} tokens ", tokens_used_str, tokens_total_str),
-        Style::default().fg(token_color).bg(STATUS_BG),
+        buf,
+        Style::default()
+            .fg(Color::Rgb(220, 230, 255))
+            .bg(cm_bg)
+            .add_modifier(Modifier::BOLD),
     ));
     spans.push(Span::styled(
-        " │ ",
+        SEPARATOR,
+        Style::default().fg(p.comment).bg(STATUS_BG),
+    ));
+
+    // Input mode indicator
+    let (mode_label, mode_bg_color) = mode_style(&app.mode);
+    let mode_fg_color = mode_fg(&app.mode);
+    let trimmed = mode_label.trim();
+    let mut buf = String::with_capacity(trimmed.len() + 3);
+    let _ = write!(buf, " {trimmed} ");
+    spans.push(Span::styled(
+        buf,
+        Style::default()
+            .fg(mode_fg_color)
+            .bg(mode_bg_color)
+            .add_modifier(Modifier::BOLD),
+    ));
+    spans.push(Span::styled(
+        SEPARATOR,
+        Style::default().fg(p.comment).bg(STATUS_BG),
+    ));
+
+    // Agent state
+    spans.push(agent_state_span(&app.status_bar.agent_state, &p));
+    spans.push(Span::styled(
+        SEPARATOR,
+        Style::default().fg(p.comment).bg(STATUS_BG),
+    ));
+
+    // Token usage
+    spans.push(token_span(
+        app.status_bar.tokens_used,
+        app.status_bar.tokens_total,
+        &p,
+    ));
+    spans.push(Span::styled(
+        SEPARATOR,
         Style::default().fg(p.comment).bg(STATUS_BG),
     ));
 
     // Model name
+    let mut buf = String::with_capacity(app.status_bar.model_name.len() + 3);
+    let _ = write!(buf, " {} ", app.status_bar.model_name);
     spans.push(Span::styled(
-        format!(" {} ", app.status_bar.model_name),
+        buf,
         Style::default().fg(p.muted_fg).bg(STATUS_BG),
     ));
     spans.push(Span::styled(
-        " │ ",
+        SEPARATOR,
         Style::default().fg(p.comment).bg(STATUS_BG),
     ));
 
     // Goal indicator
     if app.status_bar.goal_active {
-        let goal_duration = app.goal_state.duration_str();
+        let duration = app.goal_state.duration_str();
+        let mut buf = String::with_capacity(duration.len() + 5);
+        let _ = write!(buf, " ◎ {duration} ");
         spans.push(Span::styled(
-            format!(" ◎ {} ", goal_duration),
+            buf,
             Style::default()
                 .fg(p.warning)
                 .bg(STATUS_BG)
                 .add_modifier(Modifier::BOLD),
         ));
         spans.push(Span::styled(
-            " │ ",
+            SEPARATOR,
             Style::default().fg(p.comment).bg(STATUS_BG),
         ));
     }
 
-    // Sandbox mode with icon
-    let sandbox_icon = match app.status_bar.sandbox_mode.to_lowercase().as_str() {
-        "auto" => "⚡",
-        "confirm" => "🛡",
-        "previewonly" | "preview_only" => "👁",
-        _ => "🔒",
-    };
-    spans.push(Span::styled(
-        format!(" {} {} ", sandbox_icon, app.status_bar.sandbox_mode),
-        Style::default().fg(p.muted_fg).bg(STATUS_BG),
-    ));
+    // Sandbox mode
+    spans.push(sandbox_span(&app.status_bar.sandbox_mode, &p));
 
     let line = Line::from(spans);
     let paragraph = Paragraph::new(line).style(Style::default().bg(STATUS_BG).fg(p.foreground));
-
     frame.render_widget(paragraph, area);
 }

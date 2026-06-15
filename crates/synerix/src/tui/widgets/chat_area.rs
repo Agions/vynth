@@ -1,6 +1,8 @@
 //! Chat area widget — renders the conversation with tool calls and scroll offset
 //! Uses rounded borders and theme-aware colors for a polished look.
 
+use std::borrow::Cow;
+
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
@@ -27,7 +29,15 @@ pub fn render(area: Rect, frame: &mut ratatui::Frame, app: &App) {
         .border_style(border_style);
 
     let inner_height = area.height.saturating_sub(2) as usize;
-    let mut lines: Vec<Line> = Vec::new();
+
+    // Pre-allocate capacity based on estimated line count (role line + up to 2 per tool call)
+    let estimated: usize = app
+        .chat_state
+        .messages
+        .iter()
+        .map(|m| 1 + m.tool_calls.len() * 2)
+        .sum();
+    let mut lines: Vec<Line> = Vec::with_capacity(estimated.max(2));
 
     for msg in &app.chat_state.messages {
         let (prefix, color) = match msg.role {
@@ -49,10 +59,11 @@ pub fn render(area: Rect, frame: &mut ratatui::Frame, app: &App) {
 
         // Render tool calls for this message
         for tc in &msg.tool_calls {
-            let args_preview = if tc.args_preview.len() > 60 {
-                format!("{}…", &tc.args_preview[..60])
+            // Use Cow to avoid unconditional clone for untruncated args
+            let args_preview: Cow<'_, str> = if tc.args_preview.len() > 60 {
+                Cow::Owned(format!("{}…", &tc.args_preview[..60]))
             } else {
-                tc.args_preview.clone()
+                Cow::Borrowed(&tc.args_preview)
             };
             lines.push(Line::from(vec![
                 Span::styled("    └─ ", Style::default().fg(p.muted_fg)),
@@ -72,17 +83,17 @@ pub fn render(area: Rect, frame: &mut ratatui::Frame, app: &App) {
                 } else {
                     ("✓", p.success)
                 };
-                let result_preview = if result.len() > 80 {
-                    format!("{}…", &result[..80])
+                // Use Cow to avoid unconditional clone for untruncated results
+                let result_preview: Cow<'_, str> = if result.len() > 80 {
+                    Cow::Owned(format!("{}…", &result[..80]))
                 } else {
-                    result.clone()
+                    Cow::Borrowed(result.as_str())
                 };
                 lines.push(Line::from(vec![
                     Span::raw("      "),
-                    Span::styled(
-                        format!("{} {}", icon, result_preview),
-                        Style::default().fg(result_color),
-                    ),
+                    Span::styled(icon, Style::default().fg(result_color)),
+                    Span::styled(" ", Style::default().fg(result_color)),
+                    Span::styled(result_preview, Style::default().fg(result_color)),
                 ]));
             }
         }
@@ -114,20 +125,22 @@ pub fn render(area: Rect, frame: &mut ratatui::Frame, app: &App) {
         )));
     }
 
-    // Apply scroll offset
+    // Apply scroll offset — avoid clone via split_off + truncate (moves, not copies)
     let scroll_offset = app.chat_state.scroll_offset;
-    let visible_lines: Vec<Line> = if lines.len() > inner_height {
+    let paragraph = if lines.len() > inner_height {
         let total = lines.len();
         let end = total.saturating_sub(scroll_offset);
         let start = end.saturating_sub(inner_height);
-        lines[start..end].to_vec()
+        let mut visible = lines.split_off(start);
+        visible.truncate(end - start);
+        Paragraph::new(visible)
+            .block(block)
+            .wrap(Wrap { trim: false })
     } else {
-        lines
+        Paragraph::new(lines)
+            .block(block)
+            .wrap(Wrap { trim: false })
     };
-
-    let paragraph = Paragraph::new(visible_lines)
-        .block(block)
-        .wrap(Wrap { trim: false });
 
     frame.render_widget(paragraph, area);
 }
