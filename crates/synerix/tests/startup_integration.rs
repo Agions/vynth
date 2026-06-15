@@ -28,9 +28,8 @@ fn test_startup_timer_sequential_marks() {
     let mut timer = StartupTimer::new();
     let _first = timer.mark();
     let _second = timer.mark();
-    let total = timer.total_elapsed_ms();
-    // Marks should not cause errors; total should be reasonable
-    assert!(total >= 0, "Total elapsed should be non-negative");
+    // Marks should not cause errors; just verify it produces a value
+    let _total = timer.total_elapsed_ms();
 }
 
 // ── Startup Metrics ────────────────────────────────────────

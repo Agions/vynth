@@ -191,7 +191,7 @@ pub fn render_status_bar(frame: &mut Frame, app: &App, area: Rect) {
     ));
 
     // Agent state
-    spans.push(agent_state_span(&app.status_bar.agent_state, &p));
+    spans.push(agent_state_span(&app.status_bar.agent_state, p));
     spans.push(Span::styled(
         SEPARATOR,
         Style::default().fg(p.comment).bg(STATUS_BG),
@@ -201,7 +201,7 @@ pub fn render_status_bar(frame: &mut Frame, app: &App, area: Rect) {
     spans.push(token_span(
         app.status_bar.tokens_used,
         app.status_bar.tokens_total,
-        &p,
+        p,
     ));
     spans.push(Span::styled(
         SEPARATOR,
@@ -239,7 +239,7 @@ pub fn render_status_bar(frame: &mut Frame, app: &App, area: Rect) {
     }
 
     // Sandbox mode
-    spans.push(sandbox_span(&app.status_bar.sandbox_mode, &p));
+    spans.push(sandbox_span(&app.status_bar.sandbox_mode, p));
 
     let line = Line::from(spans);
     let paragraph = Paragraph::new(line).style(Style::default().bg(STATUS_BG).fg(p.foreground));
