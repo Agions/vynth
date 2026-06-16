@@ -2,7 +2,6 @@
 //!
 //! Performance: caches compiled glob patterns for tool permission checks
 //! to avoid recompilation on every tool call.
-#![allow(dead_code)]
 
 use crate::config::McpServerConfig;
 use crate::error::AppError;
@@ -17,6 +16,8 @@ pub struct McpClient {
     /// Pre-compiled glob patterns for tool permission checks
     /// (None = allow all, empty = deny all)
     allowed_patterns: Option<Vec<glob::Pattern>>,
+    /// Number of reconnections (for monitoring)
+    reconnect_count: u64,
 }
 
 impl McpClient {
@@ -51,6 +52,7 @@ impl McpClient {
             transport: Some(transport),
             tools: Vec::new(),
             allowed_patterns,
+            reconnect_count: 0,
         };
 
         // Discover tools
@@ -162,6 +164,37 @@ impl McpClient {
         &self.config.name
     }
 
+    /// Get reconnect count (for health monitoring)
+    #[allow(dead_code)]
+    pub fn reconnect_count(&self) -> u64 {
+        self.reconnect_count
+    }
+
+    /// Reconnect to the MCP server (explicit, for manual use or health check)
+    #[allow(dead_code)]
+    pub async fn reconnect(&mut self) -> Result<(), AppError> {
+        // Close existing transport
+        if let Some(mut transport) = self.transport.take() {
+            let _ = transport.close().await;
+        }
+
+        // Re-spawn the child process
+        let transport: Box<dyn McpTransport> = match &self.config.transport {
+            crate::config::McpTransport::Stdio { command, args } => {
+                Box::new(StdioTransport::connect(command, args).await?)
+            }
+            crate::config::McpTransport::Http { .. } => {
+                return Err(AppError::McpTransport("HTTP reconnect not supported".to_string()));
+            }
+        };
+
+        self.transport = Some(transport);
+        self.reconnect_count += 1;
+
+        // Re-discover tools
+        self.discover_tools().await
+    }
+
     /// Test-only constructor for unit testing without a real subprocess
     #[cfg(test)]
     pub(crate) fn new_for_test(name: &str, allowed_tools: Vec<String>) -> Self {
@@ -195,6 +228,7 @@ impl McpClient {
             transport: None,
             tools: Vec::new(),
             allowed_patterns,
+            reconnect_count: 0,
         }
     }
 }
@@ -207,7 +241,6 @@ mod tests {
 
     #[test]
     fn is_tool_allowed_none_patterns_allows_all() {
-        // Empty allowed_tools → None → allow all
         let client = McpClient::new_for_test("test", vec![]);
         assert!(client.is_tool_allowed("anything"));
         assert!(client.is_tool_allowed("read_file"));
@@ -295,5 +328,11 @@ mod tests {
     fn tools_initially_empty() {
         let client = McpClient::new_for_test("test", vec![]);
         assert!(client.tools().is_empty());
+    }
+
+    #[test]
+    fn reconnect_count_initially_zero() {
+        let client = McpClient::new_for_test("test", vec![]);
+        assert_eq!(client.reconnect_count(), 0);
     }
 }
