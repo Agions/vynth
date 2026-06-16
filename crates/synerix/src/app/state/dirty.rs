@@ -8,6 +8,7 @@ pub struct DirtyFlags {
     pub diff: bool,
     pub input: bool,
     pub status: bool,
+    pub approval: bool,
 }
 
 impl DirtyFlags {
@@ -18,6 +19,7 @@ impl DirtyFlags {
             diff: true,
             input: true,
             status: true,
+            approval: true,
         }
     }
 }

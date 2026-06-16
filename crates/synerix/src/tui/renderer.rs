@@ -48,4 +48,8 @@ fn render_all(frame: &mut Frame, app: &App, layout: &TerminalLayout) {
     if app.dirty_flags.status {
         widgets::status_bar::render_status_bar(frame, app, layout.status);
     }
+    // Approval popup — always render on top if pending
+    if app.dirty_flags.approval {
+        widgets::approval_popup::render(frame, app, frame.area());
+    }
 }

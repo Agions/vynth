@@ -5,10 +5,15 @@ use crate::error::AppError;
 
 impl App {
     /// Dispatch key event based on current input mode.
+    /// Intercepts approval popup keys (y/n/a) before mode dispatch.
     pub(crate) async fn handle_mode_key(
         &mut self,
         key: crossterm::event::KeyEvent,
     ) -> Result<(), AppError> {
+        // Check for pending approval first
+        if self.pending_approval.is_some() {
+            return self.handle_approval_key(key).await;
+        }
         match self.mode {
             InputMode::Insert => self.handle_insert_key(key).await,
             InputMode::Normal => self.handle_normal_key(key).await,
@@ -151,6 +156,36 @@ impl App {
     }
 
     // ── Cursor helpers ───────────────────────────────────────
+    
+    /// Handle key events when approval popup is showing
+    async fn handle_approval_key(&mut self, key: crossterm::event::KeyEvent) -> Result<(), AppError> {
+        use crate::sandbox::approval::ApprovalDecision;
+        match key.code {
+            crossterm::event::KeyCode::Char('y') => {
+                if let Some(tx) = self.approval_decision_tx.take() {
+                    let _ = tx.send(ApprovalDecision::Allow).await;
+                }
+                self.pending_approval = None;
+                self.dirty_flags.approval = true;
+            }
+            crossterm::event::KeyCode::Char('n') => {
+                if let Some(tx) = self.approval_decision_tx.take() {
+                    let _ = tx.send(ApprovalDecision::Deny).await;
+                }
+                self.pending_approval = None;
+                self.dirty_flags.approval = true;
+            }
+            crossterm::event::KeyCode::Char('a') => {
+                if let Some(tx) = self.approval_decision_tx.take() {
+                    let _ = tx.send(ApprovalDecision::AllowAlways).await;
+                }
+                self.pending_approval = None;
+                self.dirty_flags.approval = true;
+            }
+            _ => {}
+        }
+        Ok(())
+    }
 
     fn clear_input(&mut self) {
         self.input_buffer.clear();

@@ -280,6 +280,8 @@ mod tests {
             coding_mode: crate::coding_modes::CodingMode::Act,
             project_context: None,
             session_store: None,
+            pending_approval: None,
+            approval_decision_tx: None,
         }
     }
 
