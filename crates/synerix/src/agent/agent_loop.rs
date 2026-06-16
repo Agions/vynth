@@ -19,6 +19,7 @@ use crate::error::AppError;
 use crate::llm::adapter::LlmAdapter;
 use crate::llm::types::{ChatMessage, ChunkDelta, MessageRole, ToolCall, ToolSchema};
 use crate::mcp::manager::McpManager;
+use crate::sandbox::approval::{ApprovalHandler, ApprovalMode, AutoApprove};
 use crate::token_estimator::estimate_tokens;
 use crate::tools::registry::ToolRegistry;
 
@@ -41,6 +42,7 @@ pub async fn run_agent_loop(
     max_turns: usize,
     tool_timeout_secs: u64,
     coding_mode: CodingMode,
+    approval_handler: Option<&dyn ApprovalHandler>,
 ) -> Result<(), AppError> {
     // Cache tool schemas once — they don't change across turns
     let schemas = collect_schemas(tools, mcp);
@@ -165,7 +167,7 @@ pub async fn run_agent_loop(
 
                 async move {
                     let result =
-                        dispatch_with_timeout(&tc_name, args_ref, tools, mcp, tool_timeout_secs)
+                        dispatch_with_timeout(&tc_name, args_ref, tools, mcp, tool_timeout_secs, approval_handler)
                             .await;
                     let (output, is_error) = match result {
                         Ok(r) => (r.output, r.is_error),

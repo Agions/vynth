@@ -20,7 +20,7 @@ pub async fn run(
     let config_reload_rx = crate::config::spawn_config_watcher(config_path, 0);
 
     // Create app with the config reload channel wired in
-    let mut app = App::new_with_settings(settings, config_reload_rx);
+    let mut app = App::new_with_settings(settings.clone(), config_reload_rx);
 
     // Load project-local skills and agents from `.synerix/` directory
     load_synerix_resources(&mut app).await;
@@ -28,11 +28,15 @@ pub async fn run(
     // Attach startup metrics to status bar
     app.status_bar.startup_metrics = Some(startup_metrics);
 
+    // Detect project context (languages, type, root)
+    let project_info = crate::project::detect_project(None).await;
+    app.project_context = Some(crate::project::ProjectContext::from_info(project_info));
+
     // Initialize TUI
     let mut terminal = crate::tui::init()?;
 
-    // Initialize theme (dark by default; TODO: read from config)
-    crate::tui::theme::init_theme(true);
+    // Initialize theme from config (default: dark)
+    crate::tui::theme::init_theme(settings.ui.theme == "dark");
 
     let result = app.run(&mut terminal).await;
 

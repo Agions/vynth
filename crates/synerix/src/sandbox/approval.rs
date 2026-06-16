@@ -1,5 +1,4 @@
 //! User approval flow for sandbox operations
-#![allow(dead_code)]
 
 use async_trait::async_trait;
 
@@ -7,6 +6,7 @@ use crate::error::AppError;
 
 /// Approval modes
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[allow(dead_code)]
 pub enum ApprovalMode {
     /// Auto-approve all operations
     ///
@@ -30,8 +30,10 @@ pub enum ApprovalDecision {
     /// Approve this operation
     Allow,
     /// Deny this operation
+    #[allow(dead_code)]
     Deny,
     /// Approve and remember for this session
+    #[allow(dead_code)]
     AllowAlways,
 }
 
@@ -53,6 +55,7 @@ impl ApprovalHandler for AutoApprove {
 }
 
 /// TUI-based approval handler (shows preview and asks for y/n)
+#[allow(dead_code)]
 pub struct TuiApprove {
     /// Decision channel sender — kept for future sandbox UI
     #[allow(dead_code)]
@@ -61,6 +64,7 @@ pub struct TuiApprove {
 }
 
 impl TuiApprove {
+    #[allow(dead_code)]
     pub fn new() -> (Self, tokio::sync::mpsc::Receiver<String>) {
         let (decision_tx, _decision_rx) = tokio::sync::mpsc::channel(1);
         let (request_tx, request_rx) = tokio::sync::mpsc::channel(1);

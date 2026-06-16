@@ -278,6 +278,7 @@ mod tests {
             agent_registry: CustomAgentRegistry::new(),
             goal_state: GoalState::inactive(),
             coding_mode: crate::coding_modes::CodingMode::Act,
+            project_context: None,
         }
     }
 

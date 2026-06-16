@@ -151,6 +151,7 @@ async fn test_agent_loop_e2e() {
             3,
             30,
             CodingMode::Act,
+            None, // approval handler (not wired in test)
         )
         .await;
         (result, ctx)

@@ -3,6 +3,7 @@
 use crate::agent::CustomAgentRegistry;
 use crate::coding_modes::CodingMode;
 use crate::config::{KeyBindings, KeymapProfile, Settings};
+use crate::project::ProjectContext;
 use crate::skills::SkillRegistry;
 
 use super::super::events::AgentEvent;
@@ -60,6 +61,8 @@ pub struct App {
     pub goal_state: GoalState,
     /// Active coding mode (Plan/Act/Chat/Architect)
     pub coding_mode: CodingMode,
+    /// Project context detected at startup (language, type, tools)
+    pub project_context: Option<ProjectContext>,
 }
 
 impl App {
@@ -94,6 +97,7 @@ impl App {
             agent_registry: CustomAgentRegistry::new(),
             goal_state: GoalState::inactive(),
             coding_mode: CodingMode::Act,
+            project_context: None,
         }
     }
 

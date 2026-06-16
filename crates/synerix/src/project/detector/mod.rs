@@ -1,6 +1,4 @@
 //! Project detection logic — language detection, type inference, root finding.
-//! TODO: Project detector — not yet wired
-#![allow(dead_code)]
 
 mod parsers;
 

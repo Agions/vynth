@@ -1,5 +1,4 @@
 //! Project types — `ProjectType`, `ProjectInfo`, and `ProjectContext`.
-#![allow(dead_code)]
 
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -45,6 +44,7 @@ impl std::fmt::Display for ProjectType {
 /// Static metadata about a detected project.
 #[derive(Debug, Clone)]
 pub struct ProjectInfo {
+    #[allow(dead_code)]
     pub root_dir: PathBuf,
     pub project_type: ProjectType,
     pub name: String,
@@ -52,6 +52,7 @@ pub struct ProjectInfo {
     pub has_git: bool,
     pub has_docker: bool,
     pub has_ci: bool,
+    #[allow(dead_code)]
     pub config_files: Vec<PathBuf>,
 }
 
@@ -62,12 +63,16 @@ pub struct ProjectInfo {
 /// Rich project context fed to the agent so it can tailor its behaviour.
 #[derive(Debug, Clone)]
 pub struct ProjectContext {
+    #[allow(dead_code)]
     pub info: ProjectInfo,
     /// Skills that are likely relevant for this project type.
+    #[allow(dead_code)]
     pub suggested_skills: Vec<String>,
     /// Tools that are likely useful for this project type.
+    #[allow(dead_code)]
     pub suggested_tools: Vec<String>,
     /// A hint injected into the system prompt about the project.
+    #[allow(dead_code)]
     pub system_prompt_hint: String,
 }
 

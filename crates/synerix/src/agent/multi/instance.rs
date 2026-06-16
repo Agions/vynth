@@ -85,6 +85,7 @@ impl AgentInstance {
             max_turns,
             120, // default tool timeout
             CodingMode::Act,
+            None, // approval handler (not wired in multi-agent yet)
         )
         .await;
 
