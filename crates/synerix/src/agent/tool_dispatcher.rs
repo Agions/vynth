@@ -47,7 +47,11 @@ async fn dispatch(
 
         // Check if approval needed
         if tool.requires_approval(args) {
-            let preview = format!("{} {}", name, serde_json::to_string_pretty(args).unwrap_or_default());
+            let preview = format!(
+                "{} {}",
+                name,
+                serde_json::to_string_pretty(args).unwrap_or_default()
+            );
             let handler = approval_handler.unwrap_or(&AutoApprove);
             let decision = handler.request_approval(&preview).await?;
             match decision {

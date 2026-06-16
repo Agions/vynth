@@ -33,7 +33,10 @@ pub async fn run(
     match SessionStore::open(&session_dir.join("sessions.db")) {
         Ok(store) => {
             app.session_store = Some(store);
-            tracing::info!("Session store opened at {:?}", session_dir.join("sessions.db"));
+            tracing::info!(
+                "Session store opened at {:?}",
+                session_dir.join("sessions.db")
+            );
         }
         Err(e) => {
             tracing::warn!("Failed to open session store: {e}");

@@ -69,6 +69,11 @@ fn truncate_preview(text: &str, max_chars: usize) -> String {
     if text.len() <= max_chars {
         text.to_string()
     } else {
-        format!("{}…\n\n⚠️ Preview truncated ({} chars shown of {})", &text[..max_chars], max_chars, text.len())
+        format!(
+            "{}…\n\n⚠️ Preview truncated ({} chars shown of {})",
+            &text[..max_chars],
+            max_chars,
+            text.len()
+        )
     }
 }

@@ -19,9 +19,7 @@ use crate::app::AgentEvent;
 use crate::coding_modes::CodingMode;
 use crate::error::AppError;
 use crate::llm::adapter::LlmAdapter;
-use crate::llm::types::{
-    ChatMessage, ChunkDelta, MessageRole, StreamChunk, ToolCall, ToolSchema,
-};
+use crate::llm::types::{ChatMessage, ChunkDelta, MessageRole, StreamChunk, ToolCall, ToolSchema};
 use crate::mcp::manager::McpManager;
 use crate::sandbox::approval::{ApprovalHandler, ApprovalMode, AutoApprove};
 use crate::token_estimator::estimate_tokens;
@@ -173,9 +171,15 @@ pub async fn run_agent_loop(
                 let args_ref = &tc.args;
 
                 async move {
-                    let result =
-                        dispatch_with_timeout(&tc_name, args_ref, tools, mcp, tool_timeout_secs, approval_handler)
-                            .await;
+                    let result = dispatch_with_timeout(
+                        &tc_name,
+                        args_ref,
+                        tools,
+                        mcp,
+                        tool_timeout_secs,
+                        approval_handler,
+                    )
+                    .await;
                     let (output, is_error) = match result {
                         Ok(r) => (r.output, r.is_error),
                         Err(e) => (format!("Error: {e}"), true),
@@ -278,7 +282,11 @@ async fn chat_stream_with_retry<'a>(
                         delay.as_secs()
                     );
                     let _ = event_tx.send(AgentEvent::TextDelta(msg));
-                    tracing::warn!("LLM stream retry {}/{} after {delay:?}: {e}", attempt + 1, max_retries);
+                    tracing::warn!(
+                        "LLM stream retry {}/{} after {delay:?}: {e}",
+                        attempt + 1,
+                        max_retries
+                    );
                     tokio::time::sleep(delay).await;
                     delay *= 2; // exponential backoff: 1s → 2s → 4s
                 } else {
@@ -288,5 +296,7 @@ async fn chat_stream_with_retry<'a>(
         }
     }
 
-    Err(AppError::ExecutionFailed("Max retries exceeded".to_string()))
+    Err(AppError::ExecutionFailed(
+        "Max retries exceeded".to_string(),
+    ))
 }

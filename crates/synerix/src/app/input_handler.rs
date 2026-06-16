@@ -156,9 +156,12 @@ impl App {
     }
 
     // ── Cursor helpers ───────────────────────────────────────
-    
+
     /// Handle key events when approval popup is showing
-    async fn handle_approval_key(&mut self, key: crossterm::event::KeyEvent) -> Result<(), AppError> {
+    async fn handle_approval_key(
+        &mut self,
+        key: crossterm::event::KeyEvent,
+    ) -> Result<(), AppError> {
         use crate::sandbox::approval::ApprovalDecision;
         match key.code {
             crossterm::event::KeyCode::Char('y') => {

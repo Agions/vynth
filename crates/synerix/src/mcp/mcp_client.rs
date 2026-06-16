@@ -184,7 +184,9 @@ impl McpClient {
                 Box::new(StdioTransport::connect(command, args).await?)
             }
             crate::config::McpTransport::Http { .. } => {
-                return Err(AppError::McpTransport("HTTP reconnect not supported".to_string()));
+                return Err(AppError::McpTransport(
+                    "HTTP reconnect not supported".to_string(),
+                ));
             }
         };
 
