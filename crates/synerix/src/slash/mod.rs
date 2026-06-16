@@ -279,6 +279,7 @@ mod tests {
             goal_state: GoalState::inactive(),
             coding_mode: crate::coding_modes::CodingMode::Act,
             project_context: None,
+            session_store: None,
         }
     }
 

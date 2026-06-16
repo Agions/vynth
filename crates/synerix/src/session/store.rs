@@ -3,7 +3,6 @@
 //! Uses `Mutex` instead of `RwLock` because `rusqlite::Connection` is `Send` but not `Sync`,
 //! which means `RwLock<Connection>` (which requires `T: Sync` for shared reads) cannot be
 //! wrapped in `Arc`. With WAL mode and `PRAGMA busy_timeout`, `Mutex` contention is minimal.
-#![allow(dead_code)]
 
 use rusqlite::Connection;
 use std::path::Path;
@@ -44,6 +43,7 @@ impl SessionStore {
     }
 
     /// Create an in-memory store (for testing)
+    #[allow(dead_code)]
     pub fn memory() -> Result<Self, AppError> {
         let conn = Connection::open_in_memory()?;
         conn.execute_batch("PRAGMA foreign_keys=ON;")?;
@@ -64,6 +64,7 @@ impl SessionStore {
     }
 
     /// Create a new session
+    #[allow(dead_code)]
     pub fn create_session(&self, session: &Session) -> Result<(), AppError> {
         let conn = self.lock_conn()?;
         conn.execute(
@@ -83,6 +84,7 @@ impl SessionStore {
     }
 
     /// List all sessions (most recent first)
+    #[allow(dead_code)]
     pub fn list_sessions(&self) -> Result<Vec<Session>, AppError> {
         let conn = self.lock_conn()?;
         let mut stmt = conn.prepare(
@@ -108,6 +110,7 @@ impl SessionStore {
     }
 
     /// Save a message to a session
+    #[allow(dead_code)]
     pub fn save_message(&self, message: &StoredMessage) -> Result<(), AppError> {
         let conn = self.lock_conn()?;
 
@@ -149,6 +152,7 @@ impl SessionStore {
     }
 
     /// Load all messages for a session
+    #[allow(dead_code)]
     pub fn load_messages(&self, session_id: &str) -> Result<Vec<StoredMessage>, AppError> {
         let conn = self.lock_conn()?;
         let mut stmt = conn.prepare(

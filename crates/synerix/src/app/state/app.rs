@@ -4,6 +4,7 @@ use crate::agent::CustomAgentRegistry;
 use crate::coding_modes::CodingMode;
 use crate::config::{KeyBindings, KeymapProfile, Settings};
 use crate::project::ProjectContext;
+use crate::session::SessionStore;
 use crate::skills::SkillRegistry;
 
 use super::super::events::AgentEvent;
@@ -63,6 +64,8 @@ pub struct App {
     pub coding_mode: CodingMode,
     /// Project context detected at startup (language, type, tools)
     pub project_context: Option<ProjectContext>,
+    /// SQLite session store for persisting conversations
+    pub session_store: Option<SessionStore>,
 }
 
 impl App {
@@ -98,6 +101,7 @@ impl App {
             goal_state: GoalState::inactive(),
             coding_mode: CodingMode::Act,
             project_context: None,
+            session_store: None,
         }
     }
 

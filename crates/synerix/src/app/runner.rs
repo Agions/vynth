@@ -3,6 +3,7 @@
 use super::state::App;
 use crate::agent::CustomAgentRegistry;
 use crate::error::AppError;
+use crate::session::SessionStore;
 use crate::skills::SkillRegistry;
 
 /// Run the application
@@ -24,6 +25,20 @@ pub async fn run(
 
     // Load project-local skills and agents from `.synerix/` directory
     load_synerix_resources(&mut app).await;
+
+    // Open session store in config directory
+    let session_dir = dirs_next::config_dir()
+        .unwrap_or_else(|| std::path::PathBuf::from("."))
+        .join("synerix");
+    match SessionStore::open(&session_dir.join("sessions.db")) {
+        Ok(store) => {
+            app.session_store = Some(store);
+            tracing::info!("Session store opened at {:?}", session_dir.join("sessions.db"));
+        }
+        Err(e) => {
+            tracing::warn!("Failed to open session store: {e}");
+        }
+    }
 
     // Attach startup metrics to status bar
     app.status_bar.startup_metrics = Some(startup_metrics);

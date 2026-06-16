@@ -7,7 +7,9 @@
 //! - Per-tool execution timeout
 
 use std::collections::HashMap;
+use std::pin::Pin;
 
+use futures::stream::Stream;
 use futures::StreamExt;
 use tokio::sync::mpsc;
 
@@ -17,7 +19,9 @@ use crate::app::AgentEvent;
 use crate::coding_modes::CodingMode;
 use crate::error::AppError;
 use crate::llm::adapter::LlmAdapter;
-use crate::llm::types::{ChatMessage, ChunkDelta, MessageRole, ToolCall, ToolSchema};
+use crate::llm::types::{
+    ChatMessage, ChunkDelta, MessageRole, StreamChunk, ToolCall, ToolSchema,
+};
 use crate::mcp::manager::McpManager;
 use crate::sandbox::approval::{ApprovalHandler, ApprovalMode, AutoApprove};
 use crate::token_estimator::estimate_tokens;
@@ -54,8 +58,11 @@ pub async fn run_agent_loop(
     for turn in 0..max_turns {
         tracing::debug!("Agent turn {}/{}", turn + 1, max_turns);
 
-        // Stream from LLM
-        let stream = llm.chat_stream(ctx.messages(), &schemas).await?;
+        // Snapshot messages before streaming to avoid borrow conflict with ctx.push()
+        let messages = ctx.messages().to_vec();
+
+        // Stream from LLM (with retry)
+        let stream = chat_stream_with_retry(llm, &messages, &schemas, &event_tx).await?;
         let mut stream = std::pin::pin!(stream);
 
         let mut full_text = String::new();
@@ -234,4 +241,52 @@ fn collect_schemas(tools: &ToolRegistry, mcp: &McpManager) -> Vec<ToolSchema> {
     let mut schemas = tools.all_schemas();
     schemas.extend(mcp.tool_schemas());
     schemas
+}
+
+/// Stream from LLM with retry and exponential backoff
+///
+/// Retries up to 3 times on transient errors, with 1s/2s/4s delays.
+/// Sends status updates to the user on each retry.
+async fn chat_stream_with_retry<'a>(
+    llm: &'a dyn LlmAdapter,
+    messages: &'a [ChatMessage],
+    schemas: &'a [ToolSchema],
+    event_tx: &mpsc::UnboundedSender<AgentEvent>,
+) -> Result<Pin<Box<dyn Stream<Item = Result<StreamChunk, AppError>> + Send + 'a>>, AppError> {
+    let max_retries = 3;
+    let mut delay = std::time::Duration::from_secs(1);
+
+    for attempt in 0..=max_retries {
+        match llm.chat_stream(messages, schemas).await {
+            Ok(stream) => return Ok(Box::pin(stream)),
+            Err(e) => {
+                if attempt == max_retries {
+                    return Err(e);
+                }
+                // Only retry on transient-looking errors
+                let err_str = e.to_string();
+                if err_str.contains("timeout")
+                    || err_str.contains("timed out")
+                    || err_str.contains("connection")
+                    || err_str.contains("reset")
+                    || err_str.contains("network")
+                {
+                    let msg = format!(
+                        "🔄 LLM call failed (attempt {}/{}), retrying in {}s…\n",
+                        attempt + 1,
+                        max_retries,
+                        delay.as_secs()
+                    );
+                    let _ = event_tx.send(AgentEvent::TextDelta(msg));
+                    tracing::warn!("LLM stream retry {}/{} after {delay:?}: {e}", attempt + 1, max_retries);
+                    tokio::time::sleep(delay).await;
+                    delay *= 2; // exponential backoff: 1s → 2s → 4s
+                } else {
+                    return Err(e); // Non-transient error, don't retry
+                }
+            }
+        }
+    }
+
+    Err(AppError::ExecutionFailed("Max retries exceeded".to_string()))
 }
