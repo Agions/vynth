@@ -128,12 +128,21 @@ impl Tool for SearchTool {
 mod tests {
     use super::*;
     use std::fs;
+    use std::process::Command;
 
     fn test_ctx(dir: &std::path::Path) -> ToolContext {
         ToolContext {
             working_dir: dir.to_path_buf(),
             ..Default::default()
         }
+    }
+
+    fn rg_available() -> bool {
+        Command::new("rg")
+            .arg("--version")
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false)
     }
 
     #[test]
@@ -150,20 +159,35 @@ mod tests {
         assert!(schema["parameters"]["properties"]["pattern"].is_object());
     }
 
+    async fn run_if_rg_available<F, Fut>(f: F)
+    where
+        F: FnOnce() -> Fut,
+        Fut: std::future::Future<Output = ()>,
+    {
+        if rg_available() {
+            f().await;
+        } else {
+            eprintln!("ripgrep not installed, skipping ripgrep-dependent search tests");
+        }
+    }
+
     #[tokio::test]
     async fn test_content_search() {
-        let dir = tempfile::tempdir().unwrap();
-        fs::write(
-            dir.path().join("test.rs"),
-            "fn main() {\n    println!(\"hello\");\n}\n",
-        )
-        .unwrap();
+        run_if_rg_available(|| async {
+            let dir = tempfile::tempdir().unwrap();
+            fs::write(
+                dir.path().join("test.rs"),
+                "fn main() {\n    println!(\"hello\");\n}\n",
+            )
+            .unwrap();
 
-        let tool = SearchTool;
-        let args = json!({"pattern": "main"});
-        let result = tool.execute(args, &test_ctx(dir.path())).await.unwrap();
-        assert!(!result.is_error);
-        assert!(result.output.contains("main"));
+            let tool = SearchTool;
+            let args = json!({"pattern": "main"});
+            let result = tool.execute(args, &test_ctx(dir.path())).await.unwrap();
+            assert!(!result.is_error);
+            assert!(result.output.contains("main"));
+        })
+        .await;
     }
 
     #[tokio::test]
@@ -181,28 +205,33 @@ mod tests {
 
     #[tokio::test]
     async fn test_content_search_with_glob() {
-        let dir = tempfile::tempdir().unwrap();
-        fs::write(dir.path().join("test.rs"), "hello world").unwrap();
-        fs::write(dir.path().join("test.py"), "hello world").unwrap();
+        run_if_rg_available(|| async {
+            let dir = tempfile::tempdir().unwrap();
+            fs::write(dir.path().join("test.rs"), "hello world").unwrap();
+            fs::write(dir.path().join("test.py"), "hello world").unwrap();
 
-        let tool = SearchTool;
-        let args = json!({"pattern": "hello", "file_glob": "*.rs"});
-        let result = tool.execute(args, &test_ctx(dir.path())).await.unwrap();
-        assert!(!result.is_error);
-        // Should only match .rs file
-        assert!(result.output.contains("test.rs"));
+            let tool = SearchTool;
+            let args = json!({"pattern": "hello", "file_glob": "*.rs"});
+            let result = tool.execute(args, &test_ctx(dir.path())).await.unwrap();
+            assert!(!result.is_error);
+            assert!(result.output.contains("test.rs"));
+        })
+        .await;
     }
 
     #[tokio::test]
     async fn test_no_matches() {
-        let dir = tempfile::tempdir().unwrap();
-        fs::write(dir.path().join("test.rs"), "fn main() {}").unwrap();
+        run_if_rg_available(|| async {
+            let dir = tempfile::tempdir().unwrap();
+            fs::write(dir.path().join("test.rs"), "fn main() {}").unwrap();
 
-        let tool = SearchTool;
-        let args = json!({"pattern": "zzzznonexistent"});
-        let result = tool.execute(args, &test_ctx(dir.path())).await.unwrap();
-        assert!(!result.is_error);
-        assert!(result.output.contains("No matches"));
+            let tool = SearchTool;
+            let args = json!({"pattern": "zzzznonexistent"});
+            let result = tool.execute(args, &test_ctx(dir.path())).await.unwrap();
+            assert!(!result.is_error);
+            assert!(result.output.contains("No matches"));
+        })
+        .await;
     }
 
     #[tokio::test]
@@ -225,16 +254,19 @@ mod tests {
 
     #[tokio::test]
     async fn test_max_results() {
-        let dir = tempfile::tempdir().unwrap();
-        for i in 0..10 {
-            fs::write(dir.path().join(format!("f{}.txt", i)), "match_target").unwrap();
-        }
+        run_if_rg_available(|| async {
+            let dir = tempfile::tempdir().unwrap();
+            for i in 0..10 {
+                fs::write(dir.path().join(format!("f{}.txt", i)), "match_target").unwrap();
+            }
 
-        let tool = SearchTool;
-        let args = json!({"pattern": "match_target", "max_results": 3});
-        let result = tool.execute(args, &test_ctx(dir.path())).await.unwrap();
-        assert!(!result.is_error);
-        let line_count = result.output.lines().count();
-        assert!(line_count <= 3);
+            let tool = SearchTool;
+            let args = json!({"pattern": "match_target", "max_results": 3});
+            let result = tool.execute(args, &test_ctx(dir.path())).await.unwrap();
+            assert!(!result.is_error);
+            let line_count = result.output.lines().count();
+            assert!(line_count <= 3);
+        })
+        .await;
     }
 }

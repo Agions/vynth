@@ -109,7 +109,7 @@ impl KeyBindings {
             KeyCode::Char('o') => Action::EnterInsertModeOpenLineBelow,
             KeyCode::Char('O') => Action::EnterInsertModeOpenLineAbove,
             KeyCode::Char(':') => Action::EnterCommandMode,
-            KeyCode::Char('/') => Action::OpenSlashCommand,
+            KeyCode::Char('/') => Action::EnterSearchMode,
             // Quit
             KeyCode::Char('q') => Action::Quit,
             // Scrolling

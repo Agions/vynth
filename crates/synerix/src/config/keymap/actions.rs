@@ -108,6 +108,6 @@ mod tests {
             Action::ClearLine,
             Action::Noop,
         ];
-        assert_eq!(actions.len(), 31);
+        assert_eq!(actions.len(), 32);
     }
 }
