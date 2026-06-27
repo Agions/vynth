@@ -2,7 +2,7 @@
 
 All notable changes to Synerix will be documented in this file.
 
-## [0.2.2] — 2026-06-09
+## [0.2.2] — 2026-06-27
 
 ### 🪟 Windows 原生安装支持
 
