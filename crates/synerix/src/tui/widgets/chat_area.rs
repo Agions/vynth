@@ -406,9 +406,9 @@ fn format_table_block(table_lines: Vec<&str>) -> String {
     let header = parse_row(table_lines[0]);
     let data_start = if table_lines.len() > 1 { 2 } else { 1 };
     let mut rows = Vec::new();
-    for i in data_start..table_lines.len() {
-        if !is_separator_row(table_lines[i]) {
-            rows.push(parse_row(table_lines[i]));
+    for line in table_lines.iter().skip(data_start) {
+        if !is_separator_row(line) {
+            rows.push(parse_row(line));
         }
     }
 
