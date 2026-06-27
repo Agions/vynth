@@ -15,6 +15,7 @@ pub mod config;
 pub mod goal;
 pub mod help;
 pub mod mcp;
+pub mod menu;
 pub mod mode;
 pub mod model;
 pub mod session;
@@ -52,13 +53,13 @@ impl CmdCategory {
     /// 分类的中文展示标签
     pub fn label(self) -> &'static str {
         match self {
-            CmdCategory::Help => "💡 帮助",
-            CmdCategory::Session => "📋 会话管理",
-            CmdCategory::Model => "🤖 模型配置",
-            CmdCategory::Config => "⚙️ 配置管理",
-            CmdCategory::Goal => "🎯 目标模式",
-            CmdCategory::Workflow => "📦 工作流",
-            CmdCategory::Mode => "🔀 编码模式",
+            CmdCategory::Help => "帮助",
+            CmdCategory::Session => "会话管理",
+            CmdCategory::Model => "模型配置",
+            CmdCategory::Config => "配置管理",
+            CmdCategory::Goal => "目标模式",
+            CmdCategory::Workflow => "工作流",
+            CmdCategory::Mode => "编码模式",
         }
     }
 }
@@ -105,8 +106,8 @@ pub const COMMANDS: &[CmdDef] = &[
     CmdDef {
         name: "/model",
         aliases: &["/m"],
-        desc: "切换 LLM 模型 / 配置自定义提供商",
-        usage: "/model [name] | /model custom <name> <base-url>",
+        desc: "查看、切换和配置大模型方案",
+        usage: "/model | /model list | /model use <preset> | /model custom <name> <base-url> | /model temp <0.0-2.0> | /model tokens <n>",
         category: CmdCategory::Model,
         handler: cmd_model,
     },
@@ -189,6 +190,26 @@ pub fn find_cmd(input: &str) -> Option<&'static CmdDef> {
         .find(|c| c.name == input || c.aliases.contains(&input))
 }
 
+/// Accept exact slash command names with or without the leading slash.
+pub fn normalize_command_input(input: &str) -> Option<String> {
+    let trimmed = input.trim();
+    if trimmed.starts_with('/') || trimmed.is_empty() {
+        return None;
+    }
+
+    let (name, args) = trimmed
+        .split_once(' ')
+        .map(|(name, args)| (name, Some(args.trim())))
+        .unwrap_or((trimmed, None));
+    let slash_name = format!("/{name}");
+    find_cmd(&slash_name)?;
+
+    Some(match args {
+        Some(args) if !args.is_empty() => format!("{slash_name} {args}"),
+        _ => slash_name,
+    })
+}
+
 /// 尝试处理斜杠命令入口
 ///
 /// 返回 `true` 表示输入是一个已处理的斜杠命令，
@@ -197,6 +218,9 @@ pub fn try_handle(app: &mut App, input: &str) -> bool {
     let trimmed = input.trim();
     if !trimmed.starts_with('/') {
         return false;
+    }
+    if trimmed == "/" {
+        return cmd_help(app, None);
     }
 
     let (cmd_name, args) = trimmed
@@ -262,6 +286,7 @@ mod tests {
                 goal_active: false,
                 goal_duration: String::new(),
                 coding_mode: crate::coding_modes::CodingMode::Act,
+                animation_frame: 0,
             },
             settings,
             should_quit: false,
@@ -270,7 +295,9 @@ mod tests {
             input_cursor: 0,
             keybindings: KeyBindings::new(KeymapProfile::Default),
             yank_buffer: String::new(),
+            slash_menu_state: crate::app::SlashMenuState::default(),
             layout_state: LayoutState::default(),
+            agent_tx: _tx,
             agent_rx: _rx,
             config_reload_rx: crx,
             config_version: 0,
@@ -308,6 +335,36 @@ mod tests {
             .contains("未知命令"));
     }
 
+    #[test]
+    fn test_bare_slash_opens_help_instead_of_unknown_command() {
+        let mut app = make_app();
+        assert!(try_handle(&mut app, "/"));
+        let content = &app.chat_state.messages.last().unwrap().content;
+        assert!(content.contains("/model"));
+        assert!(!content.contains("未知命令"));
+    }
+
+    #[test]
+    fn test_sys_msg_strips_markdown_markers() {
+        let mut app = make_app();
+        crate::slash::common::sys_msg(&mut app, "**title** `cmd`");
+        assert_eq!(app.chat_state.messages[0].content, "title cmd");
+    }
+
+    #[test]
+    fn test_normalize_command_input() {
+        assert_eq!(
+            normalize_command_input("help model").as_deref(),
+            Some("/help model")
+        );
+        assert_eq!(
+            normalize_command_input("mode plan").as_deref(),
+            Some("/mode plan")
+        );
+        assert_eq!(normalize_command_input("/help"), None);
+        assert_eq!(normalize_command_input("hello world"), None);
+    }
+
     // ── Command handler tests ──────────────────────────────────────────────
 
     #[test]
@@ -316,6 +373,8 @@ mod tests {
         assert!(try_handle(&mut app, "/help"));
         assert_eq!(app.chat_state.messages.len(), 1);
         assert!(app.chat_state.messages[0].content.contains("/clear"));
+        assert!(!app.chat_state.messages[0].content.contains("**"));
+        assert!(!app.chat_state.messages[0].content.contains('`'));
     }
 
     #[test]
@@ -342,6 +401,15 @@ mod tests {
         assert_eq!(app.settings.llm.model, "mimo-v2.5-pro");
         assert_eq!(app.status_bar.model_name, "mimo-v2.5-pro");
         assert!(app.chat_state.messages[0].content.contains(&old));
+    }
+
+    #[test]
+    fn test_model_switch_updates_context_window_from_model() {
+        let mut app = make_app();
+        assert!(try_handle(&mut app, "/model gpt-4.1"));
+        assert_eq!(app.settings.llm.model, "gpt-4.1");
+        assert_eq!(app.settings.llm.context_window, 1_000_000);
+        assert_eq!(app.status_bar.tokens_total, 1_000_000);
     }
 
     #[test]
@@ -374,6 +442,8 @@ mod tests {
             "/model custom claude-sonnet-4 https://api.anthropic.com/v1"
         ));
         assert_eq!(app.settings.llm.model, "claude-sonnet-4");
+        assert_eq!(app.settings.llm.context_window, 200_000);
+        assert_eq!(app.status_bar.tokens_total, 200_000);
         match &app.settings.llm.provider {
             Provider::Custom { base_url } => {
                 assert_eq!(base_url, "https://api.anthropic.com/v1");
@@ -393,6 +463,42 @@ mod tests {
         assert!(try_handle(&mut app, "/model custom"));
         let content = &app.chat_state.messages.last().unwrap().content;
         assert!(content.contains("用法"));
+    }
+
+    #[test]
+    fn test_model_list_presets() {
+        let mut app = make_app();
+        assert!(try_handle(&mut app, "/model list"));
+        let content = &app.chat_state.messages.last().unwrap().content;
+        assert!(content.contains("deepseek"));
+        assert!(content.contains("mimo"));
+        assert!(content.contains("openai"));
+    }
+
+    #[test]
+    fn test_model_use_preset() {
+        let mut app = make_app();
+        assert!(try_handle(&mut app, "/model use mimo"));
+        assert_eq!(app.settings.llm.model, "mimo-v2.5-pro");
+        assert_eq!(app.status_bar.model_name, "mimo-v2.5-pro");
+        assert_eq!(app.status_bar.tokens_total, 128_000);
+    }
+
+    #[test]
+    fn test_model_use_openai_preset_uses_model_capabilities() {
+        let mut app = make_app();
+        assert!(try_handle(&mut app, "/model use openai"));
+        assert_eq!(app.settings.llm.model, "gpt-4.1");
+        assert_eq!(app.status_bar.tokens_total, 1_000_000);
+    }
+
+    #[test]
+    fn test_model_tuning_commands() {
+        let mut app = make_app();
+        assert!(try_handle(&mut app, "/model temp 0.2"));
+        assert_eq!(app.settings.llm.temperature, 0.2);
+        assert!(try_handle(&mut app, "/model tokens 4096"));
+        assert_eq!(app.settings.llm.max_output_tokens, 4096);
     }
 
     #[test]
@@ -712,13 +818,15 @@ mod tests {
         let mut app = make_app();
         assert!(try_handle(&mut app, "/help"));
         let content = &app.chat_state.messages.last().unwrap().content;
-        assert!(content.contains("💡 帮助"));
-        assert!(content.contains("📋 会话管理"));
-        assert!(content.contains("🤖 模型配置"));
-        assert!(content.contains("⚙️ 配置管理"));
-        assert!(content.contains("🎯 目标模式"));
-        assert!(content.contains("📦 工作流"));
+        assert!(content.contains("帮助"));
+        assert!(content.contains("会话管理"));
+        assert!(content.contains("模型配置"));
+        assert!(content.contains("配置管理"));
+        assert!(content.contains("目标模式"));
+        assert!(content.contains("工作流"));
         assert!(content.contains("/help <命令名>"));
+        assert!(!content.contains("**"));
+        assert!(!content.contains('`'));
     }
 
     #[test]

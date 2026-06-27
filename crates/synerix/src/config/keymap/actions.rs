@@ -22,6 +22,7 @@ pub enum Action {
     EnterInsertModeOpenLineAbove,
     EnterNormalMode,
     EnterCommandMode,
+    OpenSlashCommand,
     EnterSearchMode,
     // Scrolling
     ScrollUp,
@@ -91,6 +92,7 @@ mod tests {
             Action::EnterInsertModeOpenLineAbove,
             Action::EnterNormalMode,
             Action::EnterCommandMode,
+            Action::OpenSlashCommand,
             Action::EnterSearchMode,
             Action::ScrollUp,
             Action::ScrollDown,

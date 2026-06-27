@@ -1,5 +1,4 @@
 //! Agent — core reasoning loop + multi-agent orchestration
-#![allow(unused_imports)]
 
 pub mod agent_loop;
 pub mod context;

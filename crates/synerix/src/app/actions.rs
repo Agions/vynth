@@ -124,6 +124,14 @@ impl App {
                 self.mode = InputMode::Command;
                 self.dirty_flags.input = true;
             }
+            Action::OpenSlashCommand => {
+                self.input_buffer.clear();
+                self.input_buffer.push('/');
+                self.input_cursor = self.input_buffer.len();
+                self.mode = InputMode::Insert;
+                self.focused_panel = crate::app::FocusedPanel::Input;
+                self.dirty_flags.input = true;
+            }
             Action::EnterSearchMode => {
                 self.mode = InputMode::Search;
                 self.dirty_flags.input = true;
@@ -169,23 +177,18 @@ impl App {
                 self.dirty_flags.input = true;
             }
             Action::TabNext => {
-                use super::state::SidebarTab;
-                // Cycle sidebar tabs
-                self.sidebar_state.active_tab = match self.sidebar_state.active_tab {
-                    SidebarTab::Files => SidebarTab::Sessions,
-                    SidebarTab::Sessions => SidebarTab::Skills,
-                    SidebarTab::Skills => SidebarTab::Files,
-                };
-                self.dirty_flags.sidebar = true;
+                self.coding_mode = self.coding_mode.next();
+                self.status_bar.coding_mode = self.coding_mode;
+                self.dirty_flags.chat = true;
+                self.dirty_flags.input = true;
+                self.dirty_flags.status = true;
             }
             Action::TabPrev => {
-                use super::state::SidebarTab;
-                self.sidebar_state.active_tab = match self.sidebar_state.active_tab {
-                    SidebarTab::Files => SidebarTab::Skills,
-                    SidebarTab::Sessions => SidebarTab::Files,
-                    SidebarTab::Skills => SidebarTab::Sessions,
-                };
-                self.dirty_flags.sidebar = true;
+                self.coding_mode = self.coding_mode.previous();
+                self.status_bar.coding_mode = self.coding_mode;
+                self.dirty_flags.chat = true;
+                self.dirty_flags.input = true;
+                self.dirty_flags.status = true;
             }
 
             // Yank/paste

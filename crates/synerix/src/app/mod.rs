@@ -8,8 +8,6 @@
 //! - `input_handler` — Keyboard input handlers
 //! - `actions` — Action execution (the big match block)
 //! - `runner` — Application entry point
-#![allow(unused_imports)]
-
 mod actions;
 mod event_loop;
 pub mod events;

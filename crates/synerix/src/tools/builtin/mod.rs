@@ -1,6 +1,5 @@
 //! Built-in tools
 #![allow(dead_code)]
-#![allow(unused_imports)]
 
 pub mod file_read;
 pub mod file_write;

@@ -38,14 +38,14 @@ fn show_cmd_detail(app: &mut App, target: &str) -> bool {
         sys_msg(
             app,
             &format!(
-                "📖 **{}** — {}{}\n\n用法：`{}`",
+                "{} - {}{}\n\n用法: {}",
                 cmd.name, cmd.desc, aliases_str, cmd.usage,
             ),
         );
     } else {
         sys_msg(
             app,
-            &format!("❌ 没有 `{}` 命令。输入 `/help` 查看所有命令。", target),
+            &format!("ERROR 没有 {} 命令。输入 /help 查看所有命令。", target),
         );
     }
     true
@@ -60,20 +60,21 @@ fn show_categorized_overview(app: &mut App) {
         CmdCategory::Config,
         CmdCategory::Goal,
         CmdCategory::Workflow,
+        CmdCategory::Mode,
     ];
 
-    let mut lines = vec!["**📋 可用斜杠命令：**".to_string(), String::new()];
+    let mut lines = vec!["可用斜杠命令:".to_string(), String::new()];
     for cat in &cat_order {
         let cmds: Vec<&CmdDef> = COMMANDS.iter().filter(|c| c.category == *cat).collect();
         if cmds.is_empty() {
             continue;
         }
-        lines.push(format!("**{}**", cat.label()));
+        lines.push(cat.label().to_string());
         for cmd in &cmds {
-            lines.push(format!("  `{}` — {}", cmd.name, cmd.desc));
+            lines.push(format!("  {} - {}", cmd.name, cmd.desc));
         }
         lines.push(String::new());
     }
-    lines.push("💡 使用 `/help <命令名>` 查看单个命令的详细用法和别名。".to_string());
+    lines.push("TIP 使用 /help <命令名> 查看单个命令的详细用法和别名。".to_string());
     sys_msg(app, &lines.join("\n"));
 }

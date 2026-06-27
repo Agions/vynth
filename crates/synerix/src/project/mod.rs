@@ -3,7 +3,6 @@
 //! Provides a lightweight scan of the working directory to build a
 //! `ProjectInfo` and `ProjectContext` that inform the agent about the codebase
 //! it is operating on.
-#![allow(unused_imports)]
 
 pub mod detector;
 pub mod types;

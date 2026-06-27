@@ -6,7 +6,7 @@
 //! - HTTP URLs (download + load)
 #![allow(dead_code)]
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use crate::error::AppError;
 use crate::skills::skill_loader::load_skill_file;

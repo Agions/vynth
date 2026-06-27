@@ -10,6 +10,7 @@ pub mod config;
 pub mod error;
 pub mod llm;
 pub mod mcp;
+pub mod model_catalog;
 pub mod plugins;
 pub mod project;
 pub mod sandbox;

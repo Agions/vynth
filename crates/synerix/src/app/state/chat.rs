@@ -1,6 +1,6 @@
 //! Chat conversation state types.
 
-use super::super::message::{ChatMessage, MessageRole};
+use super::super::message::ChatMessage;
 
 /// Chat conversation state
 #[derive(Debug, Clone, Default)]

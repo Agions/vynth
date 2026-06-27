@@ -1,9 +1,7 @@
-//! TUI event source — crossterm keyboard/mouse → AppEvent
-//!
-//! Uses `tokio::task::spawn_blocking` for non-blocking terminal I/O.
-//! This avoids the 50ms busy-poll pattern and lets the OS wake us on input.
+//! TUI event source — crossterm keyboard/mouse → AppEvent.
 
 use crossterm::event::{self, Event, KeyEvent, MouseEvent};
+use tokio::sync::mpsc;
 
 /// Application events
 #[allow(dead_code)]
@@ -15,20 +13,22 @@ pub enum AppEvent {
     Tick,
 }
 
-/// Read the next terminal event without busy-polling.
-///
-/// Uses `spawn_blocking` so the async runtime is not blocked by crossterm's
-/// synchronous `event::read()`. The OS suspends the thread until input arrives,
-/// consuming zero CPU while waiting.
-pub async fn poll_event() -> Option<AppEvent> {
-    tokio::task::spawn_blocking(|| event::read().ok())
-        .await
-        .ok()
-        .flatten()
-        .and_then(|evt| match evt {
-            Event::Key(key) => Some(AppEvent::Key(key)),
-            Event::Mouse(mouse) => Some(AppEvent::Mouse(mouse)),
-            Event::Resize(_w, _h) => Some(AppEvent::Resize),
-            _ => None,
-        })
+pub fn spawn_event_reader() -> mpsc::UnboundedReceiver<AppEvent> {
+    let (tx, rx) = mpsc::unbounded_channel();
+    std::thread::spawn(move || {
+        while let Ok(evt) = event::read() {
+            let app_event = match evt {
+                Event::Key(key) => Some(AppEvent::Key(key)),
+                Event::Mouse(mouse) => Some(AppEvent::Mouse(mouse)),
+                Event::Resize(_w, _h) => Some(AppEvent::Resize),
+                _ => None,
+            };
+            if let Some(app_event) = app_event {
+                if tx.send(app_event).is_err() {
+                    break;
+                }
+            }
+        }
+    });
+    rx
 }

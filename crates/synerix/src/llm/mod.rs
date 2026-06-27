@@ -1,5 +1,4 @@
 //! LLM unified adapter layer
-#![allow(unused_imports)]
 
 pub mod adapter;
 pub mod provider;

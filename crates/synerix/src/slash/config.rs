@@ -13,11 +13,19 @@ pub fn cmd_config(app: &mut App, args: Option<&str>) -> bool {
     match sub {
         "" | "show" => {
             let path = crate::config::settings::Settings::config_path();
+            let api_key_source = if std::env::var("SYNERIX_API_KEY").is_ok() {
+                "SYNERIX_API_KEY"
+            } else if app.settings.llm.api_key.is_empty() {
+                "未设置"
+            } else {
+                "config.toml"
+            };
             sys_msg(
                 app,
                 &format!(
-                    "⚙️ 配置路径：`{}`\nMCP 服务器：{} 个\n技能源：{} 个\nSkills 目录：{}\n\n用法：\n  `/config show` — 显示配置路径\n  `/config save` — 保存当前配置到文件",
+                    "配置路径：{}\nAPI Key：{}\nMCP 服务器：{} 个\n技能源：{} 个\nSkills 目录：{}\n\n用法：\n  /config show - 显示配置路径\n  /config save - 保存当前配置到文件",
                     path.display(),
+                    api_key_source,
                     app.settings.mcp.len(),
                     app.settings.skill_sources.len(),
                     app.settings

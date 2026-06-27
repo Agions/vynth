@@ -1,5 +1,4 @@
 //! Security sandbox
-#![allow(unused_imports)]
 
 pub mod approval;
 pub mod atomic_writer;

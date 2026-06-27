@@ -4,29 +4,9 @@
 //! Claude Code's interaction model, Codex CLI's sandbox mechanism,
 //! and OpenCode's extensible architecture.
 
-// #![allow(dead_code, unused_imports, unused_variables)] — 已移除，逐模块清理中
-
-mod agent;
-mod app;
-mod coding_modes;
-mod config;
-mod error;
-mod llm;
-mod mcp;
-mod project;
-mod sandbox;
-mod session;
-mod skills;
-mod slash;
-mod telemetry;
-mod token_estimator;
-mod tools;
-mod tui;
-mod util;
-
-use config::Settings;
-use error::AppError;
-use telemetry::{StartupMetrics, StartupTimer};
+use synerix::config::Settings;
+use synerix::error::AppError;
+use synerix::telemetry::{StartupMetrics, StartupTimer};
 
 #[tokio::main]
 async fn main() -> Result<(), AppError> {
@@ -63,7 +43,7 @@ async fn main() -> Result<(), AppError> {
     }
 
     // Run the application
-    let result = app::run(settings, metrics).await;
+    let result = synerix::app::run(settings, metrics).await;
 
     match &result {
         Ok(()) => tracing::info!("Synerix exited normally"),

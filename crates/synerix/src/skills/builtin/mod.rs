@@ -1,5 +1,4 @@
 //! Built-in skills
-#![allow(unused_imports)]
 
 pub mod code_review;
 pub mod refactor;

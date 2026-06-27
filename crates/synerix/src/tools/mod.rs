@@ -1,5 +1,4 @@
 //! Tool pluggable registry
-#![allow(unused_imports)]
 
 pub mod builtin;
 pub mod registry;

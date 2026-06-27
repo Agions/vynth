@@ -20,9 +20,35 @@ pub const DEFAULT_MODEL: &str = "deepseek-v4-flash";
 pub fn sys_msg(app: &mut App, text: &str) {
     app.chat_state.messages.push(ChatMessage {
         role: MessageRole::System,
-        content: text.to_string(),
+        content: clean_terminal_text(text),
         tool_calls: Vec::new(),
     });
+    app.chat_state.scroll_offset = 0;
+}
+
+fn clean_terminal_text(text: &str) -> String {
+    text.replace("**", "")
+        .replace('`', "")
+        .replace("✅", "OK")
+        .replace("❌", "ERROR")
+        .replace("💡", "TIP")
+        .replace("📋", "")
+        .replace("📖", "")
+        .replace("⚙️", "")
+        .replace("📂", "")
+        .replace("🎯", "")
+        .replace("📦", "")
+        .replace("🔀", "")
+        .replace("🤖", "")
+        .replace("🚀", "RUN")
+        .replace("🗑️", "REMOVED")
+        .replace("💾", "SAVED")
+        .replace("🔄", "RESET")
+        .replace("🧠", "")
+        .replace("⚡", "")
+        .replace("💬", "")
+        .replace("🔧", "")
+        .replace("🎵", "")
 }
 
 /// 分割参数为 (子命令, 剩余参数)

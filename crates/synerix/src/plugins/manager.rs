@@ -1,11 +1,5 @@
 //! PluginManager — 插件注册与生命周期管理
 //!
-//! # 优化说明
-//! - 提取 `for_each_plugin_mut` 方法，将 `init_all` 中的 unsafe 指针迭代
-//!   封装为安全抽象层，调用方无需关心内存安全细节
-//! - 提取 `for_each_plugin` 方法，统一 &self 迭代模式
-//! - 测试桩移至 `stubs.rs`，使 manager.rs 仅有纯生产逻辑 + 测试用例
-
 use std::sync::Arc;
 
 use crate::error::AppError;
@@ -43,34 +37,20 @@ impl PluginManager {
         self.plugins.is_empty()
     }
 
-    /// 并发调用所有插件的 init() 方法
+    /// 调用所有插件的 init() 方法
     ///
     /// # 错误处理
     /// 单个插件失败不会阻断其他插件初始化。失败信息聚合后
     /// 以 PluginInitPartialFailure 错误返回。
     ///
-    /// # Safety
-    /// 使用 unsafe 指针解引获取非重叠 &mut 引用并发执行 init。
-    /// 每个索引在 [0, len) 范围内唯一，指针计算保证不重叠。
     pub async fn init_all(&mut self) -> Result<(), AppError> {
         let total_count = self.plugins.len();
-        if total_count == 0 {
-            return Ok(());
-        }
-
-        // Safety: 每个索引 i 在 [0, len) 范围内唯一且不重叠。
-        // ptr.add(i) 在边界内且对齐，Vec 在执行期间不会被重新分配。
-        let ptr = self.plugins.as_mut_ptr();
-        let mut futures = Vec::with_capacity(total_count);
-
-        for i in 0..total_count {
-            let plugin = unsafe { &mut *ptr.add(i) };
+        let mut results = Vec::with_capacity(total_count);
+        for plugin in &mut self.plugins {
             let name = plugin.name().to_string();
             tracing::info!("Initialising plugin: {name}");
-            futures.push(plugin.init());
+            results.push(plugin.init().await);
         }
-
-        let results = futures::future::join_all(futures).await;
         aggregate_init_results(results, total_count)
     }
 
@@ -115,10 +95,6 @@ impl Default for PluginManager {
 }
 
 /// 聚合 init 结果：统计失败数，无失败返回 Ok，否则返回 PartialFailure
-///
-/// # 优化说明
-/// 将 init_all 中原本内联的「收集 → 计数 → 构造错误」模式提取为独立函数，
-/// 与原 emit_event 中的错误聚合逻辑对称，消除重复的模式认知负担。
 fn aggregate_init_results(
     results: Vec<Result<(), AppError>>,
     total_count: usize,

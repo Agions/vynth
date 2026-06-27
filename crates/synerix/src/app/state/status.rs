@@ -15,6 +15,8 @@ pub struct StatusBarState {
     pub goal_duration: String,
     /// Active coding mode indicator
     pub coding_mode: CodingMode,
+    /// Monotonic frame counter used for subtle TUI animation.
+    pub animation_frame: u64,
 }
 
 #[derive(Debug, Clone, Default)]

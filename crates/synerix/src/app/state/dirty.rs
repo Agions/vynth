@@ -12,6 +12,10 @@ pub struct DirtyFlags {
 }
 
 impl DirtyFlags {
+    pub fn any(self) -> bool {
+        self.sidebar || self.chat || self.diff || self.input || self.status || self.approval
+    }
+
     pub fn all_dirty() -> Self {
         Self {
             sidebar: true,

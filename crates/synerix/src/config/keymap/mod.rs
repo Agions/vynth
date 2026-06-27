@@ -71,7 +71,7 @@ mod tests {
         );
         assert_eq!(
             kb.resolve(&InputMode::Normal, key(KeyCode::Char('/'))),
-            Action::EnterSearchMode
+            Action::OpenSlashCommand
         );
     }
 

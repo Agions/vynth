@@ -1,5 +1,4 @@
 //! Skills — YAML/MD skill tree
-#![allow(unused_imports)]
 
 pub mod builtin;
 pub mod external;

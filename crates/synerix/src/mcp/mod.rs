@@ -1,5 +1,4 @@
 //! MCP (Model Context Protocol) client
-#![allow(unused_imports)]
 
 pub mod manager;
 pub mod mcp_client;

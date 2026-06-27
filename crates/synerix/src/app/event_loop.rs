@@ -17,23 +17,37 @@ impl App {
     ) -> Result<(), AppError> {
         tracing::info!("Entering main event loop");
 
+        let mut agent_events_open = true;
+        let mut config_reloads_open = true;
+        let mut animation_tick = tokio::time::interval(std::time::Duration::from_millis(180));
+        let mut tui_events = crate::tui::event::spawn_event_reader();
+
         loop {
-            terminal.draw(|frame| self.draw_with_layout(frame))?;
+            if self.dirty_flags.any() {
+                terminal.draw(|frame| self.draw_with_layout(frame))?;
+            }
 
             tokio::select! {
-                event = crate::tui::event::poll_event() => {
+                _ = animation_tick.tick() => {
+                    self.handle_input(AppEvent::Tick).await?;
+                }
+                event = tui_events.recv() => {
                     if let Some(event) = event {
                         self.handle_input(event).await?;
                     }
                 }
-                agent_event = self.agent_rx.recv() => {
+                agent_event = self.agent_rx.recv(), if agent_events_open => {
                     if let Some(event) = agent_event {
                         self.handle_agent_event(event);
+                    } else {
+                        agent_events_open = false;
                     }
                 }
-                reload = self.config_reload_rx.recv() => {
+                reload = self.config_reload_rx.recv(), if config_reloads_open => {
                     if let Some(reload) = reload {
                         self.apply_config_reload(reload);
+                    } else {
+                        config_reloads_open = false;
                     }
                 }
             }
@@ -73,14 +87,30 @@ impl App {
                 self.dirty_flags = DirtyFlags::all_dirty();
             }
             AppEvent::Tick => {
-                // Update goal duration display in status bar
+                self.status_bar.animation_frame = self.status_bar.animation_frame.wrapping_add(1);
                 self.status_bar.goal_duration = self.goal_state.duration_str();
+                if self.should_animate() {
+                    self.dirty_flags.chat = true;
+                    self.dirty_flags.input = true;
+                    self.dirty_flags.status = true;
+                } else if self.status_bar.goal_active {
+                    self.dirty_flags.status = true;
+                }
             }
             AppEvent::Mouse(mouse) => {
                 self.handle_mouse(mouse);
             }
         }
         Ok(())
+    }
+
+    fn should_animate(&self) -> bool {
+        self.chat_state.is_streaming
+            || self.input_buffer.starts_with('/')
+            || matches!(
+                self.status_bar.agent_state,
+                AgentState::Thinking | AgentState::RunningTool(_)
+            )
     }
 
     // ── Mouse handling ──────────────────────────────────────
@@ -273,6 +303,15 @@ impl App {
             }
             AgentEvent::Error(msg) => {
                 self.status_bar.agent_state = AgentState::Error(msg.clone());
+                self.chat_state.messages.push(ChatMessage {
+                    role: MessageRole::System,
+                    content: msg.clone(),
+                    tool_calls: Vec::new(),
+                });
+                self.chat_state.is_streaming = false;
+                self.chat_state.streaming_text.clear();
+                self.chat_state.scroll_offset = 0;
+                self.dirty_flags.chat = true;
                 self.dirty_flags.status = true;
                 tracing::error!("Agent error: {}", msg);
             }
@@ -290,9 +329,12 @@ impl App {
         );
 
         self.keybindings = Self::create_keybindings(&reload.settings);
+        self.settings.llm = reload.settings.llm.clone();
         self.settings.ui.theme = reload.settings.ui.theme.clone();
         self.settings.ui.keymap = reload.settings.ui.keymap.clone();
         self.settings.sandbox.mode = reload.settings.sandbox.mode.clone();
+        self.status_bar.model_name = self.settings.llm.model.clone();
+        self.status_bar.tokens_total = self.settings.llm.context_window;
         self.status_bar.sandbox_mode = format!("{:?}", self.settings.sandbox.mode);
         self.config_version = reload.version;
         self.dirty_flags.status = true;

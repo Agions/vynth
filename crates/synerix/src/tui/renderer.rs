@@ -1,25 +1,25 @@
 //! Frame renderer — orchestration layer
 //!
 //! Coordinates layout computation and delegates rendering to each widget.
-//! Uses dirty-flag differential rendering to skip widgets that haven't changed.
+//! Renders each visible widget on every frame.
 
 use crate::app::App;
-use crate::tui::layout::{compute_layout, TerminalLayout};
+use crate::tui::layout::{compute_layout_with_state, TerminalLayout};
 use crate::tui::widgets;
 use ratatui::Frame;
 
 /// Draw the entire frame (read-only snapshot; does not clear dirty flags)
 #[allow(dead_code)]
 pub fn draw_frame(frame: &mut Frame, app: &App) {
-    let layout = compute_layout(frame.area());
+    let layout = compute_layout_with_state(frame.area(), !app.diff_state.content.is_empty());
     render_all(frame, app, &layout);
 }
 
 /// Draw the entire frame and store layout rects in app for mouse hit-testing.
-/// Resets dirty flags after rendering clean widgets (they are now up to date).
+/// Resets dirty flags after rendering.
 #[allow(dead_code)]
 pub fn draw_frame_with_layout(frame: &mut Frame, app: &mut App) {
-    let layout = compute_layout(frame.area());
+    let layout = compute_layout_with_state(frame.area(), !app.diff_state.content.is_empty());
     app.layout_state.sidebar_rect = layout.sidebar;
     app.layout_state.chat_rect = layout.chat;
     app.layout_state.diff_rect = layout.diff;
@@ -31,25 +31,18 @@ pub fn draw_frame_with_layout(frame: &mut Frame, app: &mut App) {
 }
 
 /// Dispatch rendering to each widget based on computed layout.
-/// Skips widgets whose dirty flag is not set.
 fn render_all(frame: &mut Frame, app: &App, layout: &TerminalLayout) {
-    if app.dirty_flags.sidebar {
+    if layout.sidebar.width > 0 {
         widgets::sidebar::render(layout.sidebar, frame, app);
     }
-    if app.dirty_flags.chat {
-        widgets::chat_area::render(layout.chat, frame, app);
-    }
-    if app.dirty_flags.diff {
+    widgets::chat_area::render(layout.chat, frame, app);
+    if layout.diff.height > 0 {
         widgets::diff_view::render(layout.diff, frame, app);
     }
-    if app.dirty_flags.input {
-        widgets::input_box::render(layout.input, frame, app);
-    }
-    if app.dirty_flags.status {
-        widgets::status_bar::render_status_bar(frame, app, layout.status);
-    }
-    // Approval popup — always render on top if pending
-    if app.dirty_flags.approval {
+    widgets::input_box::render(layout.input, frame, app);
+    widgets::slash_menu::render(layout.input, frame, app);
+    widgets::status_bar::render_status_bar(frame, app, layout.status);
+    if app.pending_approval.is_some() {
         widgets::approval_popup::render(frame, app, frame.area());
     }
 }

@@ -27,7 +27,9 @@ impl Settings {
             Ok(settings)
         } else {
             tracing::info!("No config file found, using defaults");
-            Ok(Self::defaults())
+            let mut settings = Self::defaults();
+            settings.apply_env_overrides();
+            Ok(settings)
         }
     }
 
@@ -91,6 +93,7 @@ impl Settings {
         }
         if let Ok(model) = std::env::var("SYNERIX_MODEL") {
             self.llm.model = model;
+            self.llm.apply_model_capabilities();
         }
     }
 
@@ -107,6 +110,16 @@ impl Settings {
             .map_err(|e| AppError::Config(format!("Failed to write config: {}", e)))?;
         tracing::info!("Settings saved to {:?}", config_path);
         Ok(())
+    }
+}
+
+impl LlmConfig {
+    pub fn apply_model_capabilities(&mut self) -> bool {
+        crate::model_catalog::apply_model_capabilities(
+            &self.model,
+            &mut self.context_window,
+            &mut self.max_output_tokens,
+        )
     }
 }
 
@@ -155,6 +168,16 @@ mod tests {
 
     #[test]
     #[serial]
+    fn load_defaults_apply_env_api_key() {
+        let key = "test_load_api_key_12345";
+        std::env::set_var("SYNERIX_API_KEY", key);
+        let s = Settings::load().unwrap();
+        assert_eq!(s.llm.api_key, key);
+        std::env::remove_var("SYNERIX_API_KEY");
+    }
+
+    #[test]
+    #[serial]
     fn apply_env_overrides_base_url() {
         std::env::set_var("SYNERIX_BASE_URL", "http://localhost:9999");
         let mut s = Settings::defaults();
@@ -170,6 +193,18 @@ mod tests {
         let mut s = Settings::defaults();
         s.apply_env_overrides();
         assert_eq!(s.llm.model, "custom-model-v2");
+        std::env::remove_var("SYNERIX_MODEL");
+    }
+
+    #[test]
+    #[serial]
+    fn apply_env_overrides_model_updates_capabilities() {
+        std::env::set_var("SYNERIX_MODEL", "gpt-4.1");
+        let mut s = Settings::defaults();
+        s.apply_env_overrides();
+        assert_eq!(s.llm.model, "gpt-4.1");
+        assert_eq!(s.llm.context_window, 1_000_000);
+        assert_eq!(s.llm.max_output_tokens, 32_768);
         std::env::remove_var("SYNERIX_MODEL");
     }
 

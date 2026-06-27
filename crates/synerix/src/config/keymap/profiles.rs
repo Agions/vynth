@@ -109,7 +109,7 @@ impl KeyBindings {
             KeyCode::Char('o') => Action::EnterInsertModeOpenLineBelow,
             KeyCode::Char('O') => Action::EnterInsertModeOpenLineAbove,
             KeyCode::Char(':') => Action::EnterCommandMode,
-            KeyCode::Char('/') => Action::EnterSearchMode,
+            KeyCode::Char('/') => Action::OpenSlashCommand,
             // Quit
             KeyCode::Char('q') => Action::Quit,
             // Scrolling
@@ -213,7 +213,7 @@ impl KeyBindings {
         match key.code {
             KeyCode::Char('i') => Action::EnterInsertMode,
             KeyCode::Char(':') => Action::EnterCommandMode,
-            KeyCode::Char('/') => Action::EnterSearchMode,
+            KeyCode::Char('/') => Action::OpenSlashCommand,
             KeyCode::Char('q') => Action::Quit,
             KeyCode::Char('j') => Action::ScrollDown,
             KeyCode::Char('k') => Action::ScrollUp,
@@ -312,7 +312,7 @@ mod tests {
         );
         assert_eq!(
             kb.resolve(&InputMode::Normal, make_key(KeyCode::Char('/'))),
-            Action::EnterSearchMode
+            Action::OpenSlashCommand
         );
         assert_eq!(
             kb.resolve(&InputMode::Normal, make_key(KeyCode::Char('q'))),

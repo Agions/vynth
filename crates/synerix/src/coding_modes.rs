@@ -44,6 +44,18 @@ impl CodingMode {
         ]
     }
 
+    pub fn next(self) -> CodingMode {
+        let modes = Self::all();
+        let idx = modes.iter().position(|mode| *mode == self).unwrap_or(0);
+        modes[(idx + 1) % modes.len()]
+    }
+
+    pub fn previous(self) -> CodingMode {
+        let modes = Self::all();
+        let idx = modes.iter().position(|mode| *mode == self).unwrap_or(0);
+        modes[(idx + modes.len() - 1) % modes.len()]
+    }
+
     /// Human-readable label (short, for status bar).
     pub fn label(&self) -> &'static str {
         match self {
@@ -52,6 +64,16 @@ impl CodingMode {
             CodingMode::Chat => "💬 Chat",
             CodingMode::Architect => "🔧 Architect",
             CodingMode::Vibe => "🎵 Vibe",
+        }
+    }
+
+    pub fn plain_label(&self) -> &'static str {
+        match self {
+            CodingMode::Plan => "Plan",
+            CodingMode::Act => "Act",
+            CodingMode::Chat => "Chat",
+            CodingMode::Architect => "Architect",
+            CodingMode::Vibe => "Vibe",
         }
     }
 
@@ -221,6 +243,13 @@ mod tests {
         assert_eq!(CodingMode::parse("V"), Some(CodingMode::Vibe));
         assert_eq!(CodingMode::parse("沉浸"), Some(CodingMode::Vibe));
         assert_eq!(CodingMode::parse("氛围"), Some(CodingMode::Vibe));
+    }
+
+    #[test]
+    fn test_mode_cycle() {
+        assert_eq!(CodingMode::Plan.next(), CodingMode::Act);
+        assert_eq!(CodingMode::Vibe.next(), CodingMode::Plan);
+        assert_eq!(CodingMode::Plan.previous(), CodingMode::Vibe);
     }
 
     #[test]

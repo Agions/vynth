@@ -21,7 +21,7 @@ use crate::error::AppError;
 use crate::llm::adapter::LlmAdapter;
 use crate::llm::types::{ChatMessage, ChunkDelta, MessageRole, StreamChunk, ToolCall, ToolSchema};
 use crate::mcp::manager::McpManager;
-use crate::sandbox::approval::{ApprovalHandler, ApprovalMode, AutoApprove};
+use crate::sandbox::approval::ApprovalHandler;
 use crate::token_estimator::estimate_tokens;
 use crate::tools::registry::ToolRegistry;
 

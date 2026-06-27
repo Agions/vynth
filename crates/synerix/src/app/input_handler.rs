@@ -28,17 +28,31 @@ impl App {
                 self.mode = InputMode::Normal;
                 self.dirty_flags.input = true;
             }
+            crossterm::event::KeyCode::Up => {
+                if self.move_slash_selection(-1) {
+                    self.dirty_flags.input = true;
+                }
+            }
+            crossterm::event::KeyCode::Down => {
+                if self.move_slash_selection(1) {
+                    self.dirty_flags.input = true;
+                }
+            }
             crossterm::event::KeyCode::Enter => {
-                self.submit_message();
+                if !self.apply_selected_slash_command() {
+                    self.submit_message();
+                }
                 self.dirty_flags.input = true;
                 self.dirty_flags.chat = true;
             }
             crossterm::event::KeyCode::Backspace => {
                 self.delete_char_before_cursor();
+                self.reset_slash_selection();
                 self.dirty_flags.input = true;
             }
             crossterm::event::KeyCode::Delete => {
                 self.delete_char_after_cursor();
+                self.reset_slash_selection();
                 self.dirty_flags.input = true;
             }
             crossterm::event::KeyCode::Left => {
@@ -51,10 +65,12 @@ impl App {
             }
             crossterm::event::KeyCode::Home => {
                 self.input_cursor = 0;
+                self.reset_slash_selection();
                 self.dirty_flags.input = true;
             }
             crossterm::event::KeyCode::End => {
                 self.input_cursor = self.input_buffer.len();
+                self.reset_slash_selection();
                 self.dirty_flags.input = true;
             }
             crossterm::event::KeyCode::Char(c)
@@ -64,6 +80,7 @@ impl App {
             {
                 self.input_buffer.insert(self.input_cursor, c);
                 self.input_cursor += c.len_utf8();
+                self.reset_slash_selection();
                 self.dirty_flags.input = true;
             }
             _ => {}
@@ -82,7 +99,11 @@ impl App {
                 self.dirty_flags.input = true;
             }
             crossterm::event::KeyCode::Char('/') => {
-                self.mode = InputMode::Search;
+                self.input_buffer.clear();
+                self.input_buffer.push('/');
+                self.input_cursor = self.input_buffer.len();
+                self.reset_slash_selection();
+                self.mode = InputMode::Insert;
                 self.dirty_flags.input = true;
             }
             crossterm::event::KeyCode::Char('q') => {
@@ -193,6 +214,40 @@ impl App {
     fn clear_input(&mut self) {
         self.input_buffer.clear();
         self.input_cursor = 0;
+        self.reset_slash_selection();
+    }
+
+    fn move_slash_selection(&mut self, delta: isize) -> bool {
+        let matches = crate::slash::menu::menu_matches(&self.input_buffer);
+        if matches.is_empty() {
+            return false;
+        }
+
+        let len = matches.len();
+        let selected = self.slash_menu_state.selected.min(len.saturating_sub(1));
+        self.slash_menu_state.selected = if delta < 0 {
+            selected.checked_sub(1).unwrap_or(len - 1)
+        } else {
+            (selected + 1) % len
+        };
+        true
+    }
+
+    fn apply_selected_slash_command(&mut self) -> bool {
+        let matches = crate::slash::menu::menu_matches(&self.input_buffer);
+        if matches.is_empty() {
+            return false;
+        }
+
+        let selected = self.slash_menu_state.selected.min(matches.len() - 1);
+        self.input_buffer = matches[selected].name.to_string();
+        self.input_cursor = self.input_buffer.len();
+        self.reset_slash_selection();
+        true
+    }
+
+    fn reset_slash_selection(&mut self) {
+        self.slash_menu_state.selected = 0;
     }
 
     fn move_cursor_left(&mut self) {

@@ -17,6 +17,7 @@ use super::goal::GoalState;
 use super::input::InputMode;
 use super::layout::{FocusedPanel, LayoutState};
 use super::sidebar::SidebarState;
+use super::slash_menu::SlashMenuState;
 use super::status::StatusBarState;
 
 /// Global application state
@@ -47,9 +48,11 @@ pub struct App {
     pub keybindings: KeyBindings,
     /// Yank/paste buffer
     pub yank_buffer: String,
+    pub slash_menu_state: SlashMenuState,
     /// Stored layout rects from last draw pass
     pub layout_state: LayoutState,
     /// Agent event receiver
+    pub(crate) agent_tx: tokio::sync::mpsc::UnboundedSender<AgentEvent>,
     pub(crate) agent_rx: tokio::sync::mpsc::UnboundedReceiver<AgentEvent>,
     /// Config reload receiver (from watcher/SIGHUP)
     pub(crate) config_reload_rx: tokio::sync::mpsc::UnboundedReceiver<crate::config::ConfigReload>,
@@ -77,12 +80,17 @@ impl App {
     /// Create App with external channel (for testing)
     pub fn new_with_channel(
         settings: Settings,
-        _agent_tx: tokio::sync::mpsc::UnboundedSender<AgentEvent>,
+        agent_tx: tokio::sync::mpsc::UnboundedSender<AgentEvent>,
         agent_rx: tokio::sync::mpsc::UnboundedReceiver<AgentEvent>,
         config_reload_rx: tokio::sync::mpsc::UnboundedReceiver<crate::config::ConfigReload>,
         mode: InputMode,
     ) -> Self {
         let keybindings = Self::create_keybindings(&settings);
+        let status_bar = StatusBarState {
+            model_name: settings.llm.model.clone(),
+            tokens_total: settings.llm.context_window,
+            ..StatusBarState::default()
+        };
         Self {
             mode,
             dirty_flags: DirtyFlags::all_dirty(),
@@ -90,14 +98,16 @@ impl App {
             chat_state: ChatState::default(),
             sidebar_state: SidebarState::default(),
             diff_state: DiffState::default(),
-            status_bar: StatusBarState::default(),
+            status_bar,
             input_buffer: String::new(),
             input_cursor: 0,
             keybindings,
             yank_buffer: String::new(),
+            slash_menu_state: SlashMenuState::default(),
             layout_state: LayoutState::default(),
             settings,
             should_quit: false,
+            agent_tx,
             agent_rx,
             config_reload_rx,
             config_version: 0,
@@ -157,18 +167,80 @@ impl App {
             return;
         }
 
-        // Handle slash commands
-        if crate::slash::try_handle(self, &text) {
+        let command_text = crate::slash::normalize_command_input(&text);
+        let handled = match command_text {
+            Some(command) => crate::slash::try_handle(self, &command),
+            None => crate::slash::try_handle(self, &text),
+        };
+        if handled {
             return;
         }
 
         self.chat_state.messages.push(ChatMessage {
             role: MessageRole::User,
-            content: text,
+            content: text.clone(),
             tool_calls: Vec::new(),
         });
         // Reset scroll to bottom on new message
         self.chat_state.scroll_offset = 0;
+        self.status_bar.agent_state = super::status::AgentState::Thinking;
+        self.spawn_agent_response(text);
+    }
+
+    fn spawn_agent_response(&self, text: String) {
+        let settings = self.settings.clone();
+        let event_tx = self.agent_tx.clone();
+        let coding_mode = self.coding_mode;
+        let Ok(handle) = tokio::runtime::Handle::try_current() else {
+            tracing::warn!("No Tokio runtime available; agent response task not started");
+            return;
+        };
+
+        handle.spawn(async move {
+            if settings.llm.api_key.trim().is_empty() {
+                let _ = event_tx.send(AgentEvent::Error(
+                    "API key is not configured. Set SYNERIX_API_KEY or run /config show."
+                        .to_string(),
+                ));
+                return;
+            }
+
+            let llm = crate::llm::create_provider(&settings.llm);
+            let mut ctx = crate::agent::context::ContextManager::new(
+                crate::agent::context::TokenBudget::from_config(&settings.llm),
+            );
+            let system_prompt = crate::agent::prompt::default_system_prompt();
+            ctx.push(crate::llm::types::ChatMessage::system(
+                &(system_prompt + coding_mode.system_prompt_suffix()),
+            ));
+            ctx.push(crate::llm::types::ChatMessage::user(&text));
+
+            let mut tools = crate::tools::ToolRegistry::new();
+            crate::tools::builtin::register_builtins(&mut tools);
+            let mcp = match crate::mcp::McpManager::connect_all(&[]).await {
+                Ok(mcp) => mcp,
+                Err(err) => {
+                    let _ = event_tx.send(AgentEvent::Error(err.to_string()));
+                    return;
+                }
+            };
+
+            if let Err(err) = crate::agent::run_agent_loop(
+                llm.as_ref(),
+                &mut ctx,
+                &tools,
+                &mcp,
+                event_tx.clone(),
+                8,
+                settings.sandbox.tool_timeout_secs,
+                coding_mode,
+                None,
+            )
+            .await
+            {
+                let _ = event_tx.send(AgentEvent::Error(err.to_string()));
+            }
+        });
     }
 
     /// Get the byte position of the previous character boundary

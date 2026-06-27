@@ -23,7 +23,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use crate::agent::roles::{AgentCapabilities, AgentRole};
 use crate::error::AppError;

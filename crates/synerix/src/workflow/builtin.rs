@@ -3,139 +3,155 @@
 use crate::workflow::definition::{WorkflowDef, WorkflowStep};
 use std::collections::HashMap;
 
-/// Code review workflow: Coder → Reviewer → Tester
-pub fn code_review_workflow() -> WorkflowDef {
+const DEFAULT_RETRY_DELAY_MS: u64 = 1000;
+
+struct StepSpec {
+    id: &'static str,
+    agent_role: &'static str,
+    prompt: &'static str,
+    depends_on: &'static [&'static str],
+    condition: Option<&'static str>,
+    output_variable: Option<&'static str>,
+    timeout_secs: u64,
+}
+
+fn workflow(name: &str, description: &str, steps: &[StepSpec]) -> WorkflowDef {
     WorkflowDef {
-        name: "code-review".to_string(),
-        description: "Automated code review pipeline: write, review, and test".to_string(),
+        name: name.to_string(),
+        description: description.to_string(),
         version: "1.0".to_string(),
-        steps: vec![
-            WorkflowStep {
-                id: "implement".to_string(),
-                agent_role: "coder".to_string(),
-                prompt: "{{task}}".to_string(),
-                depends_on: vec![],
-                condition: None,
-                output_variable: Some("code_changes".to_string()),
-                timeout_secs: Some(300),
-                retry_count: None,
-                retry_delay_ms: Some(1000),
-            },
-            WorkflowStep {
-                id: "review".to_string(),
-                agent_role: "reviewer".to_string(),
-                prompt: "Review the following code changes and provide feedback:\n\n{{code_changes}}".to_string(),
-                depends_on: vec!["implement".to_string()],
-                condition: Some("code_changes".to_string()),
-                output_variable: Some("review_feedback".to_string()),
-                timeout_secs: Some(120),
-                retry_count: None,
-                retry_delay_ms: Some(1000),
-            },
-            WorkflowStep {
-                id: "test".to_string(),
-                agent_role: "tester".to_string(),
-                prompt: "Write tests for the following code:\n\n{{code_changes}}\n\nReview feedback to address:\n{{review_feedback}}".to_string(),
-                depends_on: vec!["review".to_string()],
-                condition: Some("review_feedback".to_string()),
-                output_variable: Some("test_results".to_string()),
-                timeout_secs: Some(180),
-                retry_count: None,
-                retry_delay_ms: Some(1000),
-            },
-        ],
+        steps: steps.iter().map(workflow_step).collect(),
         variables: HashMap::new(),
     }
+}
+
+fn workflow_step(spec: &StepSpec) -> WorkflowStep {
+    WorkflowStep {
+        id: spec.id.to_string(),
+        agent_role: spec.agent_role.to_string(),
+        prompt: spec.prompt.to_string(),
+        depends_on: spec
+            .depends_on
+            .iter()
+            .map(|dep| (*dep).to_string())
+            .collect(),
+        condition: spec.condition.map(str::to_string),
+        output_variable: spec.output_variable.map(str::to_string),
+        timeout_secs: Some(spec.timeout_secs),
+        retry_count: None,
+        retry_delay_ms: Some(DEFAULT_RETRY_DELAY_MS),
+    }
+}
+
+/// Code review workflow: Coder → Reviewer → Tester
+pub fn code_review_workflow() -> WorkflowDef {
+    workflow(
+        "code-review",
+        "Automated code review pipeline: write, review, and test",
+        &[
+            StepSpec {
+                id: "implement",
+                agent_role: "coder",
+                prompt: "{{task}}",
+                depends_on: &[],
+                condition: None,
+                output_variable: Some("code_changes"),
+                timeout_secs: 300,
+            },
+            StepSpec {
+                id: "review",
+                agent_role: "reviewer",
+                prompt: "Review the following code changes and provide feedback:\n\n{{code_changes}}",
+                depends_on: &["implement"],
+                condition: Some("code_changes"),
+                output_variable: Some("review_feedback"),
+                timeout_secs: 120,
+            },
+            StepSpec {
+                id: "test",
+                agent_role: "tester",
+                prompt: "Write tests for the following code:\n\n{{code_changes}}\n\nReview feedback to address:\n{{review_feedback}}",
+                depends_on: &["review"],
+                condition: Some("review_feedback"),
+                output_variable: Some("test_results"),
+                timeout_secs: 180,
+            },
+        ],
+    )
 }
 
 /// Refactor workflow: Architect plans → Coder implements → Reviewer validates
 pub fn refactor_workflow() -> WorkflowDef {
-    WorkflowDef {
-        name: "refactor".to_string(),
-        description: "Structured refactoring: plan, implement, validate".to_string(),
-        version: "1.0".to_string(),
-        steps: vec![
-            WorkflowStep {
-                id: "plan".to_string(),
-                agent_role: "architect".to_string(),
-                prompt: "Create a refactoring plan for: {{task}}\n\nConsider: code structure, dependencies, risks, and migration steps.".to_string(),
-                depends_on: vec![],
+    workflow(
+        "refactor",
+        "Structured refactoring: plan, implement, validate",
+        &[
+            StepSpec {
+                id: "plan",
+                agent_role: "architect",
+                prompt: "Create a refactoring plan for: {{task}}\n\nConsider: code structure, dependencies, risks, and migration steps.",
+                depends_on: &[],
                 condition: None,
-                output_variable: Some("refactor_plan".to_string()),
-                timeout_secs: Some(120),
-                retry_count: None,
-                retry_delay_ms: Some(1000),
+                output_variable: Some("refactor_plan"),
+                timeout_secs: 120,
             },
-            WorkflowStep {
-                id: "implement".to_string(),
-                agent_role: "coder".to_string(),
-                prompt: "Implement the following refactoring plan:\n\n{{refactor_plan}}".to_string(),
-                depends_on: vec!["plan".to_string()],
-                condition: Some("refactor_plan".to_string()),
-                output_variable: Some("refactored_code".to_string()),
-                timeout_secs: Some(300),
-                retry_count: None,
-                retry_delay_ms: Some(1000),
+            StepSpec {
+                id: "implement",
+                agent_role: "coder",
+                prompt: "Implement the following refactoring plan:\n\n{{refactor_plan}}",
+                depends_on: &["plan"],
+                condition: Some("refactor_plan"),
+                output_variable: Some("refactored_code"),
+                timeout_secs: 300,
             },
-            WorkflowStep {
-                id: "validate".to_string(),
-                agent_role: "reviewer".to_string(),
-                prompt: "Validate the refactoring:\n\nOriginal plan: {{refactor_plan}}\n\nRefactored code: {{refactored_code}}\n\nCheck: does the implementation match the plan? Any issues?".to_string(),
-                depends_on: vec!["implement".to_string()],
-                condition: Some("refactored_code".to_string()),
-                output_variable: Some("validation_result".to_string()),
-                timeout_secs: Some(120),
-                retry_count: None,
-                retry_delay_ms: Some(1000),
+            StepSpec {
+                id: "validate",
+                agent_role: "reviewer",
+                prompt: "Validate the refactoring:\n\nOriginal plan: {{refactor_plan}}\n\nRefactored code: {{refactored_code}}\n\nCheck: does the implementation match the plan? Any issues?",
+                depends_on: &["implement"],
+                condition: Some("refactored_code"),
+                output_variable: Some("validation_result"),
+                timeout_secs: 120,
             },
         ],
-        variables: HashMap::new(),
-    }
+    )
 }
 
 /// Debug workflow: Tester reproduces → Coder fixes → Tester verifies
 pub fn debug_workflow() -> WorkflowDef {
-    WorkflowDef {
-        name: "debug".to_string(),
-        description: "Systematic debugging: reproduce, fix, verify".to_string(),
-        version: "1.0".to_string(),
-        steps: vec![
-            WorkflowStep {
-                id: "reproduce".to_string(),
-                agent_role: "tester".to_string(),
-                prompt: "Analyze and reproduce the following bug:\n\n{{task}}\n\nProvide: steps to reproduce, expected vs actual behavior, root cause analysis.".to_string(),
-                depends_on: vec![],
+    workflow(
+        "debug",
+        "Systematic debugging: reproduce, fix, verify",
+        &[
+            StepSpec {
+                id: "reproduce",
+                agent_role: "tester",
+                prompt: "Analyze and reproduce the following bug:\n\n{{task}}\n\nProvide: steps to reproduce, expected vs actual behavior, root cause analysis.",
+                depends_on: &[],
                 condition: None,
-                output_variable: Some("bug_analysis".to_string()),
-                timeout_secs: Some(120),
-                retry_count: None,
-                retry_delay_ms: Some(1000),
+                output_variable: Some("bug_analysis"),
+                timeout_secs: 120,
             },
-            WorkflowStep {
-                id: "fix".to_string(),
-                agent_role: "coder".to_string(),
-                prompt: "Fix the following bug:\n\n{{bug_analysis}}\n\nProvide the minimal code fix.".to_string(),
-                depends_on: vec!["reproduce".to_string()],
-                condition: Some("bug_analysis".to_string()),
-                output_variable: Some("bug_fix".to_string()),
-                timeout_secs: Some(300),
-                retry_count: None,
-                retry_delay_ms: Some(1000),
+            StepSpec {
+                id: "fix",
+                agent_role: "coder",
+                prompt: "Fix the following bug:\n\n{{bug_analysis}}\n\nProvide the minimal code fix.",
+                depends_on: &["reproduce"],
+                condition: Some("bug_analysis"),
+                output_variable: Some("bug_fix"),
+                timeout_secs: 300,
             },
-            WorkflowStep {
-                id: "verify".to_string(),
-                agent_role: "tester".to_string(),
-                prompt: "Verify the bug fix:\n\nOriginal bug: {{bug_analysis}}\n\nApplied fix: {{bug_fix}}\n\nRun tests and confirm the fix works.".to_string(),
-                depends_on: vec!["fix".to_string()],
-                condition: Some("bug_fix".to_string()),
-                output_variable: Some("verification_result".to_string()),
-                timeout_secs: Some(180),
-                retry_count: None,
-                retry_delay_ms: Some(1000),
+            StepSpec {
+                id: "verify",
+                agent_role: "tester",
+                prompt: "Verify the bug fix:\n\nOriginal bug: {{bug_analysis}}\n\nApplied fix: {{bug_fix}}\n\nRun tests and confirm the fix works.",
+                depends_on: &["fix"],
+                condition: Some("bug_fix"),
+                output_variable: Some("verification_result"),
+                timeout_secs: 180,
             },
         ],
-        variables: HashMap::new(),
-    }
+    )
 }
 
 #[cfg(test)]
