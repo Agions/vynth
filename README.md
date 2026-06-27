@@ -1,6 +1,6 @@
 <div align="center">
 
-  <img src="./assets/banner.svg" alt="Synerix — AI-Native Coding Terminal" style="max-width:100%">
+  ![Synerix — AI-Native Coding Terminal](assets/banner.svg)
 
   <p>
     <strong>Synerix</strong> is an AI-native coding terminal that <strong>thinks, writes, reviews, and fixes code</strong> — without pulling you out of the command line.
@@ -115,4 +115,4 @@ synerix/
 
 MIT — free for personal and commercial use.
 
-<img src="./assets/logo.svg" alt="Synerix" style="height:64px">
+![Synerix](assets/logo.svg)
