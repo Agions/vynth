@@ -110,7 +110,6 @@ synerix/
 |---|---|
 | 📖 **Docs** | [github.com/Agions/synerix/tree/main/docs](https://github.com/Agions/synerix/tree/main/docs) |
 | 🐛 **Issues** | [github.com/Agions/synerix/issues](https://github.com/Agions/synerix/issues) |
-| 💬 **Discussions** | [github.com/Agions/synerix/discussions](https://github.com/Agions/synerix/discussions) |
 | 🥭 **Gitee Mirror** | [gitee.com/Agions/synerix](https://gitee.com/Agions/synerix) |
 
 ---

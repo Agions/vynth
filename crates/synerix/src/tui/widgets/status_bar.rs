@@ -151,7 +151,6 @@ pub fn render_status_bar(frame: &mut Frame, app: &App, area: Rect) {
         Style::default().fg(p.comment).bg(STATUS_BG),
     ));
 
-
     // Model name
     let mut buf = String::with_capacity(app.status_bar.model_name.len() + 7);
     let _ = write!(buf, "model {}", app.status_bar.model_name);
