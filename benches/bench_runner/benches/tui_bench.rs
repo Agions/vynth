@@ -1,6 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use synerix::tui::diff_renderer::{parse_diff, render_diff, DiffViewMode};
-use synerix::tui::widgets::status_bar::format_tokens;
 
 /// Sample unified diff for benchmarking
 const SAMPLE_DIFF: &str = r#"diff --git a/src/main.rs b/src/main.rs
@@ -41,24 +40,10 @@ fn bench_render_side_by_side(c: &mut Criterion) {
     });
 }
 
-fn bench_format_tokens(c: &mut Criterion) {
-    c.bench_function("tui/format_tokens", |b| {
-        b.iter(|| {
-            black_box(format_tokens(black_box(0)));
-            black_box(format_tokens(black_box(999)));
-            black_box(format_tokens(black_box(1_234)));
-            black_box(format_tokens(black_box(12_345)));
-            black_box(format_tokens(black_box(128_000)));
-            black_box(format_tokens(black_box(1_500_000)));
-        })
-    });
-}
-
 criterion_group!(
     tui_benches,
     bench_parse_diff,
     bench_render_unified,
-    bench_render_side_by_side,
-    bench_format_tokens
+    bench_render_side_by_side
 );
 criterion_main!(tui_benches);
