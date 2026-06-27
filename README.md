@@ -1,9 +1,6 @@
 <div align="center">
 
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/banner.svg">
-    <img src="assets/banner.svg" alt="Synerix — AI-Native Coding Terminal" width="100%">
-  </picture>
+  <img src="https://gitee.com/Agions/synerix/raw/main/assets/banner.svg" alt="Synerix — AI-Native Coding Terminal" width="100%">
 
   <p>
     <strong>Synerix</strong> is an AI-native coding terminal that <strong>thinks, writes, reviews, and fixes code</strong> — without pulling you out of the command line.
@@ -118,7 +115,4 @@ synerix/
 
 MIT — free for personal and commercial use.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/logo.svg">
-  <img src="assets/logo.svg" alt="Synerix" width="64">
-</picture>
+<img src="https://gitee.com/Agions/synerix/raw/main/assets/logo.svg" alt="Synerix" width="64">
