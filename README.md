@@ -115,4 +115,6 @@ synerix/
 
 MIT — free for personal and commercial use.
 
-![Synerix](assets/logo.png)
+<div align="center">
+  <img src="assets/logo.png" alt="Synerix" width="120">
+</div>
