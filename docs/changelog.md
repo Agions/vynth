@@ -1,77 +1,71 @@
-# 更新日志
+# Changelog
 
-本页面记录 Synerix 的所有重要更改。
+All notable changes to Synerix are documented here.
 
-## [0.2.2] - 2026-06-11
+## [0.2.2] — 2026-06-11
 
-### 新增
+### Added
 
-- ✨ Vibe 模式自动迭代功能
-- ✨ 智能沙箱系统
-- ✨ 多 AI 提供商支持
-- ✨ 插件系统
+- Vibe mode auto-iteration: generate, compile, test, fix
+- Smart sandbox with risk-aware approval flows
+- Multi-provider LLM support (DeepSeek, custom OpenAI-compatible)
+- Plugin system with command, skill, and MCP types
+- Slash command framework with autocomplete
+- Activity labels with animated status indicators
+- Model catalog for discoverable presets
 
-### 改进
+### Changed
 
-- ⚡ 性能优化，启动速度提升 50%
-- 🎨 全新 UI 设计
-- 📚 完善的文档系统
+- Token count removed from status bar for a cleaner UI
+- Welcome screen replaced with ASCII art branding
+- Activity labels now use accent color for active states
+- TUI widgets refactored into composable components
 
-### 修复
+### Fixed
 
-- 🐛 修复终端显示问题
-- 🐛 修复配置加载错误
-- 🐛 修复内存泄漏问题
+- Terminal display corruption on resize
+- Config hot reload reliability
+- Memory leak in streaming pipeline
 
-## [0.2.1] - 2026-05-15
+## [0.2.1] — 2026-05-15
 
-### 新增
+### Added
 
-- ✨ Chat 模式
-- ✨ 代码审查功能
-- ✨ Git 集成
+- Chat mode with streaming responses
+- Code review workflow
+- Git integration for session management
 
-### 改进
+### Changed
 
-- ⚡ 响应速度提升 30%
-- 🎨 改进错误提示
+- Response latency reduced by 30%
+- Error messaging improved across all modes
 
-### 修复
+### Fixed
 
-- 🐛 修复 AI 连接问题
-- 🐛 修复命令历史保存
+- AI connection retry logic
+- Command history persistence
 
-## [0.2.0] - 2026-04-01
+## [0.2.0] — 2026-04-01
 
-### 新增
+### Added
 
-- ✨ Act 模式
-- ✨ 基本 AI 功能
-- ✨ 配置系统
+- Act mode with sandboxed command execution
+- Core AI integration layer
+- TOML-based configuration system
+- Tokyo Night theme with light/dark variants
 
-### 改进
+## [0.1.0] — 2026-03-01
 
-- ⚡ 初始版本发布
+### Added
 
-## [0.1.0] - 2026-03-01
+- Project initialization
+- Core Rust workspace structure
+- Basic terminal UI with ratatui
 
-### 新增
+## Versioning
 
-- ✨ 项目初始化
-- ✨ 基础架构搭建
+Synerix follows [Semantic Versioning](https://semver.org/):
 
----
-
-## 版本规范
-
-Synerix 遵语义化版本规范 (SemVer)：
-
-- **主版本号 (X)**: 不兼容的 API 更改
-- **次版本号 (Y)**: 向后兼容的功能新增
-- **修订号 (Z)**: 向后兼容的问题修复
-
-## 发布周期
-
-- **主版本**: 每年 1-2 次
-- **次版本**: 每月 1-2 次
-- **修订版**: 根据需要随时发布
+- **Major**: Breaking API changes
+- **Minor**: New features, backward compatible
+- **Patch**: Bug fixes, backward compatible

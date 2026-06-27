@@ -1,101 +1,106 @@
-# 安装
+# Installation
 
-本指南提供 Synerix 的详细安装说明。
+Complete installation guide for Synerix across all supported platforms.
 
-## 系统要求
+## Requirements
 
-### 最低要求
+### Minimum
 
-- **操作系统**: Linux, macOS, Windows 10+
-- **内存**: 512 MB RAM
-- **磁盘空间**: 50 MB 可用空间
-- **网络**: 需要互联网连接（用于 AI 功能）
+- **OS**: Linux, macOS 12+, or Windows 10+
+- **RAM**: 512 MB
+- **Disk**: 50 MB free space
+- **Network**: Internet access (for AI features)
 
-### 推荐配置
+### Recommended
 
-- **操作系统**: Ubuntu 20.04+, macOS 12+, Windows 11
-- **内存**: 2 GB RAM
-- **磁盘空间**: 100 MB 可用空间
-- **终端**: 支持 256 色的现代终端
+- **OS**: Ubuntu 22.04+, macOS 13+, or Windows 11
+- **RAM**: 2 GB
+- **Disk**: 100 MB free space
+- **Terminal**: Modern terminal with 256-color support (iTerm2, Windows Terminal, Alacritty, etc.)
 
-## 安装方法
+## Install Methods
 
-### 方法 1: 使用安装脚本（推荐）
+### 1. Install Script (Recommended)
 
-#### Linux / macOS
+Fastest way to get started with automatic PATH setup.
+
+**Linux / macOS:**
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Agions/synerix/main/install.sh | bash
 ```
 
-#### Windows (PowerShell 5.1+)
+**Windows (PowerShell 5.1+):**
 
 ```powershell
-Set-ExecutionPolicy -ExecutionPolicy RemoteSpread -Scope CurrentUser
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 irm https://raw.githubusercontent.com/Agions/synerix/main/install.ps1 | iex
 ```
 
-### 方法 2: 使用包管理器
+### 2. Package Managers
 
-#### Homebrew (macOS/Linux)
+**Homebrew (macOS / Linux):**
 
 ```bash
 brew install agions/tap/synerix
 ```
 
-#### Cargo (Rust)
+**Cargo (Rust toolchain required):**
 
 ```bash
 cargo install synerix
 ```
 
-### 方法 3: 从源码构建
+### 3. Build from Source
 
 ```bash
-# 克隆仓库
 git clone https://github.com/Agions/synerix.git
 cd synerix
-
-# 构建
 cargo build --release
-
-# 安装到系统路径
-cargo install --path .
 ```
 
-## 验证安装
+The binary will be at `target/release/synerix`.
+
+## Verify Installation
 
 ```bash
-# 检查版本
 synerix --version
-
-# 运行测试
-synerix --test
+# synerix 0.2.2
 ```
 
-## 卸载
+## Uninstall
 
-### 使用安装脚本
+### Using Scripts
 
 ```bash
 # Linux / macOS
 curl -fsSL https://raw.githubusercontent.com/Agions/synerix/main/uninstall.sh | bash
 
+# Linux / macOS — full wipe including config
+curl -fsSL https://raw.githubusercontent.com/Agions/synerix/main/uninstall.sh | bash -s -- --all
+
 # Windows
-irm https://raw.githubusercontent.com/Agions/synerix/main/uninstall.ps1 | iex
+# Use Add/Remove Programs or delete %LOCALAPPDATA%\Programs\synerix
 ```
 
-### 手动卸载
+### Manual
 
 ```bash
-# 删除二进制文件
+# Remove binary
 rm ~/.local/bin/synerix
 
-# 删除配置文件
+# Remove config (optional)
 rm -rf ~/.config/synerix
 ```
 
-## 下一步
+## Post-Installation
 
-- [配置](/guide/configuration) - 自定义你的 Synerix
-- [使用模式](/guide/modes) - 了解不同的工作模式
+1. Configure your LLM provider — see [Configuration](/guide/configuration)
+2. Launch with `synerix`
+3. Try your first AI-powered task
+
+## Next Steps
+
+- [Configuration](/guide/configuration) — Set up your AI provider and preferences
+- [Coding Modes](/guide/modes) — Explore Act, Vibe, Chat, Architect, and Plan modes
+- [Troubleshooting](/guide/troubleshooting) — Having issues? Find solutions here

@@ -4,7 +4,6 @@
 //! without requiring a terminal or ratatui rendering context.
 
 use synerix::tui::diff_renderer::{parse_diff, render_diff, DiffViewMode};
-use synerix::tui::widgets::status_bar::format_tokens;
 
 // ── Diff Parsing ───────────────────────────────────────────
 
@@ -128,17 +127,4 @@ fn test_render_side_by_side_returns_text() {
     );
 }
 
-// ── Token Formatting ───────────────────────────────────────
-
-#[test]
-fn test_format_tokens_exact_values() {
-    assert_eq!(format_tokens(0), "0");
-    assert_eq!(format_tokens(500), "500");
-    assert_eq!(format_tokens(999), "999");
-    assert_eq!(format_tokens(1000), "1.0k");
-    assert_eq!(format_tokens(1234), "1.2k");
-    assert_eq!(format_tokens(10000), "10k");
-    assert_eq!(format_tokens(128000), "128k");
-    assert_eq!(format_tokens(1000000), "1.0M");
-    assert_eq!(format_tokens(1500000), "1.5M");
-}
+// End of TUI integration tests

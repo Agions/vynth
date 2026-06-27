@@ -1,141 +1,112 @@
-# 使用模式
+# Coding Modes
 
-Synerix 提供多种工作模式，适应不同的编码场景。
+Synerix adapts to how you work. Choose the mode that fits the task.
 
-## Act 模式
+## Act Mode
 
-**直接执行，无需离开终端**
+**Direct execution. No context switches.**
 
-Act 模式允许你直接在终端中执行命令，无需切换到其他工具。
+Run commands, build projects, run tests, and manage files — all inside the terminal with AI-assisted safety.
 
-### 特点
-
-- 命令行直接执行
-- 智能沙箱自动审批低风险操作
-- 危险操作完整预览
-
-### 使用场景
-
-- 快速执行构建命令
-- 运行测试
-- 文件操作
-
-### 示例
-
-```bash
-# 在 Synerix 中直接执行
-cargo build --release
-cargo test
-git status
-```
-
-## Vibe 模式
-
-**沉浸式编码体验**
-
-Vibe 模式提供 AI 自动迭代的编码体验。
-
-### 工作流程
-
-1. **描述** - 告诉 AI 你想要什么
-2. **生成** - AI 自动生成代码
-3. **编译** - 自动编译验证
-4. **测试** - 运行测试套件
-5. **修复** - 自动修复问题
-
-### 特点
-
-- 完整的代码生成循环
-- 自动错误修复
-- 无需手动干预
-
-### 示例
+| Feature | Detail |
+|---|---|
+| Sandbox | Auto-approves safe ops, previews risky ones |
+| Commands | Full shell access with AI context |
+| Use when | Building, testing, debugging, Git workflows |
 
 ```
-你: 创建一个 HTTP 服务器，提供 /api/users 端点
-AI: 正在生成代码...
-AI: 编译成功
-AI: 运行测试... 通过
-AI: 完成！服务器已创建在 src/server.rs
+❯ Build the project and run tests
+   ✓ cargo build --release
+   ✓ 142 tests passed
 ```
 
-## Chat 模式
+## Vibe Mode
 
-**与 AI 对话**
+**Immersive flow state.**
 
-Chat 模式提供交互式的 AI 对话体验。
+Describe what you want. Synerix handles the rest: generate, compile, test, and fix — automatically iterating until it works.
 
-### 功能
-
-- 代码建议
-- 代码解释
-- 调试帮助
-- 文档生成
-
-### 示例
+| Feature | Detail |
+|---|---|
+| Auto-approve | Low-risk file edits and builds |
+| Auto-fix | Compilation errors fed back to AI |
+| Use when | Implementing features, prototyping, refactoring |
 
 ```
-你: 解释一下这个 Rust 函数的工作原理
-AI: 这个函数使用了所有权系统...
+❯ Add user preferences to the API
+   ✓ Code generated
+   ✓ cargo check passes
+   ✓ Tests pass
+   ✓ Done in 1.8s
 ```
 
-## Architect 模式
+## Chat Mode
 
-**架构设计和代码审查**
+**Conversational AI assistant.**
 
-Architect 模式专注于高层设计和代码质量。
+Ask questions, get explanations, brainstorm ideas, and review code — like pairing with a senior engineer.
 
-### 功能
-
-- 架构设计建议
-- 代码审查
-- 重构建议
-- 性能优化
-
-### 示例
+| Feature | Detail |
+|---|---|
+| Context aware | Understands your codebase |
+| Streaming | Real-time responses |
+| Use when | Learning, explaining, debugging, planning |
 
 ```
-你: 审查这个模块的架构
-AI: 建议将数据访问层分离到单独的模块...
+❯ Explain how the authorization middleware works
+   AI: The middleware sits between the router and handlers...
 ```
 
-## Plan 模式
+## Architect Mode
 
-**任务规划和分解**
+**Design and review at scale.**
 
-Plan 模式帮助你将复杂问题分解为可执行的步骤。
+Focus on architecture, module boundaries, design patterns, and long-term maintainability.
 
-### 功能
-
-- 任务分解
-- 依赖分析
-- 时间估算
-- 优先级排序
-
-### 示例
+| Feature | Detail |
+|---|---|
+| Analysis | Reads full file structure and dependencies |
+| Review | Code quality, patterns, performance |
+| Use when | Designing systems, reviews, planning migrations |
 
 ```
-你: 规划实现用户认证系统
-AI: 建议分为以下步骤：
-1. 设计数据模型 (2h)
-2. 实现密码哈希 (1h)
-3. 创建 JWT 令牌 (2h)
-...
+❯ Review the auth module for potential improvements
+   AI: Consider separating concerns into...
 ```
 
-## 模式切换
+## Plan Mode
 
-在 Synerix 中可以随时切换模式：
+**Break it down before building.**
 
-| 快捷键 | 模式 |
-|--------|------|
-| `Ctrl+1` | Act 模式 |
-| `Ctrl+2` | Vibe 模式 |
-| `Ctrl+3` | Chat 模式 |
-| `Ctrl+4` | Architect 模式 |
-| `Ctrl+5` | Plan 模式 |
+Decompose complex tasks into actionable, prioritized steps with estimated effort.
 
-## 下一步
+| Feature | Detail |
+|---|---|
+| Decomposition | Hierarchical task breakdown |
+| Dependencies | Identifies blockers and ordering |
+| Use when | Large features, migrations, unknowns |
 
-- [故障排除](/guide/troubleshooting) - 常见问题解决方案
-- [API 文档](/api/overview) - 详细了解 API
+```
+❯ Plan a migration from REST to GraphQL
+   1. Schema design (2h)
+   2. Query resolver stubs (3h)
+   3. Client migration (4h)
+   ...
+```
+
+## Switching Modes
+
+| Command | Mode |
+|---|---|
+| `/mode act` | Act |
+| `/mode vibe` | Vibe |
+| `/mode chat` | Chat |
+| `/mode architect` | Architect |
+| `/mode plan` | Plan |
+
+Press `Tab` to cycle through modes without typing.
+
+## Next Steps
+
+- [Configuration](/guide/configuration) — Fine-tune mode behavior
+- [Troubleshooting](/guide/troubleshooting) — Common issues

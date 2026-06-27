@@ -1,96 +1,124 @@
-# 配置
+# Configuration
 
-Synerix 支持通过配置文件和命令行参数进行自定义。
+Complete reference for configuring Synerix to match your workflow.
 
-## 配置文件
+## Configuration File
 
-配置文件位于 `~/.config/synerix/config.toml`。
+Location: `~/.config/synerix/config.toml`
 
-### 基本配置
-
-```toml
-# ~/.config/synerix/config.toml
-
-# 基本设置
-name = "Your Name"
-theme = "dark"  # dark, light, auto
-
-# AI 设置
-[ai]
-provider = "openai"  # openai, anthropic, local
-model = "gpt-4"
-api_key = "your-api-key"  # 或者使用环境变量 SYNERIX_API_KEY
-
-# 终端设置
-[terminal]
-font_size = 14
-font_family = "JetBrains Mono"
-cursor_style = "block"  # block, underline, line
-
-# 快捷键
-[keybindings]
-# 自定义快捷键
-ctrl_shift_r = "reload"
-ctrl_shift_p = "palette"
-```
-
-### AI 提供商配置
-
-#### OpenAI
+## Basic Setup
 
 ```toml
-[ai]
-provider = "openai"
-model = "gpt-4"
-api_key = "sk-..."  # 或者使用环境变量 OPENAI_API_KEY
+[llm]
+provider = "deepseek"
+api_key = "sk-..."
+model = "deepseek-v4-flash"
+
+[ui]
+theme = "dark"
+keymap = "default"
+
+[sandbox]
+mode = "confirm"
 ```
 
-#### Anthropic
+## LLM Providers
+
+### DeepSeek (Default)
 
 ```toml
-[ai]
-provider = "anthropic"
-model = "claude-3-opus-20240229"
-api_key = "sk-ant-..."  # 或者使用环境变量 ANTHROPIC_API_KEY
+[llm]
+provider = "deepseek"
+model = "deepseek-v4-flash"
+api_key = "sk-..."
 ```
 
-#### 本地模型
+### Custom OpenAI-Compatible
 
 ```toml
-[ai]
-provider = "local"
-model = "codellama"
-endpoint = "http://localhost:11434"
+[llm]
+provider = "custom"
+model = "your-model"
+base_url = "https://api.example.com/v1"
+api_key = "sk-..."
 ```
 
-## 环境变量
+### Environment Variables
 
-Synerix 支持通过环境变量配置：
+You can override any config value with environment variables:
 
-| 环境变量 | 说明 | 默认值 |
-|----------|------|--------|
-| `SYNERIX_API_KEY` | AI API 密钥 | - |
-| `SYNERIX_THEME` | 主题 | `auto` |
-| `SYNERIX_MODEL` | AI 模型 | `gpt-4` |
-| `SYNERIX_PROVIDER` | AI 提供商 | `openai` |
+| Variable | Description |
+|---|---|
+| `SYNERIX_API_KEY` | LLM API key |
+| `SYNERIX_BASE_URL` | Custom API endpoint |
+| `SYNERIX_MODEL` | Model override |
 
-## 配置管理命令
+## UI Settings
+
+```toml
+[ui]
+theme = "dark"        # dark, light
+keymap = "default"    # default, vim, emacs
+animation = true
+```
+
+## Sandbox Modes
+
+```toml
+[sandbox]
+mode = "confirm"      # auto, confirm, strict
+```
+
+| Mode | Behavior |
+|---|---|
+| `auto` | Safe operations run instantly |
+| `confirm` | Risky operations require preview |
+| `strict` | All operations require confirmation |
+
+## Slash Commands Reference
+
+| Command | Description |
+|---|---|
+| `/mode <name>` | Switch mode: `act`, `vibe`, `chat`, `architect`, `plan` |
+| `/help` | Show available commands |
+| `/clear` | Clear conversation |
+| `/model <name>` | Switch model preset |
+| `/exit` | Exit Synerix |
+
+## MCP Servers
+
+```toml
+[[mcp]]
+name = "filesystem"
+type = "stdio"
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
+
+[[mcp]]
+name = "remote-tools"
+type = "http"
+url = "https://mcp.example.com/sse"
+```
+
+## Custom Agents
+
+```toml
+[[agents]]
+name = "security-auditor"
+system_prompt = "You are a security expert. Find vulnerabilities."
+tools = ["file_read", "search"]
+max_turns = 8
+```
+
+## Hot Reload
+
+Synerix watches `config.toml` for changes and reloads automatically. You can also trigger a reload with:
 
 ```bash
-# 查看当前配置
-synerix config show
-
-# 设置配置值
-synerix config set theme dark
-
-# 重置配置
-synerix config reset
-
-# 验证配置
-synerix config validate
+kill -HUP $(pgrep synerix)
 ```
 
-## 下一步
+## Next Steps
 
-- [使用模式](/guide/modes) - 了解不同的工作模式
-- [故障排除](/guide/troubleshooting) - 常见问题解决方案
+- [Coding Modes](/guide/modes) — Learn about different work modes
+- [Troubleshooting](/guide/troubleshooting) — Common issues

@@ -1,156 +1,106 @@
-# 故障排除
+# Troubleshooting
 
-本指南帮助你解决常见的 Synerix 问题。
+Solutions to common problems when using Synerix.
 
-## 常见问题
+## Installation Issues
 
-### 安装问题
-
-#### 问题: 安装脚本失败
-
-**症状**: 运行安装脚本时出现错误。
-
-**解决方案**:
+### Script fails to download
 
 ```bash
-# 检查网络连接
+# Check network connectivity
 curl -I https://github.com
 
-# 使用 sudo 运行（Linux）
-sudo curl -fsSL https://raw.githubusercontent.com/Agions/synerix/main/install.sh | bash
+# Try with verbose output
+curl -v https://raw.githubusercontent.com/Agions/synerix/main/install.sh
 
-# 手动下载安装
+# Fallback: download binary manually
 wget https://github.com/Agions/synerix/releases/latest/download/synerix-linux-x86_64.tar.gz
 tar -xzf synerix-linux-x86_64.tar.gz
 sudo mv synerix /usr/local/bin/
 ```
 
-#### 问题: 权限错误
-
-**症状**: `Permission denied` 错误。
-
-**解决方案**:
+### Permission denied
 
 ```bash
-# 设置可执行权限
-chmod +x ~/.local/bin/synerix
-
-# 或者添加到 PATH
+# Add to PATH
 export PATH="$HOME/.local/bin:$PATH"
+
+# Or make executable
+chmod +x ~/.local/bin/synerix
 ```
 
-### 运行问题
+## Runtime Issues
 
-#### 问题: 启动失败
-
-**症状**: 运行 `synerix` 时无响应或崩溃。
-
-**解决方案**:
+### App crashes on startup
 
 ```bash
-# 检查日志
+# Run with debug logging
 synerix --log-level debug
 
-# 重置配置
+# Reset to default config
 synerix config reset
 
-# 检查依赖
-synerix --check-deps
+# Check for version conflicts
+cargo update
 ```
 
-#### 问题: AI 连接失败
-
-**症状**: 无法连接到 AI 服务。
-
-**解决方案**:
+### AI connection fails
 
 ```bash
-# 检查 API 密钥
+# Verify API key is set
 synerix config show
 
-# 测试连接
-synerix --test-connection
+# Test connection manually
+curl https://api.deepseek.com/v1/models \
+  -H "Authorization: Bearer $SYNERIX_API_KEY"
 
-# 检查网络
-curl https://api.openai.com/v1/models
+# Check proxy settings if behind a firewall
 ```
 
-### 性能问题
-
-#### 问题: 响应缓慢
-
-**症状**: AI 响应时间过长。
-
-**解决方案**:
+### Slow responses
 
 ```bash
-# 使用更快的模型
-synerix config set model gpt-3.5-turbo
+# Switch to a faster model
+synerix config set llm.model deepseek-v4-flash
 
-# 限制上下文长度
-synerix config set max_context 4096
-
-# 启用缓存
-synerix config set cache_enabled true
+# Reduce context window
+synerix config set llm.max_tokens 4096
 ```
 
-### 终端问题
+## Terminal Issues
 
-#### 问题: 显示异常
-
-**症状**: 终端显示乱码或格式错误。
-
-**解决方案**:
+### Display corruption
 
 ```bash
-# 检查终端类型
-echo $TERM
-
-# 设置正确的终端
+# Ensure terminal supports 256 colors
 export TERM=xterm-256color
 
-# 更新终端字体
-synerix config set font_family "Fira Code"
+# Reset terminal state
+reset
+
+# Try a different terminal font
+synerix config set ui.font_family "JetBrains Mono"
 ```
 
-## 调试模式
+### Input lag
 
-```bash
-# 启用详细日志
-synerix --log-level debug --log-file /tmp/synerix.log
+- Disable other shell plugins (zsh-syntax-highlighting, etc.)
+- Try a GPU-accelerated terminal (Alacritty, Kitty)
 
-# 运行诊断
-synerix --diagnose
+## Getting Help
 
-# 检查系统信息
-synerix --system-info
-```
+| Channel | Link |
+|---|---|
+| GitHub Issues | [github.com/Agions/synerix/issues](https://github.com/Agions/synerix/issues) |
+| Discussions | [github.com/Agions/synerix/discussions](https://github.com/Agions/synerix/discussions) |
+| Gitee Mirror | [gitee.com/Agions/synerix](https://gitee.com/Agions/synerix) |
 
-## 获取帮助
+## Reporting Bugs
 
-### 社区支持
+Include the following when filing an issue:
 
-- **GitHub Issues**: https://github.com/Agions/synerix/issues
-- **Discussions**: https://github.com/Agions/synerix/discussions
-
-### 日志文件
-
-日志文件位置：
-
-- **Linux/macOS**: `~/.local/share/synerix/logs/`
-- **Windows**: `%APPDATA%\synerix\logs\`
-
-### 报告问题
-
-报告问题时请包含：
-
-1. Synerix 版本 (`synerix --version`)
-2. 操作系统和版本
-3. 终端类型
-4. 错误信息和日志
-5. 重现步骤
-
-## 下一步
-
-- [API 文档](/api/overview) - 详细了解 API
-- [配置](/guide/configuration) - 自定义你的 Synerix
+1. `synerix --version`
+2. OS and version
+3. Terminal emulator and version
+4. Error output or log
+5. Steps to reproduce

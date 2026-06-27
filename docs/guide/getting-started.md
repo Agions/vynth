@@ -1,8 +1,12 @@
-# 快速开始
+# Getting Started
 
-欢迎使用 Synerix！这是一个 AI 原生的编码终端，帮助你在终端中思考、编写、审查和修复代码。
+Welcome to **Synerix** — an AI-native coding terminal designed to keep you in flow.
 
-## 安装
+## What is Synerix?
+
+Synerix is a high-performance terminal that combines the power of modern AI with the speed of a native CLI. It thinks, writes, reviews, and fixes code — without pulling you out of the command line.
+
+## Installation
 
 ### Linux / macOS
 
@@ -13,53 +17,85 @@ curl -fsSL https://raw.githubusercontent.com/Agions/synerix/main/install.sh | ba
 ### Windows (PowerShell 5.1+)
 
 ```powershell
-Set-ExecutionPolicy -ExecutionPolicy RemoteSpread -Scope CurrentUser
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 irm https://raw.githubusercontent.com/Agions/synerix/main/install.ps1 | iex
 ```
 
-### 从源码构建
+### From Source
 
 ```bash
-# 克隆仓库
 git clone https://github.com/Agions/synerix.git
 cd synerix
-
-# 构建
 cargo build --release
-
-# 安装
 cargo install --path .
 ```
 
-## 基本使用
+## First Launch
 
-### 启动 Synerix
+After installation, configure your LLM provider:
+
+```bash
+# Create config directory
+mkdir -p ~/.config/synerix
+
+# Create config file
+cat > ~/.config/synerix/config.toml << 'EOF'
+[llm]
+provider = "deepseek"
+api_key = "sk-..."
+model = "deepseek-v4-flash"
+EOF
+```
+
+Then launch:
 
 ```bash
 synerix
 ```
 
-### 常用命令
+## Your First Session
 
-| 命令 | 说明 |
-|------|------|
-| `synerix` | 启动交互式终端 |
-| `synerix --help` | 显示帮助信息 |
-| `synerix --version` | 显示版本号 |
-| `synerix config` | 配置设置 |
+```
+❯ Refactor main.rs to reduce nesting
+   ✓ Code generated
+   ✓ cargo check passes
+   ✓ Tests pass
+   ✓ Done in 1.8s
 
-### 快捷键
+❯ /mode vibe
+   Switched to Vibe mode — auto-iterate enabled
 
-| 快捷键 | 说明 |
-|--------|------|
-| `Ctrl+C` | 中断当前操作 |
-| `Ctrl+D` | 退出 |
-| `Ctrl+L` | 清屏 |
-| `Tab` | 自动补全 |
+❯ Add pagination to the API endpoint
+   ✓ Generated pagination module
+   ✓ Compiled successfully
+   ✓ All tests green
+```
 
-## 下一步
+## Common Commands
 
-- [安装](/guide/installation) - 详细安装说明
-- [配置](/guide/configuration) - 自定义你的 Synerix
-- [使用模式](/guide/modes) - 了解不同的工作模式
-- [故障排除](/guide/troubleshooting) - 常见问题解决方案
+| Command | Description |
+|---|---|
+| `synerix` | Launch the interactive terminal |
+| `synerix --help` | Show help information |
+| `synerix --version` | Show version |
+| `/mode <name>` | Switch coding mode (act, vibe, chat, architect, plan) |
+| `/help` | List all slash commands |
+| `/clear` | Clear conversation |
+| `/exit` | Quit Synerix |
+
+## Keybindings
+
+| Key | Action |
+|---|---|
+| `Tab` | Auto-complete / switch mode |
+| `Ctrl+C` | Cancel current operation |
+| `Ctrl+D` | Exit |
+| `Ctrl+L` | Clear screen |
+| `↑ / ↓` | Navigate history |
+
+## Next Steps
+
+- [Installation](/guide/installation) — Detailed installation guide
+- [Configuration](/guide/configuration) — Customize Synerix to your workflow
+- [Coding Modes](/guide/modes) — Learn about Act, Vibe, Chat, Architect, and Plan modes
+- [Troubleshooting](/guide/troubleshooting) — Common issues and solutions

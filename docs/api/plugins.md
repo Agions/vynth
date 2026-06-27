@@ -1,164 +1,85 @@
-# 插件
+# Plugins
 
-Synerix 支持通过插件系统扩展功能。
+Extend Synerix with custom commands, themes, and external integrations.
 
-## 插件类型
+## Plugin Types
 
-### 命令插件
+| Type | Purpose |
+|---|---|
+| Command | Add slash commands |
+| Skills | YAML/MD-based workflows |
+| MCP | External tool servers (stdio / HTTP) |
 
-添加新的命令到 Synerix。
-
-### 主题插件
-
-自定义 Synerix 的外观。
-
-### 集成插件
-
-连接外部服务和工具。
-
-## 创建插件
-
-### 基本结构
+## Creating Plugins
 
 ```rust
-use synerix::plugin::{Plugin, PluginContext, PluginResult};
 use async_trait::async_trait;
+use synerix::plugin::{Plugin, PluginContext, PluginResult};
 
 pub struct MyPlugin;
 
 #[async_trait]
 impl Plugin for MyPlugin {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "my-plugin"
     }
-    
-    fn version(&self) -> &str {
-        "1.0.0"
+
+    fn version(&self) -> &'static str {
+        "0.1.0"
     }
-    
-    fn description(&self) -> &str {
-        "My awesome plugin"
-    }
-    
+
     async fn initialize(&self, ctx: PluginContext) -> PluginResult {
-        println!("Plugin initialized!");
+        // Register commands, subscribe to events, etc.
         PluginResult::Success
     }
-    
+
     async fn shutdown(&self) -> PluginResult {
-        println!("Plugin shutdown!");
+        // Cleanup
         PluginResult::Success
     }
 }
 ```
 
-### 注册插件
+## Registering Plugins
 
 ```rust
-use synerix::Synerix;
+use synerix::app::App;
 
-let app = Synerix::new()
-    .register_plugin(Box::new(MyPlugin))
+let app = App::new(config)
+    .with_plugin(Box::new(MyPlugin))
     .build()
     .await?;
 ```
 
-## 插件 API
-
-### PluginContext
-
-提供插件运行时的上下文信息：
+## Plugin Context
 
 ```rust
 pub struct PluginContext {
     pub config: Config,
     pub event_bus: EventBus,
     pub command_registry: CommandRegistry,
+    pub skill_manager: SkillManager,
 }
 ```
 
-### 事件系统
+## Event Handling
 
-插件可以监听和发布事件：
+Plugins can react to lifecycle events:
 
 ```rust
-use synerix::event::{Event, EventHandler};
+use synerix::event::{Event, EventFilter};
 
-struct MyEventHandler;
-
-#[async_trait]
-impl EventHandler for MyEventHandler {
-    async fn handle(&self, event: Event) -> Result<()> {
-        match event {
-            Event::CommandExecuted(cmd) => {
-                println!("Command executed: {}", cmd.name);
-            }
-            Event::AiResponse(response) => {
-                println!("AI response received");
-            }
-            _ => {}
-        }
-        Ok(())
-    }
-}
+event_bus.subscribe(EventFilter::AgentState, |event| async move {
+    // react to agent state changes
+});
 ```
 
-## 插件示例
+## Plugin Configuration
 
-### Git 集成插件
-
-```rust
-pub struct GitPlugin;
-
-#[async_trait]
-impl Plugin for GitPlugin {
-    fn name(&self) -> &str {
-        "git"
-    }
-    
-    async fn initialize(&self, ctx: PluginContext) -> PluginResult {
-        // 注册 Git 命令
-        ctx.command_registry.register(Box::new(GitCommand));
-        PluginResult::Success
-    }
-}
-
-struct GitCommand;
-
-#[async_trait]
-impl Command for GitCommand {
-    fn name(&self) -> &str {
-        "git"
-    }
-    
-    async fn execute(&self, ctx: CommandContext) -> CommandResult {
-        let subcommand = ctx.args().first()
-            .ok_or("Please provide a git subcommand")?;
-        
-        match subcommand.as_str() {
-            "status" => {
-                // 执行 git status
-                CommandResult::Success
-            }
-            "commit" => {
-                // 执行 git commit
-                CommandResult::Success
-            }
-            _ => {
-                CommandResult::Error(format!("Unknown git subcommand: {}", subcommand))
-            }
-        }
-    }
-}
-```
-
-## 插件配置
-
-插件可以有自己的配置：
+Plugins can ship their own config files:
 
 ```toml
 # ~/.config/synerix/plugins/my-plugin.toml
-
 [settings]
 enabled = true
 verbose = false
@@ -168,23 +89,13 @@ timeout = 30
 retries = 3
 ```
 
-## 插件管理
+## Distributing Plugins
 
-```bash
-# 列出已安装插件
-synerix plugins list
+- Publish as a Rust crate with a `synerix-plugin-*` prefix
+- Ship a `skills/` directory alongside your codebase
+- Register MCP servers via `config.toml`
 
-# 安装插件
-synerix plugins install <plugin-name>
+## Next Steps
 
-# 卸载插件
-synerix plugins uninstall <plugin-name>
-
-# 更新插件
-synerix plugins update <plugin-name>
-```
-
-## 下一步
-
-- [故障排除](/guide/troubleshooting) - 常见问题解决方案
-- [贡献指南](/guide/contributing) - 如何贡献代码
+- [Commands](/api/commands) — Build commands that plugins can register
+- [Configuration](/api/config) — Plugin config patterns

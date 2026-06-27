@@ -1,46 +1,125 @@
-/* Synerix 自定义样式 */
+/* Synerix Documentation Theme */
+/* Tokyo Night inspired palette */
+
 :root {
-  /* 主色调 - 科技蓝 */
-  --vp-c-brand-1: #0066FF;
-  --vp-c-brand-2: #0052CC;
-  --vp-c-brand-3: #003D99;
-  
-  /* 辅助色 */
-  --vp-c-success: #00C896;
-  --vp-c-warning: #FFB800;
-  --vp-c-danger: #FF4D4F;
+  --vp-c-brand-1: #7DCFFF;
+  --vp-c-brand-2: #5DB4E8;
+  --vp-c-brand-3: #3D94C7;
+  --vp-c-brand-soft: rgba(125, 207, 255, 0.14);
+
+  --vp-c-success-1: #9ECE6A;
+  --vp-c-success-2: #8BC34A;
+  --vp-c-success-soft: rgba(158, 206, 106, 0.14);
+
+  --vp-c-warning-1: #E0AF68;
+  --vp-c-warning-2: #D49A50;
+  --vp-c-warning-soft: rgba(224, 175, 104, 0.14);
+
+  --vp-c-danger-1: #F7768E;
+  --vp-c-danger-2: #E0607A;
+  --vp-c-danger-soft: rgba(247, 118, 142, 0.14);
+
+  --vp-c-default-1: #C0CAF5;
+  --vp-c-default-2: #A9B8D8;
+  --vp-c-default-3: #8B9AB8;
+  --vp-c-default-soft: rgba(192, 202, 245, 0.06);
 }
 
-/* 暗色模式 */
 .dark {
-  --vp-c-brand-1: #4D94FF;
-  --vp-c-brand-2: #3380FF;
-  --vp-c-brand-3: #1A6BFF;
+  --vp-c-brand-1: #7DCFFF;
+  --vp-c-brand-2: #5DB4E8;
+  --vp-c-brand-3: #3D94C7;
+  --vp-c-brand-soft: rgba(125, 207, 255, 0.14);
 }
 
-/* 自定义导航栏样式 */
-.VPNav .VPNavBarTitle {
-  font-weight: 700;
+/* Typography */
+.VPNavBarTitle {
+  font-family: 'SF Pro Display', 'Inter', -apple-system, system-ui, sans-serif !important;
+  letter-spacing: -0.02em;
 }
 
-/* 代码块样式 */
-.vp-doc div[class*='language-'] {
-  border-radius: 8px;
+/* Hero */
+.VPHero .VPImage {
+  max-width: 320px;
+  margin-bottom: 1.5rem;
 }
 
-/* 卡片样式 */
+.VPHero .name {
+  font-size: 3.2rem !important;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.VPHero .text {
+  font-size: 1.4rem;
+  opacity: 0.85;
+}
+
+/* Feature cards */
 .VPFeature {
-  border-radius: 8px;
-  transition: all 0.2s ease;
+  border-radius: 12px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .VPFeature:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-/* Hero 区域 */
-.VPHero .VPImage {
-  max-width: 200px;
-  margin-bottom: 1rem;
+/* Code blocks */
+.vp-doc div[class*='language-'] {
+  border-radius: 10px;
+  border: 1px solid rgba(125, 207, 255, 0.1);
+}
+
+.vp-doc code {
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+  font-size: 0.9em;
+}
+
+/* Tables */
+.vp-doc table {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.vp-doc table th {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+}
+
+/* Sidebar */
+.VPSidebar .group-title {
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(125, 207, 255, 0.2);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(125, 207, 255, 0.35);
+}
+
+/* Badge */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
 }

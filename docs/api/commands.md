@@ -1,119 +1,106 @@
-# 命令
+# Commands
 
-Synerix 的命令系统允许你扩展终端功能。
+Comprehensive reference for creating and registering commands in Synerix.
 
-## 内置命令
+## Built-in Commands
 
-### 基本命令
+### User Commands
 
-| 命令 | 说明 | 用法 |
-|------|------|------|
-| `help` | 显示帮助信息 | `help [command]` |
-| `version` | 显示版本 | `version` |
-| `config` | 配置管理 | `config [show\|set\|reset]` |
-| `exit` | 退出程序 | `exit` |
+| Command | Description |
+|---|---|
+| `/help [command]` | Show help for all or a specific command |
+| `/clear` | Clear the current conversation |
+| `/exit` | Exit Synerix |
+| `/model <name>` | Switch to a model preset |
+| `/model list` | Show available model presets |
+| `/mode <name>` | Switch coding mode: `act`, `vibe`, `chat`, `architect`, `plan` |
+| `/mcp list` | List configured MCP servers |
+| `/skill` | Manage skills and sources |
 
-### AI 命令
+## Creating Commands
 
-| 命令 | 说明 | 用法 |
-|------|------|------|
-| `ask` | 询问 AI | `ask <question>` |
-| `review` | 代码审查 | `review [file]` |
-| `explain` | 代码解释 | `explain [code]` |
-| `generate` | 代码生成 | `generate <description>` |
-
-### 工具命令
-
-| 命令 | 说明 | 用法 |
-|------|------|------|
-| `build` | 构建项目 | `build [--release]` |
-| `test` | 运行测试 | `test [pattern]` |
-| `run` | 运行程序 | `run [args]` |
-| `git` | Git 操作 | `git <command>` |
-
-## 自定义命令
-
-### 创建命令
+### Basic Command
 
 ```rust
-use synerix::command::{Command, CommandContext, CommandResult};
 use async_trait::async_trait;
+use synerix::command::{Command, CommandContext, CommandResult};
 
 pub struct GreetCommand;
 
 #[async_trait]
 impl Command for GreetCommand {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "greet"
     }
-    
-    fn description(&self) -> &str {
-        "Greet someone"
+
+    fn description(&self) -> &'static str {
+        "Greet someone by name"
     }
-    
-    fn usage(&self) -> &str {
+
+    fn usage(&self) -> &'static str {
         "greet <name>"
     }
-    
+
     async fn execute(&self, ctx: CommandContext) -> CommandResult {
         let name = ctx.args().first()
             .ok_or("Please provide a name")?;
-        
-        println!("Hello, {}!", name);
+
+        ctx.reply(&format!("Hello, {name}!")).await;
         CommandResult::Success
     }
 }
 ```
 
-### 注册命令
+### Registering a Command
 
 ```rust
-use synerix::Synerix;
+use synerix::app::App;
 
-let app = Synerix::new()
-    .register_command(Box::new(GreetCommand))
-    .build()
-    .await?;
+let mut app = App::new(config).build().await?;
+app.command_registry()
+   .register(Box::new(GreetCommand))
+   .await?;
 ```
 
-## 命令参数
+## Command Context
 
-### 位置参数
+The `CommandContext` provides everything a command needs:
+
+| Method | Returns | Description |
+|---|---|---|
+| `ctx.args()` | `&[String]` | Positional arguments |
+| `ctx.has_flag(name)` | `bool` | Check for a flag (e.g. `--verbose`) |
+| `ctx.get_option(name)` | `Option<&str>` | Get named option value |
+| `ctx.reply(msg)` | `()` | Send a response message |
+| `ctx.app()` | `&App` | Access the full application state |
+
+## Command Result
 
 ```rust
-async fn execute(&self, ctx: CommandContext) -> CommandResult {
-    let first_arg = ctx.args().get(0);
-    let second_arg = ctx.args().get(1);
-    // ...
+pub enum CommandResult {
+    Success,
+    Error(String),
+    NotImplemented,
 }
 ```
 
-### 可选参数
+## Lifecycle Hooks
 
 ```rust
-async fn execute(&self, ctx: CommandContext) -> CommandResult {
-    let verbose = ctx.has_flag("--verbose");
-    let output = ctx.get_option("--output");
-    // ...
+#[async_trait]
+impl Command for MyCommand {
+    async fn before(&self, ctx: &CommandContext) -> CommandResult {
+        // Runs before execute
+        CommandResult::Success
+    }
+
+    async fn after(&self, ctx: &CommandContext, result: &CommandResult) {
+        // Runs after execute, regardless of outcome
+    }
 }
 ```
 
-## 命令历史
+## Next Steps
 
-Synerix 自动保存命令历史：
-
-```bash
-# 查看历史
-history
-
-# 搜索历史
-history | grep "cargo"
-
-# 清空历史
-history --clear
-```
-
-## 下一步
-
-- [配置](/api/config) - 配置选项详解
-- [插件](/api/plugins) - 插件开发指南
+- [Configuration](/api/config) — Programmatic config access
+- [Plugins](/api/plugins) — Package commands as plugins

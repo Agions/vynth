@@ -1,126 +1,69 @@
-# 贡献指南
+# Contributing
 
-感谢你对 Synerix 的关注！我们欢迎各种形式的贡献。
+Contributions are welcome. Here's how to get started.
 
-## 如何贡献
+## Quick Links
 
-### 报告问题
+- [Code of Conduct](https://github.com/Agions/synerix/blob/main/CODE_OF_CONDUCT.md)
+- [Issue Tracker](https://github.com/Agions/synerix/issues)
 
-如果你发现了 bug 或有功能建议，请在 [GitHub Issues](https://github.com/Agions/synerix/issues) 中创建一个新的 issue。
+## Development Setup
 
-### 提交代码
-
-1. Fork 仓库
-2. 创建你的特性分支 (`git checkout -b feature/amazing-feature`)
-3. 提交你的更改 (`git commit -m 'Add some amazing feature'`)
-4. 推送到分支 (`git push origin feature/amazing-feature`)
-5. 创建一个 Pull Request
-
-## 开发环境设置
-
-### 前置要求
+### Prerequisites
 
 - Rust 1.75+
-- Node.js 18+
-- pnpm 或 npm
+- Node.js 18+ (for docs)
+- Git
 
-### 克隆仓库
+### Clone and Build
 
 ```bash
 git clone https://github.com/Agions/synerix.git
 cd synerix
-```
 
-### 安装依赖
-
-```bash
-# Rust 依赖
+# Build Rust binary
 cargo build
 
-# 文档依赖
-npm install
-```
-
-### 运行测试
-
-```bash
-# 运行所有测试
+# Run tests
 cargo test
 
-# 运行特定测试
-cargo test test_name
+# Build docs (optional)
+cd docs && npm install && npm run docs:dev
 ```
 
-## 代码规范
+## Code Style
 
-### Rust 代码
+- Run `cargo fmt` before committing
+- Run `cargo clippy --all-targets --all-features`
+- Write tests for new functionality
+- Keep functions small and focused
 
-- 遵循 Rust 官方代码风格
-- 使用 `rustfmt` 格式化代码
-- 使用 `clippy` 检查代码质量
-- 为公共 API 编写文档注释
+## Commit Convention
 
-### 提交信息
-
-使用 [Conventional Commits](https://www.conventionalcommits.org/) 规范：
+We use [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```
-<type>(<scope>): <subject>
-
-<body>
-
-<footer>
+feat: add slash menu widget
+fix: correct token formatting edge case
+docs: update getting started guide
+style: align rustfmt settings
+refactor: extract sandbox classifier
+test: add integration tests for MCP
+chore: bump ratatui to 0.29
 ```
 
-类型：
-- `feat`: 新功能
-- `fix`: Bug 修复
-- `docs`: 文档更新
-- `style`: 代码格式（不影响代码运行的变动）
-- `refactor`: 重构（既不是新增功能，也不是修改 bug 的代码变动）
-- `perf`: 性能优化
-- `test`: 增加测试
-- `chore`: 构建过程或辅助工具的变动
+## Pull Requests
 
-## Pull Request 规范
+1. Fork the repo
+2. Create a branch: `git checkout -b feat/your-feature`
+3. Make changes and commit
+4. Push: `git push origin feat/your-feature`
+5. Open a PR on GitHub
 
-### PR 标题
+## Questions?
 
-使用与提交信息相同的格式。
+Open a [Discussion](https://github.com/Agions/synerix/discussions) or join the community channels linked in our README.
 
-### PR 描述
+## License
 
-请包含以下信息：
-
-1. **变更说明**: 简要描述你的更改
-2. **相关 Issue**: 如果有相关 issue，请链接它
-3. **测试**: 描述你如何测试了这些更改
-4. **截图**: 如果有 UI 更改，请提供截图
-
-### 代码审查
-
-所有 PR 都需要经过代码审查。请耐心等待维护者的反馈。
-
-## 文档贡献
-
-我们欢迎对文档的贡献：
-
-1. 修复错别字
-2. 改进说明
-3. 添加示例
-4. 翻译文档
-
-## 社区行为准则
-
-请保持友好和尊重。
-
-## 获取帮助
-
-如果你有任何问题，可以通过以下方式联系我们：
-
-- [GitHub Discussions](https://github.com/Agions/synerix/discussions)
-- [Discord](https://discord.gg/synerix)
-
-## 感谢
-
-感谢所有贡献者的支持！
+By contributing, you agree that your contributions will be licensed under the [MIT License](https://github.com/Agions/synerix/blob/main/LICENSE).
