@@ -15,8 +15,5 @@ pub use multi::{
     AgentBus, AgentConfig, AgentId, AgentInstance, AgentMessage, AgentStatus, AgentSwarm,
     AgentSwarmEvent, MessageType,
 };
-pub use prompt::{
-    build_role_prompt, build_system_prompt, build_tool_aware_prompt, default_system_prompt,
-    ProjectContext,
-};
+pub use prompt::default_system_prompt;
 pub use roles::{AgentCapabilities, AgentRole};

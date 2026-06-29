@@ -19,7 +19,7 @@ mod goal;
 mod input;
 mod layout;
 mod sidebar;
-mod slash_menu;
+mod slash_menu_state;
 mod status;
 
 pub use app::App;
@@ -30,5 +30,5 @@ pub use goal::GoalState;
 pub use input::InputMode;
 pub use layout::{FocusedPanel, LayoutState};
 pub use sidebar::{FileEntry, SidebarState, SidebarTab};
-pub use slash_menu::SlashMenuState;
+pub use slash_menu_state::SlashMenuState;
 pub use status::{AgentState, StatusBarState};

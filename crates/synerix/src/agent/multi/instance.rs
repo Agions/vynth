@@ -1,5 +1,4 @@
 //! A running agent instance
-#![allow(dead_code)]
 
 use tokio::sync::mpsc;
 

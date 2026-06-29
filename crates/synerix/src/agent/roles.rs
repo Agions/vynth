@@ -1,5 +1,4 @@
 //! Agent role definitions
-#![allow(dead_code)]
 
 use serde::{Deserialize, Serialize};
 

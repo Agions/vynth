@@ -1,5 +1,4 @@
 //! Tool trait definition
-#![allow(dead_code)]
 
 use async_trait::async_trait;
 use serde_json::Value;

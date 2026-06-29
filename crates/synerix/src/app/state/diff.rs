@@ -4,8 +4,6 @@
 #[derive(Debug, Clone, Default)]
 pub struct DiffState {
     pub content: String,
-    #[allow(dead_code)]
-    pub hunks: Vec<DiffHunk>,
     /// Scroll offset for diff content
     pub scroll_offset: usize,
 }

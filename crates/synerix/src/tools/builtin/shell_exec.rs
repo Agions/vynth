@@ -1,5 +1,4 @@
 //! Shell execution tool (sandbox — dangerous command detection)
-#![allow(dead_code)]
 
 use async_trait::async_trait;
 use serde_json::{json, Value};

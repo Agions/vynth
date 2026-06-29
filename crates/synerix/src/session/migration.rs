@@ -1,5 +1,4 @@
 //! Database schema migrations
-#![allow(dead_code)]
 
 use crate::error::AppError;
 use rusqlite::Connection;

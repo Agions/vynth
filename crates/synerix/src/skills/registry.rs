@@ -1,5 +1,4 @@
 //! Skill registry — load from directory + condition matching
-#![allow(dead_code)]
 
 use std::path::Path;
 

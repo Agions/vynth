@@ -1,5 +1,4 @@
 //! LLM Provider adapter trait
-#![allow(dead_code)]
 
 use futures::stream::Stream;
 use std::pin::Pin;

@@ -1,5 +1,4 @@
 //! Tool registry — HashMap<name, Arc<dyn Tool>>
-#![allow(dead_code)]
 
 use std::collections::HashMap;
 use std::sync::Arc;

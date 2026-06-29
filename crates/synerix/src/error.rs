@@ -55,14 +55,12 @@ pub enum AppError {
     #[error("Mutex poisoned: {0}")]
     MutexPoisoned(String),
 
-    #[allow(dead_code)]
     #[error("Plugin event partial failure: {failed_count}/{total_count} plugins failed")]
     PluginEventPartialFailure {
         failed_count: usize,
         total_count: usize,
     },
 
-    #[allow(dead_code)]
     #[error("Plugin init partial failure: {failed_count}/{total_count} plugin(s) failed")]
     PluginInitPartialFailure {
         failed_count: usize,

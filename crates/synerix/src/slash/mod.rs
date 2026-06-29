@@ -273,7 +273,6 @@ mod tests {
             },
             diff_state: DiffState {
                 content: String::new(),
-                hunks: Vec::new(),
                 scroll_offset: 0,
             },
             status_bar: StatusBarState {

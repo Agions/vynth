@@ -3,7 +3,6 @@
 //! Supports two view modes:
 //! - **Unified**: standard unified-diff layout (lines prefixed with `+`, `-`, ` `)
 //! - **Side-by-side**: old and new code displayed in two columns
-#![allow(dead_code)]
 
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span, Text};

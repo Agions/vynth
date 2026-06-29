@@ -1,5 +1,4 @@
 //! Multi-agent type definitions
-#![allow(dead_code)]
 
 use crate::agent::roles::AgentRole;
 

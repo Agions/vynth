@@ -1,5 +1,4 @@
 //! Message bus for inter-agent communication
-#![allow(dead_code)]
 
 use std::collections::HashMap;
 use std::time::Duration;

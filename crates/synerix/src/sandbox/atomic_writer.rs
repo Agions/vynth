@@ -1,5 +1,4 @@
 //! Atomic file replacement — write-then-rename for crash safety
-#![allow(dead_code)]
 
 use std::path::Path;
 

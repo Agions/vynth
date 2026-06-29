@@ -1,5 +1,4 @@
 //! MCP Transport trait
-#![allow(dead_code)]
 
 use crate::error::AppError;
 use crate::mcp::types::{JsonRpcRequest, JsonRpcResponse};

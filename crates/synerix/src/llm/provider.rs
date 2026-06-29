@@ -1,5 +1,4 @@
 //! LLM Provider factory
-#![allow(dead_code)]
 
 use crate::config::{LlmConfig, Provider};
 use crate::llm::adapter::{LlmAdapter, OpenAICompatAdapter};

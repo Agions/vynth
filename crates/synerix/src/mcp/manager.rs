@@ -1,5 +1,4 @@
 //! MCP Manager — multi-server management + permission isolation
-#![allow(dead_code)]
 
 use std::collections::HashMap;
 
