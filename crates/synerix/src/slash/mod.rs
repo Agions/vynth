@@ -280,7 +280,7 @@ mod tests {
                 model_name: settings.llm.model.clone(),
                 tokens_used: 0,
                 tokens_total: 0,
-                sandbox_mode: "confirm".to_string(),
+                sandbox_mode: crate::config::SandboxMode::Confirm,
                 startup_metrics: None,
                 goal_active: false,
                 goal_duration: String::new(),

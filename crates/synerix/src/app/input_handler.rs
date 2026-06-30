@@ -110,19 +110,13 @@ impl App {
                 self.should_quit = true;
             }
             crossterm::event::KeyCode::Char('j') => {
-                let max_scroll = self.chat_state.messages.len().saturating_sub(1);
-                if self.chat_state.scroll_offset < max_scroll {
-                    self.chat_state.scroll_offset += 1;
-                }
-                self.dirty_flags.chat = true;
+                self.scroll_chat_older(1);
             }
             crossterm::event::KeyCode::Char('k') => {
-                self.chat_state.scroll_offset = self.chat_state.scroll_offset.saturating_sub(1);
-                self.dirty_flags.chat = true;
+                self.scroll_chat_newer(1);
             }
             crossterm::event::KeyCode::Char('G') => {
-                self.chat_state.scroll_offset = 0;
-                self.dirty_flags.chat = true;
+                self.scroll_chat_to_bottom();
             }
             _ => {}
         }
@@ -248,32 +242,5 @@ impl App {
 
     fn reset_slash_selection(&mut self) {
         self.slash_menu_state.selected = 0;
-    }
-
-    fn move_cursor_left(&mut self) {
-        if self.input_cursor > 0 {
-            self.input_cursor = self.prev_char_pos();
-        }
-    }
-
-    fn move_cursor_right(&mut self) {
-        if self.input_cursor < self.input_buffer.len() {
-            self.input_cursor = self.next_char_pos();
-        }
-    }
-
-    fn delete_char_before_cursor(&mut self) {
-        if self.input_cursor > 0 {
-            let prev = self.prev_char_pos();
-            self.input_buffer.replace_range(prev..self.input_cursor, "");
-            self.input_cursor = prev;
-        }
-    }
-
-    fn delete_char_after_cursor(&mut self) {
-        if self.input_cursor < self.input_buffer.len() {
-            let next = self.next_char_pos();
-            self.input_buffer.replace_range(self.input_cursor..next, "");
-        }
     }
 }

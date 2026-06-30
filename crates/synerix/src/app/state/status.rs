@@ -1,6 +1,7 @@
 //! Status bar and agent state types.
 
 use crate::coding_modes::CodingMode;
+use crate::config::SandboxMode;
 
 /// Status bar state
 #[derive(Debug, Clone, Default)]
@@ -9,7 +10,7 @@ pub struct StatusBarState {
     pub model_name: String,
     pub tokens_used: usize,
     pub tokens_total: usize,
-    pub sandbox_mode: String,
+    pub sandbox_mode: SandboxMode,
     pub startup_metrics: Option<crate::telemetry::StartupMetrics>,
     pub goal_active: bool,
     pub goal_duration: String,

@@ -89,6 +89,7 @@ impl App {
         let status_bar = StatusBarState {
             model_name: settings.llm.model.clone(),
             tokens_total: settings.llm.context_window,
+            sandbox_mode: settings.sandbox.mode.clone(),
             ..StatusBarState::default()
         };
         Self {
@@ -228,23 +229,5 @@ impl App {
                 let _ = event_tx.send(AgentEvent::Error(err.to_string()));
             }
         });
-    }
-
-    /// Get the byte position of the previous character boundary
-    pub(crate) fn prev_char_pos(&self) -> usize {
-        self.input_buffer[..self.input_cursor]
-            .char_indices()
-            .last()
-            .map(|(i, _)| i)
-            .unwrap_or(0)
-    }
-
-    /// Get the byte position of the next character boundary
-    pub(crate) fn next_char_pos(&self) -> usize {
-        self.input_buffer[self.input_cursor..]
-            .char_indices()
-            .nth(1)
-            .map(|(i, _)| self.input_cursor + i)
-            .unwrap_or(self.input_buffer.len())
     }
 }

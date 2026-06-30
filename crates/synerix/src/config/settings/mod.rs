@@ -135,12 +135,13 @@ pub struct SandboxConfig {
     pub tool_timeout_secs: u64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "snake_case")]
 pub enum SandboxMode {
     /// Auto-execute all tools
     Auto,
     /// Confirm high-risk operations
+    #[default]
     Confirm,
     /// Preview only, never execute
     PreviewOnly,

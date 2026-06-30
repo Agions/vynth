@@ -186,9 +186,7 @@ impl App {
 
     fn handle_mouse_scroll_up(&mut self, layout: &LayoutState, in_rect: &dyn Fn(&Rect) -> bool) {
         if in_rect(&layout.chat_rect) {
-            let max_scroll = self.chat_state.messages.len().saturating_sub(1);
-            self.chat_state.scroll_offset = (self.chat_state.scroll_offset + 3).min(max_scroll);
-            self.dirty_flags.chat = true;
+            self.scroll_chat_older(3);
         } else if in_rect(&layout.diff_rect) {
             self.diff_state.scroll_offset += 3;
             self.dirty_flags.diff = true;
@@ -200,8 +198,7 @@ impl App {
 
     fn handle_mouse_scroll_down(&mut self, layout: &LayoutState, in_rect: &dyn Fn(&Rect) -> bool) {
         if in_rect(&layout.chat_rect) {
-            self.chat_state.scroll_offset = self.chat_state.scroll_offset.saturating_sub(3);
-            self.dirty_flags.chat = true;
+            self.scroll_chat_newer(3);
         } else if in_rect(&layout.diff_rect) {
             self.diff_state.scroll_offset = self.diff_state.scroll_offset.saturating_sub(3);
             self.dirty_flags.diff = true;
@@ -335,7 +332,7 @@ impl App {
         self.settings.sandbox.mode = reload.settings.sandbox.mode.clone();
         self.status_bar.model_name = self.settings.llm.model.clone();
         self.status_bar.tokens_total = self.settings.llm.context_window;
-        self.status_bar.sandbox_mode = format!("{:?}", self.settings.sandbox.mode);
+        self.status_bar.sandbox_mode = self.settings.sandbox.mode.clone();
         self.config_version = reload.version;
         self.dirty_flags.status = true;
     }

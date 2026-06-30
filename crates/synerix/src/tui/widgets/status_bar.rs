@@ -9,7 +9,9 @@ use ratatui::widgets::Paragraph;
 use ratatui::Frame;
 
 use crate::app::{AgentState, App, InputMode};
+use crate::config::SandboxMode;
 use crate::tui::activity_label::agent_activity_label;
+use crate::tui::animation::animated_dots;
 use crate::tui::theme;
 
 const STATUS_BG: Color = Color::Rgb(40, 42, 58);
@@ -86,19 +88,15 @@ fn agent_state_span(
     }
 }
 
-fn animated_dots(frame: u64) -> &'static str {
-    match frame % 4 {
-        0 => "",
-        1 => ".",
-        2 => "..",
-        _ => "...",
-    }
-}
-
-/// Build a sandbox mode span — avoid to_lowercase() by matching known patterns.
-fn sandbox_span(mode: &str, p: &theme::ColorPalette) -> Span<'static> {
-    let mut buf = String::with_capacity(mode.len() + 8);
-    let _ = write!(buf, "sandbox {mode}");
+/// Build a sandbox mode span with a stable lowercase label.
+fn sandbox_span(mode: &SandboxMode, p: &theme::ColorPalette) -> Span<'static> {
+    let label = match mode {
+        SandboxMode::Auto => "auto",
+        SandboxMode::Confirm => "confirm",
+        SandboxMode::PreviewOnly => "preview_only",
+    };
+    let mut buf = String::with_capacity(label.len() + 8);
+    let _ = write!(buf, "sandbox {label}");
     Span::styled(buf, Style::default().fg(p.muted_fg).bg(STATUS_BG))
 }
 

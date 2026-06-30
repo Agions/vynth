@@ -6,14 +6,18 @@
 //! - `message` — ChatMessage, MessageRole, ToolCallDisplay
 //! - `event_loop` — Event loop + agent/config event handling
 //! - `input_handler` — Keyboard input handlers
+//! - `cursor` — Input-buffer cursor/character navigation
+//! - `scroll` — Chat transcript scrolling
 //! - `actions` — Action execution (the big match block)
 //! - `runner` — Application entry point
 mod actions;
+mod cursor;
 mod event_loop;
 pub mod events;
 mod input_handler;
 pub mod message;
 mod runner;
+mod scroll;
 mod state;
 
 // Re-export key types so external code sees the same API

@@ -1,11 +1,13 @@
 //! TUI rendering layer
 
 pub mod activity_label;
+pub mod animation;
 pub mod diff_renderer;
 pub mod event;
 pub mod layout;
 pub mod renderer;
 pub mod syntax;
+pub mod text;
 pub mod theme;
 pub mod widgets;
 

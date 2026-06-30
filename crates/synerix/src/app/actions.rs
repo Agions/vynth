@@ -15,18 +15,11 @@ impl App {
                 self.dirty_flags.input = true;
             }
             Action::DeleteChar => {
-                if self.input_cursor > 0 {
-                    let prev = self.prev_char_pos();
-                    self.input_buffer.replace_range(prev..self.input_cursor, "");
-                    self.input_cursor = prev;
-                }
+                self.delete_char_before_cursor();
                 self.dirty_flags.input = true;
             }
             Action::DeleteCharForward => {
-                if self.input_cursor < self.input_buffer.len() {
-                    let next = self.next_char_pos();
-                    self.input_buffer.replace_range(self.input_cursor..next, "");
-                }
+                self.delete_char_after_cursor();
                 self.dirty_flags.input = true;
             }
             Action::DeleteWord => {
@@ -55,17 +48,11 @@ impl App {
                 self.dirty_flags.input = true;
             }
             Action::MoveCursorLeft => {
-                if self.input_cursor > 0 {
-                    let prev = self.prev_char_pos();
-                    self.input_cursor = prev;
-                }
+                self.move_cursor_left();
                 self.dirty_flags.input = true;
             }
             Action::MoveCursorRight => {
-                if self.input_cursor < self.input_buffer.len() {
-                    let next = self.next_char_pos();
-                    self.input_cursor = next;
-                }
+                self.move_cursor_right();
                 self.dirty_flags.input = true;
             }
             Action::MoveCursorHome => {
@@ -89,10 +76,7 @@ impl App {
             }
             Action::EnterInsertModeAppend => {
                 // Move cursor right one char, then enter insert
-                if self.input_cursor < self.input_buffer.len() {
-                    let next = self.next_char_pos();
-                    self.input_cursor = next;
-                }
+                self.move_cursor_right();
                 self.mode = InputMode::Insert;
                 self.dirty_flags.input = true;
             }
@@ -114,10 +98,7 @@ impl App {
             Action::EnterNormalMode => {
                 self.mode = InputMode::Normal;
                 // Move cursor back one if possible (vim convention)
-                if self.input_cursor > 0 {
-                    let prev = self.prev_char_pos();
-                    self.input_cursor = prev;
-                }
+                self.move_cursor_left();
                 self.dirty_flags.input = true;
             }
             Action::EnterCommandMode => {
@@ -139,31 +120,19 @@ impl App {
 
             // Scrolling
             Action::ScrollUp => {
-                self.chat_state.scroll_offset = self.chat_state.scroll_offset.saturating_sub(1);
-                self.dirty_flags.chat = true;
+                self.scroll_chat_newer(1);
             }
             Action::ScrollDown => {
-                let max_scroll = self.chat_state.messages.len().saturating_sub(1);
-                if self.chat_state.scroll_offset < max_scroll {
-                    self.chat_state.scroll_offset += 1;
-                }
-                self.dirty_flags.chat = true;
+                self.scroll_chat_older(1);
             }
             Action::ScrollToBottom => {
-                self.chat_state.scroll_offset = 0;
-                self.dirty_flags.chat = true;
+                self.scroll_chat_to_bottom();
             }
             Action::ScrollPageUp => {
-                self.chat_state.scroll_offset = self.chat_state.scroll_offset.saturating_add(10);
-                let max_scroll = self.chat_state.messages.len().saturating_sub(1);
-                if self.chat_state.scroll_offset > max_scroll {
-                    self.chat_state.scroll_offset = max_scroll;
-                }
-                self.dirty_flags.chat = true;
+                self.scroll_chat_older(10);
             }
             Action::ScrollPageDown => {
-                self.chat_state.scroll_offset = self.chat_state.scroll_offset.saturating_sub(10);
-                self.dirty_flags.chat = true;
+                self.scroll_chat_newer(10);
             }
 
             // Application

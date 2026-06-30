@@ -9,6 +9,8 @@ use ratatui::widgets::{Block, Paragraph, Wrap};
 
 use crate::app::{App, MessageRole};
 use crate::tui::activity_label::agent_activity_label;
+use crate::tui::animation::animated_dots;
+use crate::tui::text::render_plain_text;
 use crate::tui::theme;
 
 const LOGO: &str = "◆ Synerix";
@@ -71,7 +73,7 @@ pub fn render(area: Rect, frame: &mut ratatui::Frame, app: &App) {
             MessageRole::Tool => p.chat_tool,
         };
 
-        let display_content = clean_display_text(&msg.content);
+        let display_content = render_plain_text(&msg.content);
         let mut content_lines = display_content.lines();
         if let Some(first) = content_lines.next() {
             if let Some(prefix) = prefix {
@@ -147,7 +149,7 @@ pub fn render(area: Rect, frame: &mut ratatui::Frame, app: &App) {
     // Streaming text
     if app.chat_state.is_streaming {
         let dots = animated_dots(app.status_bar.animation_frame);
-        let streaming_text = clean_display_text(&app.chat_state.streaming_text);
+        let streaming_text = render_plain_text(&app.chat_state.streaming_text);
         lines.push(Line::from(vec![
             Span::raw(streaming_text),
             Span::styled(dots, Style::default().fg(p.chat_assistant)),
@@ -244,15 +246,6 @@ fn render_welcome<'a>(lines: &mut Vec<Line<'a>>, app: &'a App, p: &theme::ColorP
     )));
 }
 
-fn animated_dots(frame: u64) -> &'static str {
-    match frame % 4 {
-        0 => "",
-        1 => ".",
-        2 => "..",
-        _ => "...",
-    }
-}
-
 fn message_prefix(role: &MessageRole) -> Option<&'static str> {
     match role {
         MessageRole::User => Some("> "),
@@ -261,229 +254,14 @@ fn message_prefix(role: &MessageRole) -> Option<&'static str> {
     }
 }
 
-fn clean_display_text(input: &str) -> String {
-    let html_text = strip_html_tags(input);
-    let markdown_clean = decode_html_entities(&html_text);
-    convert_markdown_tables(&strip_markdown_markers(&markdown_clean))
-}
-
-fn strip_html_tags(input: &str) -> String {
-    let mut output = String::with_capacity(input.len());
-    let mut chars = input.chars().peekable();
-    while let Some(ch) = chars.next() {
-        if ch == '<' {
-            let mut tag = String::new();
-            let mut closed = false;
-            for tag_ch in chars.by_ref() {
-                if tag_ch == '>' {
-                    closed = true;
-                    break;
-                }
-                tag.push(tag_ch);
-            }
-
-            if !closed {
-                output.push('<');
-                output.push_str(&tag);
-                break;
-            }
-
-            let tag_name = tag
-                .trim()
-                .trim_start_matches('/')
-                .split_whitespace()
-                .next()
-                .unwrap_or_default()
-                .trim_end_matches('/');
-            match tag_name.to_ascii_lowercase().as_str() {
-                "br" => output.push('\n'),
-                "p" | "div" | "section" | "article" | "li" | "ul" | "ol" | "pre"
-                    if !output.ends_with('\n') && !output.is_empty() =>
-                {
-                    output.push('\n');
-                }
-                _ => {}
-            }
-        } else {
-            output.push(ch);
-        }
-    }
-    output
-}
-
-fn decode_html_entities(input: &str) -> String {
-    input
-        .replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .replace("&amp;", "&")
-        .replace("&quot;", "\"")
-        .replace("&#39;", "'")
-        .replace("&apos;", "'")
-}
-
-fn strip_markdown_markers(input: &str) -> String {
-    input
-        .lines()
-        .map(clean_markdown_line)
-        .collect::<Vec<_>>()
-        .join("\n")
-        .trim()
-        .to_string()
-}
-
-fn clean_markdown_line(line: &str) -> String {
-    let mut text = line.trim_start().to_string();
-    while text.starts_with('#') {
-        text.remove(0);
-    }
-    text = text.trim_start().to_string();
-
-    for marker in ["```", "**", "__", "`", "~~"] {
-        text = text.replace(marker, "");
-    }
-
-    text
-}
-
-fn convert_markdown_tables(input: &str) -> String {
-    let lines: Vec<&str> = input.lines().collect();
-    let mut result = Vec::new();
-    let mut i = 0;
-
-    while i < lines.len() {
-        if looks_like_table_row(lines[i])
-            && i + 1 < lines.len()
-            && looks_like_table_row(lines[i + 1])
-        {
-            let (table_lines, next_i) = extract_table_block(&lines, i);
-            let formatted = format_table_block(table_lines);
-            result.extend(formatted.lines().map(|s| s.to_string()));
-            i = next_i;
-        } else {
-            result.push(lines[i].to_string());
-            i += 1;
-        }
-    }
-
-    result.join("\n")
-}
-
-fn looks_like_table_row(line: &str) -> bool {
-    let trimmed = line.trim();
-    trimmed.starts_with('|') && trimmed.ends_with('|') && trimmed.contains('|')
-}
-
-fn extract_table_block<'a>(lines: &'a [&'a str], start: usize) -> (Vec<&'a str>, usize) {
-    let mut end = start;
-    while end < lines.len() && looks_like_table_row(lines[end]) {
-        end += 1;
-    }
-    // Don't consume blank separator lines after the table
-    (lines[start..end].to_vec(), end)
-}
-
-fn is_separator_row(line: &str) -> bool {
-    let trimmed = line.trim();
-    trimmed.starts_with('|')
-        && trimmed.ends_with('|')
-        && trimmed[1..trimmed.len() - 1].contains('-')
-}
-
-fn parse_row(line: &str) -> Vec<String> {
-    line.trim()
-        .trim_start_matches('|')
-        .trim_end_matches('|')
-        .split('|')
-        .map(|s| s.trim().to_string())
-        .collect()
-}
-
-fn format_table_block(table_lines: Vec<&str>) -> String {
-    if table_lines.is_empty() {
-        return String::new();
-    }
-
-    let header = parse_row(table_lines[0]);
-    let data_start = if table_lines.len() > 1 { 2 } else { 1 };
-    let mut rows = Vec::new();
-    for line in table_lines.iter().skip(data_start) {
-        if !is_separator_row(line) {
-            rows.push(parse_row(line));
-        }
-    }
-
-    let num_cols = header.len();
-    let mut col_widths = vec![0usize; num_cols];
-    for (idx, cell) in header.iter().enumerate() {
-        col_widths[idx] = cell.len();
-    }
-    for row in &rows {
-        for (idx, cell) in row.iter().enumerate() {
-            if idx < num_cols {
-                col_widths[idx] = col_widths[idx].max(cell.len());
-            }
-        }
-    }
-
-    let mut formatted = Vec::new();
-    formatted.push(format_row(&header, &col_widths));
-    formatted.push(format_separator(&col_widths));
-    for row in &rows {
-        formatted.push(format_row(row, &col_widths));
-    }
-
-    formatted.join("\n")
-}
-
-fn format_row(cells: &[String], widths: &[usize]) -> String {
-    let mut parts = Vec::new();
-    for (idx, cell) in cells.iter().enumerate() {
-        let w = widths.get(idx).copied().unwrap_or(0);
-        parts.push(format!(" {:<w$} ", cell, w = w));
-    }
-    parts.join("│")
-}
-
-fn format_separator(widths: &[usize]) -> String {
-    let mut parts = Vec::new();
-    for &w in widths {
-        parts.push("─".repeat(w + 2));
-    }
-    parts.join("┼")
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{clean_display_text, convert_markdown_tables, message_prefix};
+    use super::message_prefix;
     use crate::app::MessageRole;
-
-    #[test]
-    fn clean_display_text_strips_markdown_markers() {
-        assert_eq!(clean_display_text("## **Hello** `world`"), "Hello world");
-    }
-
-    #[test]
-    fn clean_display_text_converts_basic_html() {
-        assert_eq!(
-            clean_display_text("<p>Hello<br>world &amp; Synerix</p>"),
-            "Hello\nworld & Synerix"
-        );
-    }
 
     #[test]
     fn message_prefix_hides_internal_role_labels() {
         assert_eq!(message_prefix(&MessageRole::Assistant), None);
         assert_eq!(message_prefix(&MessageRole::System), None);
-    }
-
-    #[test]
-    fn convert_markdown_table_renders_aligned() {
-        let input =
-            "| Mode | Icon | Description |\n|------|------|-------------|\n| Act | ⚡ | Execute |";
-        let output = convert_markdown_tables(input);
-        assert!(output.contains("Act"));
-        assert!(output.contains("⚡"));
-        assert!(output.contains("Execute"));
-        assert!(!output.contains("|------|"));
     }
 }
