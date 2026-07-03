@@ -170,8 +170,8 @@ pub const COMMANDS: &[CmdDef] = &[
     CmdDef {
         name: "/mode",
         aliases: &["/md"],
-        desc: "切换编码模式（Plan/Act/Chat/Architect）",
-        usage: "/mode [plan|act|chat|architect] | /mode",
+        desc: "切换编码模式（Plan / Vibe）/ Switch between Plan and Vibe modes",
+        usage: "/mode [plan|vibe] | /mode",
         category: CmdCategory::Mode,
         handler: cmd_mode,
     },
@@ -191,7 +191,7 @@ pub fn find_cmd(input: &str) -> Option<&'static CmdDef> {
 }
 
 /// Accept exact slash command names with or without the leading slash.
-pub fn normalize_command_input(input: &str) -> Option<String> {
+pub fn ensure_slash_prefix(input: &str) -> Option<String> {
     let trimmed = input.trim();
     if trimmed.starts_with('/') || trimmed.is_empty() {
         return None;
@@ -284,8 +284,8 @@ mod tests {
                 startup_metrics: None,
                 goal_active: false,
                 goal_duration: String::new(),
-                coding_mode: crate::coding_modes::CodingMode::Act,
                 animation_frame: 0,
+                agent_start_time: None,
             },
             settings,
             should_quit: false,
@@ -302,12 +302,13 @@ mod tests {
             config_version: 0,
             skill_registry: SkillRegistry::new(),
             agent_registry: CustomAgentRegistry::new(),
-            goal_state: GoalState::inactive(),
-            coding_mode: crate::coding_modes::CodingMode::Act,
+            goal_state: GoalState::default(),
+            coding_mode: crate::app::CodingMode::Plan,
             project_context: None,
             session_store: None,
             pending_approval: None,
             approval_decision_tx: None,
+            agent_busy: false,
         }
     }
 
@@ -351,17 +352,17 @@ mod tests {
     }
 
     #[test]
-    fn test_normalize_command_input() {
+    fn test_ensure_slash_prefix() {
         assert_eq!(
-            normalize_command_input("help model").as_deref(),
+            ensure_slash_prefix("help model").as_deref(),
             Some("/help model")
         );
         assert_eq!(
-            normalize_command_input("mode plan").as_deref(),
+            ensure_slash_prefix("mode plan").as_deref(),
             Some("/mode plan")
         );
-        assert_eq!(normalize_command_input("/help"), None);
-        assert_eq!(normalize_command_input("hello world"), None);
+        assert_eq!(ensure_slash_prefix("/help"), None);
+        assert_eq!(ensure_slash_prefix("hello world"), None);
     }
 
     // ── Command handler tests ──────────────────────────────────────────────
@@ -444,8 +445,8 @@ mod tests {
         assert_eq!(app.settings.llm.context_window, 200_000);
         assert_eq!(app.status_bar.tokens_total, 200_000);
         match &app.settings.llm.provider {
-            Provider::Custom { base_url } => {
-                assert_eq!(base_url, "https://api.anthropic.com/v1");
+            Provider::Custom { endpoint } => {
+                assert_eq!(endpoint, "https://api.anthropic.com/v1");
             }
             other => panic!("expected Custom provider, got {:?}", other),
         }

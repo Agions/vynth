@@ -7,7 +7,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.2.2"
+version = "0.2.3"
 edition = "2021"
 license = "MIT"
 rust-version = "1.75"
@@ -15,17 +15,16 @@ rust-version = "1.75"
 [workspace.dependencies]
 ratatui = { version = "0.30", features = ["layout-cache"] }
 crossterm = "0.28"
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "process", "signal", "fs", "io-util", "net"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "process", "signal"] }
 futures = "0.3"
-reqwest = { version = "0.12", features = ["json", "stream"] }
+reqwest = { version = "0.12", features = ["json", "stream", "native-tls"], default-features = false }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-rusqlite = { version = "0.31", features = ["bundled"] }
+rusqlite = { version = "0.31", features = ["bundled"], default-features = false }
 thiserror = "2"
 toml = "0.8"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-syntect = { version = "5", default-features = false, features = ["default-fancy"] }
 glob = "0.3"
 chrono = { version = "0.4", features = ["serde"] }
 dirs-next = "2"
@@ -37,6 +36,7 @@ uuid = { version = "1", features = ["v4"] }
 criterion = { version = "0.5" }
 moka = { version = "0.12", features = ["sync"] }
 memchr = "2"
+bitflags = "2"
 
 [workspace.dependencies.tempfile]
 version = "3"
@@ -58,8 +58,8 @@ unnecessary_wraps = "warn"
 match_same_arms = "warn"
 
 [profile.release]
-opt-level = 3
+opt-level = "z"
 lto = "fat"
 codegen-units = 1
-strip = true
+strip = "symbols"
 panic = "abort"

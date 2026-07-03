@@ -1,4 +1,6 @@
 //! Slash command suggestions rendered above the composer.
+//!
+//! Rounded border, highlight_bg for selection, Nerd Font arrow indicator.
 
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
@@ -6,12 +8,16 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Clear, Paragraph};
 use ratatui::Frame;
 
-use crate::app::App;
 use crate::slash::menu::menu_matches;
-use crate::tui::theme;
+use crate::tui::widgets::primitives::RenderContext;
 
-pub fn render(area: Rect, frame: &mut Frame, app: &App) {
-    let matches = menu_matches(&app.input_buffer);
+/// Selected-item indicator (replaces Nerd Font arrow).
+const ARROW_ACTIVE: &str = "> ";
+const ARROW_INACTIVE: &str = "  ";
+
+/// Render slash command popup above the input box.
+pub fn render(area: Rect, frame: &mut Frame, ctx: &RenderContext) {
+    let matches = menu_matches(&ctx.input_buffer);
     if matches.is_empty() {
         return;
     }
@@ -25,38 +31,43 @@ pub fn render(area: Rect, frame: &mut Frame, app: &App) {
     let x = area.x + 1;
     let y = area.y.saturating_sub(height);
     let popup = Rect::new(x, y, width.saturating_sub(2), height);
-    let p = theme::current_palette();
+    let p = ctx.palette;
 
     let block = Block::default()
         .title(" commands ")
         .title_style(Style::default().fg(p.accent).add_modifier(Modifier::BOLD))
         .borders(Borders::ALL)
-        .border_type(ratatui::widgets::BorderType::Plain)
+        .border_type(crate::tui::theme::BORDER_TYPE)
         .border_style(Style::default().fg(p.border));
 
-    let active_style = if app.status_bar.animation_frame % 4 < 2 {
+    let active_style = if ctx.anim_frame % 4 < 2 {
         Style::default()
             .fg(p.foreground)
+            .bg(p.highlight_bg)
             .add_modifier(Modifier::BOLD)
     } else {
-        Style::default().fg(p.accent).add_modifier(Modifier::BOLD)
+        Style::default()
+            .fg(p.accent)
+            .bg(p.highlight_bg)
+            .add_modifier(Modifier::BOLD)
     };
 
     let lines: Vec<Line> = matches
         .into_iter()
         .enumerate()
         .map(|(idx, cmd)| {
-            let name_style = if idx == app.slash_menu_state.selected {
+            let is_selected = idx == ctx.slash_selected;
+            let name_style = if is_selected {
                 active_style
             } else {
                 Style::default().fg(p.accent).add_modifier(Modifier::BOLD)
             };
             Line::from(vec![
                 Span::styled(
-                    if idx == app.slash_menu_state.selected {
-                        "> "
+                    if is_selected {
+                        ARROW_ACTIVE
                     } else {
-                        "  "
+                        ARROW_INACTIVE
                     },
                     Style::default().fg(p.muted_fg),
                 ),

@@ -1,7 +1,7 @@
 //! App struct — global application state + constructors.
 
 use crate::agent::CustomAgentRegistry;
-use crate::coding_modes::CodingMode;
+use crate::app::state::coding_mode::CodingMode;
 use crate::config::{KeyBindings, KeymapProfile, Settings};
 use crate::project::ProjectContext;
 use crate::sandbox::approval::ApprovalDecision;
@@ -74,6 +74,8 @@ pub struct App {
     pub pending_approval: Option<String>,
     /// Sender for approval decisions (from TUI -> tool dispatch)
     pub approval_decision_tx: Option<tokio::sync::mpsc::Sender<ApprovalDecision>>,
+    /// Whether an agent task is currently running (prevents concurrent submissions)
+    pub agent_busy: bool,
 }
 
 impl App {
@@ -114,12 +116,13 @@ impl App {
             config_version: 0,
             skill_registry: SkillRegistry::new(),
             agent_registry: CustomAgentRegistry::new(),
-            goal_state: GoalState::inactive(),
-            coding_mode: CodingMode::Act,
+            goal_state: GoalState::default(),
+            coding_mode: CodingMode::Plan,
             project_context: None,
             session_store: None,
             pending_approval: None,
             approval_decision_tx: None,
+            agent_busy: false,
         }
     }
 
@@ -149,13 +152,18 @@ impl App {
 
     /// Submit the current input buffer as a user message
     pub fn submit_message(&mut self) {
+        // Guard: prevent concurrent agent tasks which can corrupt shared state
+        if self.agent_busy {
+            return;
+        }
+
         let text = std::mem::take(&mut self.input_buffer);
         self.input_cursor = 0;
         if text.is_empty() {
             return;
         }
 
-        let command_text = crate::slash::normalize_command_input(&text);
+        let command_text = crate::slash::ensure_slash_prefix(&text);
         let handled = match command_text {
             Some(command) => crate::slash::try_handle(self, &command),
             None => crate::slash::try_handle(self, &text),
@@ -171,8 +179,22 @@ impl App {
         });
         // Reset scroll to bottom on new message
         self.chat_state.scroll_offset = 0;
-        self.status_bar.agent_state = super::status::AgentState::Thinking;
+        self.set_agent_state(super::status::AgentState::Thinking);
+        self.agent_busy = true;
         self.spawn_agent_response(text);
+    }
+
+    /// Set agent state and manage the elapsed timer.
+    pub(crate) fn set_agent_state(&mut self, state: crate::app::AgentState) {
+        // Clear timer when going idle
+        if matches!(state, crate::app::AgentState::Idle) {
+            self.status_bar.agent_start_time = None;
+        } else if self.status_bar.agent_start_time.is_none() {
+            // Start timer on first busy state
+            self.status_bar.agent_start_time = Some(std::time::Instant::now());
+        }
+        self.status_bar.agent_state = state;
+        self.dirty_flags.insert(DirtyFlags::STATUS);
     }
 
     fn spawn_agent_response(&self, text: String) {

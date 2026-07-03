@@ -22,33 +22,12 @@ pub fn render_plain_text(input: &str) -> String {
     convert_markdown_tables(&strip_markdown_markers(&markdown_clean))
 }
 
-/// Strip Markdown emphasis markers and replace emoji with ASCII labels.
+/// Strip Markdown emphasis markers from short system messages.
 ///
 /// Used for the short system messages that slash commands push into the chat
 /// transcript, where the full Markdown pipeline is unnecessary.
 pub fn sanitize_terminal_text(text: &str) -> String {
-    text.replace("**", "")
-        .replace('`', "")
-        .replace("✅", "OK")
-        .replace("❌", "ERROR")
-        .replace("💡", "TIP")
-        .replace("📋", "")
-        .replace("📖", "")
-        .replace("⚙️", "")
-        .replace("📂", "")
-        .replace("🎯", "")
-        .replace("📦", "")
-        .replace("🔀", "")
-        .replace("🤖", "")
-        .replace("🚀", "RUN")
-        .replace("🗑️", "REMOVED")
-        .replace("💾", "SAVED")
-        .replace("🔄", "RESET")
-        .replace("🧠", "")
-        .replace("⚡", "")
-        .replace("💬", "")
-        .replace("🔧", "")
-        .replace("🎵", "")
+    text.replace("**", "").replace('`', "")
 }
 
 fn strip_html_tags(input: &str) -> String {
@@ -266,7 +245,7 @@ mod tests {
     }
 
     #[test]
-    fn sanitize_terminal_text_strips_markers_and_emoji() {
-        assert_eq!(sanitize_terminal_text("**bold** `code` ✅"), "bold code OK");
+    fn sanitize_terminal_text_strips_markers() {
+        assert_eq!(sanitize_terminal_text("**bold** `code`"), "bold code");
     }
 }

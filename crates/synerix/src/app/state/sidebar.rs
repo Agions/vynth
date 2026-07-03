@@ -9,7 +9,7 @@ pub struct SidebarState {
     pub scroll_offset: usize,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SidebarTab {
     #[default]
     Files,

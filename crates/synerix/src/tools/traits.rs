@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 use crate::config::SandboxMode;
 use crate::error::AppError;
+use crate::sandbox::approval::ApprovalHandler;
 
 /// Tool execution result
 pub struct ToolResult {
@@ -60,13 +61,6 @@ impl Default for ToolContext {
             approval_handler: None,
         }
     }
-}
-
-/// Approval handler trait (for sandbox confirmation)
-#[async_trait]
-pub trait ApprovalHandler: Send + Sync {
-    /// Request approval for a tool execution
-    async fn request_approval(&self, preview: &str) -> Result<bool, AppError>;
 }
 
 #[cfg(test)]

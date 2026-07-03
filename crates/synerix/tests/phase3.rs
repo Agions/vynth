@@ -4,7 +4,8 @@ use synerix::tui::diff_renderer::{
     parse_diff, render_diff, render_side_by_side, render_unified, DiffViewMode,
 };
 use synerix::tui::syntax::highlight_line;
-use synerix::tui::theme::{dark_theme, light_theme};
+use synerix::tui::theme::{dark_theme, light_theme, init_theme};
+use synerix::tui::theme;
 // ── Theme System ──────────────────────────────────────────
 
 #[test]
@@ -103,6 +104,7 @@ fn test_parse_diff_empty() {
 
 #[test]
 fn test_render_unified_produces_text() {
+    init_theme(true);
     let diff = r#"--- a/test.rs
 +++ b/test.rs
 @@ -1,2 +1,3 @@
@@ -112,13 +114,14 @@ fn test_render_unified_produces_text() {
  }
 "#;
 
-    let text = render_unified(diff);
+    let text = render_unified(diff, &theme::read_palette());
     let lines = text.lines;
     assert!(!lines.is_empty(), "Should produce rendered lines");
 }
 
 #[test]
 fn test_render_side_by_side_produces_text() {
+    init_theme(true);
     let diff = r#"--- a/test.rs
 +++ b/test.rs
 @@ -1,3 +1,3 @@
@@ -128,13 +131,14 @@ fn test_render_side_by_side_produces_text() {
  }
 "#;
 
-    let text = render_side_by_side(diff, 80);
+    let text = render_side_by_side(diff, 80, &theme::read_palette());
     let lines = text.lines;
     assert!(!lines.is_empty(), "Should produce side-by-side lines");
 }
 
 #[test]
 fn test_render_diff_with_mode() {
+    init_theme(true);
     let diff = r#"--- a/x.rs
 +++ b/x.rs
 @@ -1,2 +1,2 @@
@@ -142,8 +146,8 @@ fn test_render_diff_with_mode() {
 +b
 "#;
 
-    let unified = render_diff(diff, DiffViewMode::Unified, 80);
-    let sidebyside = render_diff(diff, DiffViewMode::SideBySide, 80);
+    let unified = render_diff(diff, DiffViewMode::Unified, 80, &theme::read_palette());
+    let sidebyside = render_diff(diff, DiffViewMode::SideBySide, 80, &theme::read_palette());
 
     assert!(!unified.lines.is_empty());
     assert!(!sidebyside.lines.is_empty());

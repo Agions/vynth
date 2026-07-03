@@ -10,26 +10,26 @@
 //! because the existing key/mouse/action bindings disagree on which direction
 //! "up" means; naming by offset direction keeps each binding unambiguous.
 
-use super::state::App;
+use super::state::{App, DirtyFlags};
 
 impl App {
     /// Scroll toward older messages by `lines`, clamped to the oldest message.
     pub(crate) fn scroll_chat_older(&mut self, lines: usize) {
         let max_scroll = self.chat_state.messages.len().saturating_sub(1);
         self.chat_state.scroll_offset = (self.chat_state.scroll_offset + lines).min(max_scroll);
-        self.dirty_flags.chat = true;
+        self.dirty_flags.insert(DirtyFlags::CHAT);
     }
 
     /// Scroll toward newer messages by `lines`, clamped to the bottom.
     pub(crate) fn scroll_chat_newer(&mut self, lines: usize) {
         self.chat_state.scroll_offset = self.chat_state.scroll_offset.saturating_sub(lines);
-        self.dirty_flags.chat = true;
+        self.dirty_flags.insert(DirtyFlags::CHAT);
     }
 
     /// Jump to the latest message (bottom of the transcript).
     pub(crate) fn scroll_chat_to_bottom(&mut self) {
         self.chat_state.scroll_offset = 0;
-        self.dirty_flags.chat = true;
+        self.dirty_flags.insert(DirtyFlags::CHAT);
     }
 }
 

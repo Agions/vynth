@@ -7,11 +7,13 @@ use crate::config::McpServerConfig;
 use crate::error::AppError;
 use crate::mcp::transport::{McpTransport, StdioTransport};
 use crate::mcp::types::*;
+#[cfg(test)]
+use async_trait::async_trait;
 
 /// Single MCP Server connection with cached permission patterns
 pub struct McpClient {
     config: McpServerConfig,
-    transport: Option<Box<dyn McpTransport>>,
+    transport: Box<dyn McpTransport>,
     tools: Vec<McpToolDef>,
     /// Pre-compiled glob patterns for tool permission checks
     /// (None = allow all, empty = deny all)
@@ -49,7 +51,7 @@ impl McpClient {
 
         let mut client = Self {
             config,
-            transport: Some(transport),
+            transport,
             tools: Vec::new(),
             allowed_patterns,
             reconnect_count: 0,
@@ -64,17 +66,14 @@ impl McpClient {
     /// Discover available tools from the server
     async fn discover_tools(&mut self) -> Result<(), AppError> {
         let request = JsonRpcRequest::new(1, "tools/list", None);
+        let response = self.transport.send_and_wait(request).await?;
 
-        if let Some(transport) = &self.transport {
-            let response = transport.send_and_wait(request).await?;
-
-            if let Some(result) = response.result {
-                if let Some(tools) = result.get("tools").and_then(|v| v.as_array()) {
-                    self.tools = tools
-                        .iter()
-                        .filter_map(|t| serde_json::from_value(t.clone()).ok())
-                        .collect();
-                }
+        if let Some(result) = response.result {
+            if let Some(tools) = result.get("tools").and_then(|v| v.as_array()) {
+                self.tools = tools
+                    .iter()
+                    .filter_map(|t| serde_json::from_value(t.clone()).ok())
+                    .collect();
             }
         }
 
@@ -110,34 +109,32 @@ impl McpClient {
             })),
         );
 
-        if let Some(transport) = &self.transport {
-            let response = transport.send_and_wait(request).await?;
+        let response = self.transport.send_and_wait(request).await?;
 
-            if let Some(error) = response.error {
-                return Ok(McpToolResult {
-                    content: format!("MCP error: {}", error.message),
-                    is_error: true,
-                });
-            }
+        if let Some(error) = response.error {
+            return Ok(McpToolResult {
+                content: format!("MCP error: {}", error.message),
+                is_error: true,
+            });
+        }
 
-            if let Some(result) = response.result {
-                let content = result["content"]
-                    .as_array()
-                    .map(|arr| {
-                        arr.iter()
-                            .filter_map(|c| c["text"].as_str())
-                            .collect::<Vec<_>>()
-                            .join("\n")
-                    })
-                    .unwrap_or_else(|| serde_json::to_string_pretty(&result).unwrap_or_default());
+        if let Some(result) = response.result {
+            let content = result["content"]
+                .as_array()
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|c| c["text"].as_str())
+                        .collect::<Vec<_>>()
+                        .join("\n")
+                })
+                .unwrap_or_else(|| serde_json::to_string_pretty(&result).unwrap_or_default());
 
-                let is_error = result
-                    .get("isError")
-                    .and_then(|v| v.as_bool())
-                    .unwrap_or(false);
+            let is_error = result
+                .get("isError")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false);
 
-                return Ok(McpToolResult { content, is_error });
-            }
+            return Ok(McpToolResult { content, is_error });
         }
 
         Err(AppError::McpTransport("Not connected".to_string()))
@@ -165,73 +162,60 @@ impl McpClient {
     }
 
     /// Get reconnect count (for health monitoring)
-    #[allow(dead_code)]
     pub fn reconnect_count(&self) -> u64 {
         self.reconnect_count
-    }
-
-    /// Reconnect to the MCP server (explicit, for manual use or health check)
-    #[allow(dead_code)]
-    pub async fn reconnect(&mut self) -> Result<(), AppError> {
-        // Close existing transport
-        if let Some(mut transport) = self.transport.take() {
-            let _ = transport.close().await;
-        }
-
-        // Re-spawn the child process
-        let transport: Box<dyn McpTransport> = match &self.config.transport {
-            crate::config::McpTransport::Stdio { command, args } => {
-                Box::new(StdioTransport::connect(command, args).await?)
-            }
-            crate::config::McpTransport::Http { .. } => {
-                return Err(AppError::McpTransport(
-                    "HTTP reconnect not supported".to_string(),
-                ));
-            }
-        };
-
-        self.transport = Some(transport);
-        self.reconnect_count += 1;
-
-        // Re-discover tools
-        self.discover_tools().await
     }
 
     /// Test-only constructor for unit testing without a real subprocess
     #[cfg(test)]
     pub(crate) fn new_for_test(name: &str, allowed_tools: Vec<String>) -> Self {
-        use std::collections::HashMap;
-
-        let config = McpServerConfig {
-            name: name.to_string(),
-            transport: crate::config::McpTransport::Stdio {
-                command: "noop".to_string(),
-                args: vec![],
-            },
-            allowed_tools: allowed_tools.clone(),
-            env: HashMap::new(),
-            cwd: None,
-            auto_reconnect: true,
-            timeout_secs: 30,
-        };
-
+        let config = McpServerConfig::stdio(name, "noop", vec![]);
         let allowed_patterns = if allowed_tools.is_empty() {
             None
         } else {
-            let patterns: Vec<glob::Pattern> = allowed_tools
-                .iter()
-                .filter_map(|p| glob::Pattern::new(p).ok())
-                .collect();
-            Some(patterns)
+            Some(
+                allowed_tools
+                    .iter()
+                    .filter_map(|p| glob::Pattern::new(p).ok())
+                    .collect(),
+            )
         };
 
         Self {
             config,
-            transport: None,
+            transport: Box::new(NoopTransport),
             tools: Vec::new(),
             allowed_patterns,
             reconnect_count: 0,
         }
+    }
+}
+
+/// No-op transport for testing
+#[cfg(test)]
+struct NoopTransport;
+
+#[cfg(test)]
+#[async_trait]
+impl McpTransport for NoopTransport {
+    async fn send_and_wait(
+        &self,
+        _request: JsonRpcRequest,
+    ) -> Result<JsonRpcResponse, AppError> {
+        Ok(JsonRpcResponse {
+            jsonrpc: "2.0".into(),
+            id: Some(1),
+            result: None,
+            error: None,
+        })
+    }
+
+    fn is_connected(&self) -> bool {
+        true
+    }
+
+    async fn close(&mut self) -> Result<(), AppError> {
+        Ok(())
     }
 }
 

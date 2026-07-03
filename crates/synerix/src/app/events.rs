@@ -14,6 +14,5 @@ pub enum AgentEvent {
         is_error: bool,
     },
     Done,
-    #[allow(dead_code)]
     Error(String),
 }

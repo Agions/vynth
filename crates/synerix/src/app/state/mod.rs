@@ -9,10 +9,12 @@
 //! - `goal` — GoalState
 //! - `dirty` — DirtyFlags
 //! - `input` — InputMode
+//! - `coding_mode` — CodingMode
 //! - `app` — App struct + constructors + methods
 
 mod app;
 mod chat;
+mod coding_mode;
 mod diff;
 mod dirty;
 mod goal;
@@ -24,6 +26,7 @@ mod status;
 
 pub use app::App;
 pub use chat::ChatState;
+pub use coding_mode::CodingMode;
 pub use diff::{DiffHunk, DiffLine, DiffLineKind, DiffState};
 pub use dirty::DirtyFlags;
 pub use goal::GoalState;

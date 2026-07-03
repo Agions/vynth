@@ -16,7 +16,7 @@ use tokio::sync::mpsc;
 use crate::agent::context::ContextManager;
 use crate::agent::tool_dispatcher::{dispatch_with_timeout, PendingToolCall};
 use crate::app::AgentEvent;
-use crate::coding_modes::CodingMode;
+use crate::app::CodingMode;
 use crate::error::AppError;
 use crate::llm::adapter::LlmAdapter;
 use crate::llm::types::{ChatMessage, ChunkDelta, MessageRole, StreamChunk, ToolCall, ToolSchema};

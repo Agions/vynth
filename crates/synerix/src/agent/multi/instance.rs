@@ -5,7 +5,7 @@ use tokio::sync::mpsc;
 use crate::agent::agent_loop::run_agent_loop;
 use crate::agent::context::{ContextManager, TokenBudget};
 use crate::app::AgentEvent;
-use crate::coding_modes::CodingMode;
+use crate::app::CodingMode;
 use crate::error::AppError;
 use crate::llm::adapter::LlmAdapter;
 use crate::llm::types::ChatMessage;
@@ -83,7 +83,7 @@ impl AgentInstance {
             event_tx,
             max_turns,
             120, // default tool timeout
-            CodingMode::Act,
+            CodingMode::Plan,
             None, // approval handler (not wired in multi-agent yet)
         )
         .await;

@@ -13,7 +13,7 @@ use tokio::sync::mpsc;
 
 use synerix::agent::{run_agent_loop, ContextManager, TokenBudget};
 use synerix::app::events::AgentEvent;
-use synerix::coding_modes::CodingMode;
+use synerix::app::CodingMode;
 use synerix::error::AppError;
 use synerix::llm::adapter::LlmAdapter;
 use synerix::llm::types::{ChatMessage, ChatResponse, ChunkDelta, StreamChunk, ToolSchema};
@@ -150,7 +150,7 @@ async fn test_agent_loop_e2e() {
             event_tx,
             3,
             30,
-            CodingMode::Act,
+            CodingMode::Plan,
             None, // approval handler (not wired in test)
         )
         .await;

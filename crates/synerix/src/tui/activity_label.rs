@@ -1,7 +1,7 @@
 //! Short activity labels used while the agent is producing a response.
 
 use crate::app::AgentState;
-use crate::coding_modes::CodingMode;
+use crate::app::CodingMode;
 
 pub fn agent_activity_label(state: &AgentState, mode: CodingMode) -> &'static str {
     match state {
@@ -15,9 +15,6 @@ pub fn agent_activity_label(state: &AgentState, mode: CodingMode) -> &'static st
 fn mode_activity_label(mode: CodingMode) -> &'static str {
     match mode {
         CodingMode::Plan => "planning",
-        CodingMode::Act => "coding",
-        CodingMode::Chat => "replying",
-        CodingMode::Architect => "designing",
         CodingMode::Vibe => "iterating",
     }
 }
@@ -26,17 +23,13 @@ fn mode_activity_label(mode: CodingMode) -> &'static str {
 mod tests {
     use super::agent_activity_label;
     use crate::app::AgentState;
-    use crate::coding_modes::CodingMode;
+    use crate::app::CodingMode;
 
     #[test]
     fn thinking_label_follows_coding_mode() {
         assert_eq!(
-            agent_activity_label(&AgentState::Thinking, CodingMode::Act),
-            "coding"
-        );
-        assert_eq!(
-            agent_activity_label(&AgentState::Thinking, CodingMode::Architect),
-            "designing"
+            agent_activity_label(&AgentState::Thinking, CodingMode::Plan),
+            "planning"
         );
         assert_eq!(
             agent_activity_label(&AgentState::Thinking, CodingMode::Vibe),

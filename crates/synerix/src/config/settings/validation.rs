@@ -6,8 +6,8 @@ use crate::error::AppError;
 
 use super::{
     default_keymap, default_sandbox_mode, default_temperature, default_theme, default_tool_timeout,
-    default_tools_schema_tokens, default_true, default_typing_delay, LlmConfig, Provider,
-    SandboxConfig, Settings, UiConfig,
+    default_tools_schema_tokens, default_true, default_typing_delay, default_system_prompt_tokens,
+    LlmConfig, Provider, SandboxConfig, Settings, UiConfig,
 };
 
 impl Settings {
@@ -52,7 +52,7 @@ impl Settings {
                 context_window: 128_000,
                 max_output_tokens: 8192,
                 temperature: default_temperature(),
-                system_prompt_tokens: 2000,
+                system_prompt_tokens: default_system_prompt_tokens(),
                 tools_schema_tokens: default_tools_schema_tokens(),
             },
             ui: UiConfig {

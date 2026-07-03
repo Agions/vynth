@@ -4,6 +4,7 @@
 //! without requiring a terminal or ratatui rendering context.
 
 use synerix::tui::diff_renderer::{parse_diff, render_diff, DiffViewMode};
+use synerix::tui::theme::{read_palette, init_theme};
 
 // ── Diff Parsing ───────────────────────────────────────────
 
@@ -94,7 +95,8 @@ fn test_parse_diff_remove_lines() {
 
 #[test]
 fn test_render_unified_returns_text() {
-    let text = render_diff(SAMPLE_DIFF, DiffViewMode::Unified, 0);
+    init_theme(true);
+    let text = render_diff(SAMPLE_DIFF, DiffViewMode::Unified, 0, &read_palette());
     let lines: Vec<_> = text.lines.iter().collect();
     assert!(!lines.is_empty(), "Unified render should produce lines");
     // First line should be the hunk header
@@ -104,7 +106,8 @@ fn test_render_unified_returns_text() {
 
 #[test]
 fn test_render_unified_empty() {
-    let text = render_diff("", DiffViewMode::Unified, 0);
+    init_theme(true);
+    let text = render_diff("", DiffViewMode::Unified, 0, &read_palette());
     let lines: Vec<_> = text.lines.iter().collect();
     assert!(
         !lines.is_empty(),
@@ -119,7 +122,8 @@ fn test_render_unified_empty() {
 
 #[test]
 fn test_render_side_by_side_returns_text() {
-    let text = render_diff(SAMPLE_DIFF, DiffViewMode::SideBySide, 40);
+    init_theme(true);
+    let text = render_diff(SAMPLE_DIFF, DiffViewMode::SideBySide, 40, &read_palette());
     let lines: Vec<_> = text.lines.iter().collect();
     assert!(
         !lines.is_empty(),

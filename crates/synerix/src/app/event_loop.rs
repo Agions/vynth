@@ -24,7 +24,14 @@ impl App {
 
         loop {
             if self.dirty_flags.any() {
-                terminal.draw(|frame| self.draw_with_layout(frame))?;
+                // Swallow terminal IO errors during draw.  This can happen
+                // when the process is backgrounded or the terminal is
+                // resized past its limits.  Without this catch, the error
+                // propagates up, bypasses terminal restoration, and leaves
+                // the user's shell in raw mode.
+                let _ = terminal.draw(|frame| {
+                    crate::tui::renderer::draw_frame_with_layout(frame, self);
+                });
             }
 
             tokio::select! {
@@ -90,11 +97,11 @@ impl App {
                 self.status_bar.animation_frame = self.status_bar.animation_frame.wrapping_add(1);
                 self.status_bar.goal_duration = self.goal_state.duration_str();
                 if self.should_animate() {
-                    self.dirty_flags.chat = true;
-                    self.dirty_flags.input = true;
-                    self.dirty_flags.status = true;
+                    self.dirty_flags.insert(DirtyFlags::CHAT);
+                    self.dirty_flags.insert(DirtyFlags::INPUT);
+                    self.dirty_flags.insert(DirtyFlags::STATUS);
                 } else if self.status_bar.goal_active {
-                    self.dirty_flags.status = true;
+                    self.dirty_flags.insert(DirtyFlags::STATUS);
                 }
             }
             AppEvent::Mouse(mouse) => {
@@ -156,11 +163,11 @@ impl App {
                 } else {
                     self.sidebar_state.active_tab = SidebarTab::Skills;
                 }
-                self.dirty_flags.sidebar = true;
+                self.dirty_flags.insert(DirtyFlags::SIDEBAR);
             } else {
                 let content_row = tab_click_y.saturating_sub(2) as usize;
                 self.select_sidebar_item(content_row);
-                self.dirty_flags.sidebar = true;
+                self.dirty_flags.insert(DirtyFlags::SIDEBAR);
             }
         } else if in_rect(&layout.input_rect) {
             self.focused_panel = FocusedPanel::Input;
@@ -173,14 +180,14 @@ impl App {
                 .map(|(i, _)| i)
                 .unwrap_or(self.input_buffer.len());
             self.input_cursor = byte_pos;
-            self.dirty_flags.input = true;
+            self.dirty_flags.insert(DirtyFlags::INPUT);
         } else if in_rect(&layout.chat_rect) {
             self.focused_panel = FocusedPanel::Chat;
             self.mode = InputMode::Insert;
-            self.dirty_flags.chat = true;
+            self.dirty_flags.insert(DirtyFlags::CHAT);
         } else if in_rect(&layout.diff_rect) {
             self.focused_panel = FocusedPanel::Diff;
-            self.dirty_flags.diff = true;
+            self.dirty_flags.insert(DirtyFlags::DIFF);
         }
     }
 
@@ -189,10 +196,10 @@ impl App {
             self.scroll_chat_older(3);
         } else if in_rect(&layout.diff_rect) {
             self.diff_state.scroll_offset += 3;
-            self.dirty_flags.diff = true;
+            self.dirty_flags.insert(DirtyFlags::DIFF);
         } else if in_rect(&layout.sidebar_rect) {
             self.sidebar_state.scroll_offset += 3;
-            self.dirty_flags.sidebar = true;
+            self.dirty_flags.insert(DirtyFlags::SIDEBAR);
         }
     }
 
@@ -201,10 +208,10 @@ impl App {
             self.scroll_chat_newer(3);
         } else if in_rect(&layout.diff_rect) {
             self.diff_state.scroll_offset = self.diff_state.scroll_offset.saturating_sub(3);
-            self.dirty_flags.diff = true;
+            self.dirty_flags.insert(DirtyFlags::DIFF);
         } else if in_rect(&layout.sidebar_rect) {
             self.sidebar_state.scroll_offset = self.sidebar_state.scroll_offset.saturating_sub(3);
-            self.dirty_flags.sidebar = true;
+            self.dirty_flags.insert(DirtyFlags::SIDEBAR);
         }
     }
 
@@ -237,11 +244,11 @@ impl App {
             AgentEvent::TextDelta(text) => {
                 self.chat_state.streaming_text.push_str(&text);
                 self.chat_state.is_streaming = true;
-                self.dirty_flags.chat = true;
+                self.dirty_flags.insert(DirtyFlags::CHAT);
             }
             AgentEvent::ToolCallStart { name, args } => {
-                self.status_bar.agent_state = AgentState::RunningTool(name);
-                self.dirty_flags.status = true;
+                self.set_agent_state(AgentState::RunningTool(name));
+                self.dirty_flags.insert(DirtyFlags::STATUS);
                 tracing::info!(
                     "Tool call: {:?} with args: {}",
                     self.status_bar.agent_state,
@@ -264,7 +271,7 @@ impl App {
                     is_error,
                     &output[..preview_len]
                 );
-                self.dirty_flags.status = true;
+                self.dirty_flags.insert(DirtyFlags::STATUS);
             }
             AgentEvent::Done => {
                 if !self.chat_state.streaming_text.is_empty() {
@@ -276,15 +283,18 @@ impl App {
                 }
                 self.chat_state.is_streaming = false;
                 self.chat_state.scroll_offset = 0;
-                self.status_bar.agent_state = AgentState::Idle;
-                self.dirty_flags.chat = true;
-                self.dirty_flags.status = true;
+                self.set_agent_state(AgentState::Idle);
+                self.agent_busy = false;
+                self.dirty_flags.insert(DirtyFlags::CHAT);
+                self.dirty_flags.insert(DirtyFlags::STATUS);
 
                 // /goal auto-loop: if goal is still active, continue working
                 if self.goal_state.is_active() {
                     self.goal_state.turns += 1;
                     self.goal_state.last_reason = "继续工作…".to_string();
-                    self.status_bar.agent_state = AgentState::Thinking;
+                    // Restart timer for the next iteration
+                    self.set_agent_state(AgentState::Thinking);
+                    self.dirty_flags.insert(DirtyFlags::STATUS);
 
                     // Push a "continue" user message for the agent to pick up
                     let condition = self.goal_state.condition.as_deref().unwrap_or("condition");
@@ -299,7 +309,7 @@ impl App {
                 }
             }
             AgentEvent::Error(msg) => {
-                self.status_bar.agent_state = AgentState::Error(msg.clone());
+                self.set_agent_state(AgentState::Error(msg.clone()));
                 self.chat_state.messages.push(ChatMessage {
                     role: MessageRole::System,
                     content: msg.clone(),
@@ -308,8 +318,9 @@ impl App {
                 self.chat_state.is_streaming = false;
                 self.chat_state.streaming_text.clear();
                 self.chat_state.scroll_offset = 0;
-                self.dirty_flags.chat = true;
-                self.dirty_flags.status = true;
+                self.agent_busy = false;
+                self.dirty_flags.insert(DirtyFlags::CHAT);
+                self.dirty_flags.insert(DirtyFlags::STATUS);
                 tracing::error!("Agent error: {}", msg);
             }
         }
@@ -330,16 +341,17 @@ impl App {
         self.settings.ui.theme = reload.settings.ui.theme.clone();
         self.settings.ui.keymap = reload.settings.ui.keymap.clone();
         self.settings.sandbox.mode = reload.settings.sandbox.mode.clone();
+
+        // Hot-reload theme via ThemeManager
+        let is_dark = reload.settings.ui.theme != "light";
+        crate::tui::theme::init_theme(if is_dark { true } else { false });
+
         self.status_bar.model_name = self.settings.llm.model.clone();
         self.status_bar.tokens_total = self.settings.llm.context_window;
         self.status_bar.sandbox_mode = self.settings.sandbox.mode.clone();
         self.config_version = reload.version;
-        self.dirty_flags.status = true;
+        self.dirty_flags = crate::app::DirtyFlags::all_dirty();
     }
 
     // ── Drawing ────────────────────────────────────────────
-
-    pub(crate) fn draw_with_layout(&mut self, frame: &mut ratatui::Frame) {
-        crate::tui::renderer::draw_frame_with_layout(frame, self);
-    }
 }

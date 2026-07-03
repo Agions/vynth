@@ -7,6 +7,13 @@ use crate::session::SessionStore;
 use crate::skills::SkillRegistry;
 
 /// Run the application
+///
+/// # Terminal safety
+///
+/// The caller is responsible for calling [`crate::tui::restore`] after this
+/// function returns, regardless of whether it returns `Ok` or `Err`.  Use a
+/// scoped guard or explicit `restore()` in the caller to avoid leaving the
+/// terminal in raw mode / alternate screen on panic or early return.
 pub async fn run(
     settings: crate::config::Settings,
     startup_metrics: crate::telemetry::StartupMetrics,
@@ -50,16 +57,26 @@ pub async fn run(
     let project_info = crate::project::detect_project(None).await;
     app.project_context = Some(crate::project::ProjectContext::from_info(project_info));
 
-    // Initialize TUI
-    let mut terminal = crate::tui::init()?;
+    // Initialize TUI.  If the terminal is not available (e.g. running
+    // in a non-interactive context or the device has been closed), log
+    // the error and exit cleanly rather than propagating a raw IO error.
+    let mut terminal = match crate::tui::init() {
+        Ok(t) => t,
+        Err(e) => {
+            tracing::error!("Failed to initialize terminal: {e}");
+            return Ok(());
+        }
+    };
 
     // Initialize theme from config (default: dark)
     crate::tui::theme::init_theme(settings.ui.theme == "dark");
 
     let result = app.run(&mut terminal).await;
 
-    // Restore terminal
-    crate::tui::restore(terminal)?;
+    // Always attempt to restore terminal state, ignoring any secondary errors
+    // that occur during cleanup (e.g. "Device not configured" when stdout
+    // has already been closed by a signal).
+    let _ = crate::tui::restore(terminal);
 
     result
 }

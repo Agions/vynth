@@ -15,10 +15,6 @@ pub struct GoalState {
 }
 
 impl GoalState {
-    pub fn inactive() -> Self {
-        Self::default()
-    }
-
     pub fn is_active(&self) -> bool {
         self.condition.is_some() && !self.achieved
     }

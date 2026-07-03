@@ -2,6 +2,7 @@
 
 pub mod builtin;
 pub mod registry;
+pub mod tests_common;
 pub mod traits;
 
 pub use registry::ToolRegistry;

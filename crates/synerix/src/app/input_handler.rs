@@ -1,6 +1,6 @@
 //! Keyboard input handlers — insert, normal, command, search modes.
 
-use super::state::{App, InputMode};
+use super::state::{App, DirtyFlags, InputMode};
 use crate::error::AppError;
 
 impl App {
@@ -26,52 +26,52 @@ impl App {
         match key.code {
             crossterm::event::KeyCode::Esc => {
                 self.mode = InputMode::Normal;
-                self.dirty_flags.input = true;
+                self.dirty_flags.insert(DirtyFlags::INPUT);
             }
             crossterm::event::KeyCode::Up => {
                 if self.move_slash_selection(-1) {
-                    self.dirty_flags.input = true;
+                    self.dirty_flags.insert(DirtyFlags::INPUT);
                 }
             }
             crossterm::event::KeyCode::Down => {
                 if self.move_slash_selection(1) {
-                    self.dirty_flags.input = true;
+                    self.dirty_flags.insert(DirtyFlags::INPUT);
                 }
             }
             crossterm::event::KeyCode::Enter => {
                 if !self.apply_selected_slash_command() {
                     self.submit_message();
                 }
-                self.dirty_flags.input = true;
-                self.dirty_flags.chat = true;
+                self.dirty_flags.insert(DirtyFlags::INPUT);
+                self.dirty_flags.insert(DirtyFlags::CHAT);
             }
             crossterm::event::KeyCode::Backspace => {
                 self.delete_char_before_cursor();
                 self.reset_slash_selection();
-                self.dirty_flags.input = true;
+                self.dirty_flags.insert(DirtyFlags::INPUT);
             }
             crossterm::event::KeyCode::Delete => {
                 self.delete_char_after_cursor();
                 self.reset_slash_selection();
-                self.dirty_flags.input = true;
+                self.dirty_flags.insert(DirtyFlags::INPUT);
             }
             crossterm::event::KeyCode::Left => {
                 self.move_cursor_left();
-                self.dirty_flags.input = true;
+                self.dirty_flags.insert(DirtyFlags::INPUT);
             }
             crossterm::event::KeyCode::Right => {
                 self.move_cursor_right();
-                self.dirty_flags.input = true;
+                self.dirty_flags.insert(DirtyFlags::INPUT);
             }
             crossterm::event::KeyCode::Home => {
                 self.input_cursor = 0;
                 self.reset_slash_selection();
-                self.dirty_flags.input = true;
+                self.dirty_flags.insert(DirtyFlags::INPUT);
             }
             crossterm::event::KeyCode::End => {
                 self.input_cursor = self.input_buffer.len();
                 self.reset_slash_selection();
-                self.dirty_flags.input = true;
+                self.dirty_flags.insert(DirtyFlags::INPUT);
             }
             crossterm::event::KeyCode::Char(c)
                 if !key
@@ -81,7 +81,7 @@ impl App {
                 self.input_buffer.insert(self.input_cursor, c);
                 self.input_cursor += c.len_utf8();
                 self.reset_slash_selection();
-                self.dirty_flags.input = true;
+                self.dirty_flags.insert(DirtyFlags::INPUT);
             }
             _ => {}
         }
@@ -92,11 +92,11 @@ impl App {
         match key.code {
             crossterm::event::KeyCode::Char('i') => {
                 self.mode = InputMode::Insert;
-                self.dirty_flags.input = true;
+                self.dirty_flags.insert(DirtyFlags::INPUT);
             }
             crossterm::event::KeyCode::Char(':') => {
                 self.mode = InputMode::Command;
-                self.dirty_flags.input = true;
+                self.dirty_flags.insert(DirtyFlags::INPUT);
             }
             crossterm::event::KeyCode::Char('/') => {
                 self.input_buffer.clear();
@@ -104,7 +104,7 @@ impl App {
                 self.input_cursor = self.input_buffer.len();
                 self.reset_slash_selection();
                 self.mode = InputMode::Insert;
-                self.dirty_flags.input = true;
+                self.dirty_flags.insert(DirtyFlags::INPUT);
             }
             crossterm::event::KeyCode::Char('q') => {
                 self.should_quit = true;
@@ -144,17 +144,17 @@ impl App {
             crossterm::event::KeyCode::Esc => {
                 self.clear_input();
                 self.mode = InputMode::Normal;
-                self.dirty_flags.input = true;
+                self.dirty_flags.insert(DirtyFlags::INPUT);
             }
             crossterm::event::KeyCode::Enter => {
                 tracing::debug!("{}: {}", debug_label, self.input_buffer);
                 self.clear_input();
                 self.mode = InputMode::Normal;
-                self.dirty_flags.input = true;
+                self.dirty_flags.insert(DirtyFlags::INPUT);
             }
             crossterm::event::KeyCode::Backspace => {
                 self.delete_char_before_cursor();
-                self.dirty_flags.input = true;
+                self.dirty_flags.insert(DirtyFlags::INPUT);
             }
             crossterm::event::KeyCode::Char(c)
                 if !key
@@ -163,7 +163,7 @@ impl App {
             {
                 self.input_buffer.insert(self.input_cursor, c);
                 self.input_cursor += c.len_utf8();
-                self.dirty_flags.input = true;
+                self.dirty_flags.insert(DirtyFlags::INPUT);
             }
             _ => {}
         }
@@ -184,21 +184,21 @@ impl App {
                     let _ = tx.send(ApprovalDecision::Allow).await;
                 }
                 self.pending_approval = None;
-                self.dirty_flags.approval = true;
+                self.dirty_flags.insert(DirtyFlags::APPROVAL);
             }
             crossterm::event::KeyCode::Char('n') => {
                 if let Some(tx) = self.approval_decision_tx.take() {
                     let _ = tx.send(ApprovalDecision::Deny).await;
                 }
                 self.pending_approval = None;
-                self.dirty_flags.approval = true;
+                self.dirty_flags.insert(DirtyFlags::APPROVAL);
             }
             crossterm::event::KeyCode::Char('a') => {
                 if let Some(tx) = self.approval_decision_tx.take() {
                     let _ = tx.send(ApprovalDecision::AllowAlways).await;
                 }
                 self.pending_approval = None;
-                self.dirty_flags.approval = true;
+                self.dirty_flags.insert(DirtyFlags::APPROVAL);
             }
             _ => {}
         }

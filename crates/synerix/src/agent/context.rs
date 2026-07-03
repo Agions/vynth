@@ -155,13 +155,21 @@ impl ContextManager {
             return;
         }
 
-        // Bulk removal: take messages, filter by position, assign back — O(n)
-        let drop_set: std::collections::HashSet<usize> = drop_indices.into_iter().collect();
+        // Remove dropped messages by sorted index — O(n) without HashSet allocation
+        let mut drop_idx = 0;
+        let drop_count = drop_indices.len();
         let drained = std::mem::take(&mut self.messages);
         self.messages = drained
             .into_iter()
             .enumerate()
-            .filter(|(i, _)| !drop_set.contains(i))
+            .filter(|(i, _)| {
+                if drop_idx < drop_count && drop_indices[drop_idx] == *i {
+                    drop_idx += 1;
+                    false
+                } else {
+                    true
+                }
+            })
             .map(|(_, msg)| msg)
             .collect();
 
@@ -169,7 +177,7 @@ impl ContextManager {
 
         tracing::debug!(
             "Context trimmed: removed {} messages, {} tokens. Now: {} messages, ~{} tokens (budget: {})",
-            drop_set.len(),
+            drop_count,
             tokens_to_remove,
             self.messages.len(),
             self.estimated_tokens,

@@ -9,7 +9,7 @@
 //!   构造代码的重复（原文件 L517-528 和 L537-548 几乎完全一样）。
 
 use crate::app::App;
-use crate::config::{McpServerConfig, McpTransport};
+use crate::config::McpServerConfig;
 use crate::slash::common::{
     format_mcp_server_detail, format_mcp_usage, mcp_add_duplicate_check, nth_arg, subcmd, sys_msg,
 };
@@ -116,18 +116,11 @@ fn mcp_add_stdio(app: &mut App, name: &str, rest: Option<&str>) {
     let command = cmd_parts[0].to_string();
     let args_vec: Vec<String> = cmd_parts[1..].iter().map(|s| s.to_string()).collect();
 
-    app.settings.mcp.push(McpServerConfig {
-        name: name.to_string(),
-        transport: McpTransport::Stdio {
-            command,
-            args: args_vec,
-        },
-        allowed_tools: Vec::new(),
-        env: std::collections::HashMap::new(),
-        cwd: None,
-        auto_reconnect: true,
-        timeout_secs: 30,
-    });
+    app.settings.mcp.push(McpServerConfig::stdio(
+        name,
+        command,
+        args_vec,
+    ));
     sys_msg(app, &format!("✅ 已添加 MCP 服务器：`{}`（stdio）", name));
 }
 
@@ -139,17 +132,7 @@ fn mcp_add_http(app: &mut App, name: &str, rest: Option<&str>) {
         return;
     }
 
-    app.settings.mcp.push(McpServerConfig {
-        name: name.to_string(),
-        transport: McpTransport::Http {
-            url: url.to_string(),
-        },
-        allowed_tools: Vec::new(),
-        env: std::collections::HashMap::new(),
-        cwd: None,
-        auto_reconnect: true,
-        timeout_secs: 30,
-    });
+    app.settings.mcp.push(McpServerConfig::http(name, url));
     sys_msg(app, &format!("✅ 已添加 MCP 服务器：`{}`（HTTP）", name));
 }
 

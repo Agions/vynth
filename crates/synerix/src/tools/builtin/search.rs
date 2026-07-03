@@ -126,15 +126,10 @@ impl Tool for SearchTool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::tools::tests_common::test_ctx;
     use std::fs;
     use std::process::Command;
 
-    fn test_ctx(dir: &std::path::Path) -> ToolContext {
-        ToolContext {
-            working_dir: dir.to_path_buf(),
-            ..Default::default()
-        }
-    }
 
     fn rg_available() -> bool {
         Command::new("rg")

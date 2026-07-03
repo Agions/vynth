@@ -101,7 +101,7 @@ impl fmt::Debug for Settings {
 pub enum Provider {
     DeepSeek,
     MiMo,
-    Custom { base_url: String },
+    Custom { endpoint: String },
 }
 
 /// TUI configuration
@@ -135,7 +135,7 @@ pub struct SandboxConfig {
     pub tool_timeout_secs: u64,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "snake_case")]
 pub enum SandboxMode {
     /// Auto-execute all tools
@@ -168,6 +168,52 @@ pub struct McpServerConfig {
     /// Connection timeout in seconds
     #[serde(default = "default_mcp_timeout")]
     pub timeout_secs: u64,
+}
+
+impl McpServerConfig {
+    pub fn stdio(name: impl Into<String>, command: impl Into<String>, args: Vec<String>) -> Self {
+        Self {
+            name: name.into(),
+            transport: McpTransport::Stdio {
+                command: command.into(),
+                args,
+            },
+            allowed_tools: Vec::new(),
+            env: std::collections::HashMap::new(),
+            cwd: None,
+            auto_reconnect: true,
+            timeout_secs: 30,
+        }
+    }
+
+    pub fn http(name: impl Into<String>, url: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            transport: McpTransport::Http { url: url.into() },
+            allowed_tools: Vec::new(),
+            env: std::collections::HashMap::new(),
+            cwd: None,
+            auto_reconnect: true,
+            timeout_secs: 30,
+        }
+    }
+}
+
+impl Default for McpServerConfig {
+    fn default() -> Self {
+        Self {
+            name: String::new(),
+            transport: McpTransport::Stdio {
+                command: String::new(),
+                args: Vec::new(),
+            },
+            allowed_tools: Vec::new(),
+            env: std::collections::HashMap::new(),
+            cwd: None,
+            auto_reconnect: true,
+            timeout_secs: 30,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

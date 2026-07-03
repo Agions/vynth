@@ -1,6 +1,7 @@
 //! Status bar and agent state types.
 
-use crate::coding_modes::CodingMode;
+use std::time::Instant;
+
 use crate::config::SandboxMode;
 
 /// Status bar state
@@ -14,10 +15,10 @@ pub struct StatusBarState {
     pub startup_metrics: Option<crate::telemetry::StartupMetrics>,
     pub goal_active: bool,
     pub goal_duration: String,
-    /// Active coding mode indicator
-    pub coding_mode: CodingMode,
     /// Monotonic frame counter used for subtle TUI animation.
     pub animation_frame: u64,
+    /// When the current agent activity started (for elapsed timer display).
+    pub agent_start_time: Option<Instant>,
 }
 
 #[derive(Debug, Clone, Default)]

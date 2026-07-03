@@ -4,8 +4,7 @@
 //! 将显示和切换两个职责拆分为独立函数。
 //! 解析 (subcmd) 与切换 (CodingMode::parse) 解耦。
 
-use crate::app::App;
-use crate::coding_modes::CodingMode;
+use crate::app::{App, CodingMode, DirtyFlags};
 use crate::slash::common::{subcmd, sys_msg};
 
 /// 处理 `/mode` 命令
@@ -46,8 +45,7 @@ fn mode_show_current(app: &mut App) {
 fn mode_try_switch(app: &mut App, name: &str) {
     if let Some(new_mode) = CodingMode::parse(name) {
         app.coding_mode = new_mode;
-        app.status_bar.coding_mode = new_mode;
-        app.dirty_flags.status = true;
+        app.dirty_flags.insert(DirtyFlags::STATUS);
         sys_msg(
             app,
             &format!(
@@ -60,7 +58,7 @@ fn mode_try_switch(app: &mut App, name: &str) {
         sys_msg(
             app,
             &format!(
-                "❌ 未知模式 `{}`。可用模式：plan, act, chat, architect",
+                "❌ 未知模式 `{}`。可用模式：plan, vibe",
                 name
             ),
         );

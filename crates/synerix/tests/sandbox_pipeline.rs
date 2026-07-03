@@ -4,7 +4,7 @@
 //!
 //! Pipeline logic (not yet wired in main code, tested here as a coherent flow):
 //!   1. `CommandPreview::analyze(command)` → classify risk
-//!   2. Based on `ApprovalMode`:
+//!   2. Based on `SandboxMode`:
 //!      - `Auto`       → `AutoApprove` handler → always `Allow`
 //!      - `Confirm`    → `TuiApprove` handler → prompt user
 //!      - `PreviewOnly`→ always deny execution
@@ -13,7 +13,8 @@
 use std::fs;
 use std::path::Path;
 
-use synerix::sandbox::approval::{ApprovalDecision, ApprovalHandler, ApprovalMode, AutoApprove};
+use synerix::sandbox::approval::{ApprovalDecision, ApprovalHandler, AutoApprove};
+use synerix::config::SandboxMode;
 use synerix::sandbox::risk_classifier::{CommandPreview, RiskLevel};
 use synerix::sandbox::{atomic_write, atomic_write_with_backup};
 
@@ -27,7 +28,7 @@ use synerix::sandbox::{atomic_write, atomic_write_with_backup};
 /// classification result and the approval outcome.
 async fn run_pipeline(
     command: &str,
-    mode: ApprovalMode,
+    mode: SandboxMode,
 ) -> (
     CommandPreview,
     Result<ApprovalDecision, synerix::error::AppError>,
@@ -35,15 +36,15 @@ async fn run_pipeline(
     let preview = CommandPreview::analyze(command);
 
     let decision = match mode {
-        ApprovalMode::Auto => {
+        SandboxMode::Auto => {
             let handler = AutoApprove;
             handler.request_approval(&preview.display()).await
         }
-        ApprovalMode::PreviewOnly => {
+        SandboxMode::PreviewOnly => {
             // Preview-only never executes — always deny
             Ok(ApprovalDecision::Deny)
         }
-        ApprovalMode::Confirm => {
+        SandboxMode::Confirm => {
             // Confirm mode delegates to TUI (simplified — returns Allow in tests)
             Ok(ApprovalDecision::Allow)
         }
@@ -58,7 +59,7 @@ async fn run_pipeline(
 
 #[tokio::test]
 async fn test_safe_command_auto_approved() {
-    let (preview, decision) = run_pipeline("ls -la", ApprovalMode::Auto).await;
+    let (preview, decision) = run_pipeline("ls -la", SandboxMode::Auto).await;
 
     // Risk must be Safe or Low
     assert!(
@@ -84,7 +85,7 @@ async fn test_safe_command_auto_approved() {
 
 #[tokio::test]
 async fn test_critical_command_blocked_in_preview_only() {
-    let (preview, decision) = run_pipeline("rm -rf /", ApprovalMode::PreviewOnly).await;
+    let (preview, decision) = run_pipeline("rm -rf /", SandboxMode::PreviewOnly).await;
 
     // Risk must be Critical
     assert_eq!(
@@ -147,7 +148,7 @@ async fn test_injection_detected_as_critical() {
     );
 
     // Under PreviewOnly mode the pipeline must deny
-    let (_, decision) = run_pipeline("ls; rm -rf /", ApprovalMode::PreviewOnly).await;
+    let (_, decision) = run_pipeline("ls; rm -rf /", SandboxMode::PreviewOnly).await;
     let decision = decision.expect("PreviewOnly decision should not error");
     assert!(
         matches!(decision, ApprovalDecision::Deny),
@@ -348,7 +349,7 @@ async fn test_full_pipeline_critical_blocked() {
     assert_eq!(preview.risk_level, RiskLevel::Critical);
 
     // 2. PreviewOnly → Deny → skip write
-    let (_, decision) = run_pipeline(command, ApprovalMode::PreviewOnly).await;
+    let (_, decision) = run_pipeline(command, SandboxMode::PreviewOnly).await;
     let decision = decision.expect("decision");
     assert!(matches!(decision, ApprovalDecision::Deny));
 

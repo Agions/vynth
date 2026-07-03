@@ -4,7 +4,6 @@
 
 pub mod agent;
 pub mod app;
-pub mod coding_modes;
 pub mod command;
 pub mod config;
 pub mod error;

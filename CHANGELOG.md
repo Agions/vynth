@@ -2,6 +2,34 @@
 
 All notable changes to Synerix will be documented in this file.
 
+## [0.2.3] — 2026-07-03
+
+### 🐛 Bug Fixes
+
+- **死循环修复** — 用户在 agent 忙碌时再次发送消息会导致状态竞争和死循环。新增 `agent_busy` 守卫字段，在 `submit_message()` 入口拦截并发提交，并在 `AgentEvent::Done/Error` 时重置
+- **"Device not configured" 退出报错** — 非交互环境（如管道/后台）下 `tui::init()` 失败被 `?` 传播为致命错误。改为 `match` 处理，init 失败时干净退出 `Ok(())`
+- **UTF-8 安全修复** — `approval_popup.rs` 的 `truncate_preview()` 使用 `&text[..max_chars]` 在多字节字符上会 panic，改为 `char_indices().nth()`
+- **Alpha 混合 bug** — `FocusRing::alpha_color()` 绿色通道使用了错误的变量，导致 alpha 对绿色无效。已修正变量名
+
+### ⚡ TUI 优化
+
+- **单列布局** — 移除 sidebar，改为纯垂直布局：chat → diff(可选) → input → status
+- **终端原生滚动** — chat area 使用终端原生滚动，支持鼠标滚轮（ScrollUp/ScrollDown）
+- **缓存梯度分隔线** — `cached_gradient_separator()` 用 Mutex 缓存避免每帧重建 `width` 个 Span
+- **静态查找表** — status bar token 进度条和 sidebar 标签改用静态字符串，消除每帧 `format!()` 分配
+- **UTF-8 安全字符串切片** — diff_renderer 和 chat_area 的字符串截断改用 `char_indices()`
+
+### 📖 文档
+
+- **中英双语** — README、安装指南、模式说明、配置文档全部改为中文 + English 双语
+- **模式精简** — 编码模式从 5 种（Plan/Act/Chat/Architect/Vibe）缩减为 2 种（Plan/Vibe），文档同步更新
+
+### 🎨 视觉资产
+
+- **Banner SVG** (1200×400)：渐变 `>S` 标识 + TUI 模拟截图 + 底部统计栏
+- **Icon SVG** (64×64)：精简 Logo + 光标闪烁动画
+- 全部使用内联 SVG，零 CSS 依赖
+
 ## [0.2.2] — 2026-06-27
 
 ### 🪟 Windows 原生安装支持

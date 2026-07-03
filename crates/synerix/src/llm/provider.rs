@@ -30,8 +30,8 @@ pub fn create_provider(config: &LlmConfig) -> Box<dyn LlmAdapter> {
                 config.context_window,
             ))
         }
-        Provider::Custom { base_url } => Box::new(OpenAICompatAdapter::new(
-            base_url,
+        Provider::Custom { endpoint } => Box::new(OpenAICompatAdapter::new(
+            endpoint,
             &config.api_key,
             &config.model,
             config.context_window,

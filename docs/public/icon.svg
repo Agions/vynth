@@ -11,7 +11,7 @@
     </linearGradient>
   </defs>
   <rect width="64" height="64" rx="14" fill="#0D1117"/>
-  <!-- "> cursor with vibe gradient -->
+  <!-- ">" cursor -->
   <path d="M14,14 L38,32 L14,50 Z" fill="url(#grad-vibe)" opacity="0.85"/>
   <!-- "S" curve -->
   <path d="M28,12 C44,12 50,22 50,30 C50,38 44,44 30,50 C20,54 14,58 14,58"

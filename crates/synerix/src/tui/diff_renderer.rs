@@ -110,6 +110,26 @@ fn parse_hunk_header(line: &str) -> Option<(usize, usize)> {
     Some((old_start, new_start))
 }
 
+/// Parse starting line numbers from a hunk header string.
+///
+/// Returns `(old_line, new_line)` — 1-based line numbers, or `(0, 0)` if unparseable.
+fn parse_hunk_start_lines(header: &str) -> (usize, usize) {
+    // Strip the @@ wrapper and parse the ranges
+    let rest = header.strip_prefix("@@ ").unwrap_or(header);
+    let parts: Vec<&str> = rest.split(" @@").collect();
+    let ranges = parts.first().unwrap_or(&"");
+    let mut old_start = 0usize;
+    let mut new_start = 0usize;
+    for token in ranges.split_whitespace() {
+        if let Some(n) = token.strip_prefix("-") {
+            old_start = n.split(',').next().and_then(|s| s.parse().ok()).unwrap_or(0);
+        } else if let Some(n) = token.strip_prefix("+") {
+            new_start = n.split(',').next().and_then(|s| s.parse().ok()).unwrap_or(0);
+        }
+    }
+    (old_start, new_start)
+}
+
 // ---------------------------------------------------------------------------
 // Rendering — unified view
 // ---------------------------------------------------------------------------
@@ -130,7 +150,7 @@ fn guess_extension(diff_text: &str) -> String {
 ///
 /// Each line is syntax-highlighted via syntect and tinted with the
 /// conventional diff colours (green for added, red for removed, etc.).
-pub fn render_unified(diff_text: &str) -> Text<'static> {
+pub fn render_unified(diff_text: &str, p: &theme::ColorPalette) -> Text<'static> {
     let ext = guess_extension(diff_text);
     let hunks = parse_diff(diff_text);
     let mut lines: Vec<Line<'static>> = Vec::new();
@@ -140,20 +160,63 @@ pub fn render_unified(diff_text: &str) -> Text<'static> {
         lines.push(Line::from(Span::styled(
             hunk.header.clone(),
             Style::default()
-                .fg(theme::COLOR_CYAN)
+                .fg(p.accent)
                 .add_modifier(Modifier::BOLD),
         )));
 
+        // Parse starting line numbers from @@ header
+        let (mut old_no, mut new_no) = parse_hunk_start_lines(&hunk.header);
+
         for dl in &hunk.lines {
             let (prefix, bg, fg) = match dl.kind {
-                DiffLineKind::Add => ("+", Color::Rgb(22, 40, 22), Color::Rgb(100, 220, 100)),
-                DiffLineKind::Remove => ("-", Color::Rgb(40, 18, 18), Color::Rgb(220, 100, 100)),
-                DiffLineKind::Context => (" ", Color::Reset, theme::COLOR_GRAY),
+                DiffLineKind::Add => (
+                    "+",
+                    p.diff_add_bg,
+                    p.diff_add_fg,
+                ),
+                DiffLineKind::Remove => (
+                    "-",
+                    p.diff_remove_bg,
+                    p.diff_remove_fg,
+                ),
+                DiffLineKind::Context => (" ", Color::Reset, p.comment),
             };
+
+            // Format line number
+            let line_no_str = match dl.kind {
+                DiffLineKind::Add => format!("{:>4}", new_no),
+                DiffLineKind::Remove => format!("{:>4}", old_no),
+                DiffLineKind::Context => format!("{:>4}", old_no),
+            };
+
+            // Advance line numbers
+            match dl.kind {
+                DiffLineKind::Add => { new_no += 1; }
+                DiffLineKind::Remove => { old_no += 1; }
+                DiffLineKind::Context => {
+                    old_no += 1;
+                    new_no += 1;
+                }
+            }
 
             // Syntax-highlight the code content
             let highlighted = syntax::highlight_line(&dl.content, &ext);
             let mut spans: Vec<Span<'static>> = Vec::new();
+
+            // Line number gutter (left side)
+            let ln_color = match dl.kind {
+                DiffLineKind::Add => p.diff_add_fg,
+                DiffLineKind::Remove => p.diff_remove_fg,
+                DiffLineKind::Context => p.comment,
+            };
+            spans.push(Span::styled(
+                line_no_str,
+                Style::default().fg(ln_color).bg(bg),
+            ));
+            spans.push(Span::styled(
+                " ",
+                Style::default().fg(ln_color).bg(bg),
+            ));
 
             // Prefix character
             spans.push(Span::styled(
@@ -188,7 +251,7 @@ pub fn render_unified(diff_text: &str) -> Text<'static> {
 ///
 /// Old lines appear on the left, new lines on the right, separated by a
 /// `│` gutter.  The column width is `col_width` characters per side.
-pub fn render_side_by_side(diff_text: &str, col_width: usize) -> Text<'static> {
+pub fn render_side_by_side(diff_text: &str, col_width: usize, p: &theme::ColorPalette) -> Text<'static> {
     let ext = guess_extension(diff_text);
     let hunks = parse_diff(diff_text);
     let mut lines: Vec<Line<'static>> = Vec::new();
@@ -198,7 +261,7 @@ pub fn render_side_by_side(diff_text: &str, col_width: usize) -> Text<'static> {
         lines.push(Line::from(Span::styled(
             hunk.header.clone(),
             Style::default()
-                .fg(theme::COLOR_CYAN)
+                .fg(p.accent)
                 .add_modifier(Modifier::BOLD),
         )));
 
@@ -213,9 +276,9 @@ pub fn render_side_by_side(diff_text: &str, col_width: usize) -> Text<'static> {
                     let left = format_side(&dl.content, col_width);
                     let right = format_side(&dl.content, col_width);
                     let spans = vec![
-                        Span::styled(left, Style::default().fg(theme::COLOR_GRAY)),
+                        Span::styled(left, Style::default().fg(p.comment)),
                         Span::styled("│", theme::muted_style()),
-                        Span::styled(right, Style::default().fg(theme::COLOR_GRAY)),
+                        Span::styled(right, Style::default().fg(p.comment)),
                     ];
                     lines.push(Line::from(spans));
                     idx += 1;
@@ -244,8 +307,8 @@ pub fn render_side_by_side(diff_text: &str, col_width: usize) -> Text<'static> {
                             spans.push(Span::styled(
                                 left,
                                 Style::default()
-                                    .fg(Color::Rgb(220, 100, 100))
-                                    .bg(Color::Rgb(40, 18, 18)),
+                                    .fg(p.diff_remove_fg)
+                                    .bg(p.diff_remove_bg),
                             ));
                         } else {
                             spans.push(Span::raw(" ".repeat(col_width)));
@@ -259,8 +322,8 @@ pub fn render_side_by_side(diff_text: &str, col_width: usize) -> Text<'static> {
                             spans.push(Span::styled(
                                 right,
                                 Style::default()
-                                    .fg(Color::Rgb(100, 220, 100))
-                                    .bg(Color::Rgb(22, 40, 22)),
+                                    .fg(p.diff_add_fg)
+                                    .bg(p.diff_add_bg),
                             ));
                         } else {
                             spans.push(Span::raw(" ".repeat(col_width)));
@@ -279,8 +342,8 @@ pub fn render_side_by_side(diff_text: &str, col_width: usize) -> Text<'static> {
                         Span::styled(
                             right,
                             Style::default()
-                                .fg(Color::Rgb(100, 220, 100))
-                                .bg(Color::Rgb(22, 40, 22)),
+                                .fg(p.diff_add_fg)
+                                .bg(p.diff_add_bg),
                         ),
                     ];
                     lines.push(Line::from(spans));
@@ -302,12 +365,11 @@ pub fn render_side_by_side(diff_text: &str, col_width: usize) -> Text<'static> {
 
 /// Truncate or pad `text` to exactly `width` chars (single allocation).
 fn format_side(text: &str, width: usize) -> String {
-    let char_count = text.chars().count();
-    let mut s = String::with_capacity(width.min(char_count));
+    let mut s = String::with_capacity(width);
     for ch in text.chars().take(width) {
         s.push(ch);
     }
-    for _ in char_count..width {
+    for _ in s.chars().count()..width {
         s.push(' ');
     }
     s
@@ -321,12 +383,12 @@ fn format_side(text: &str, width: usize) -> String {
 ///
 /// For side-by-side mode `col_width` controls the width of each column
 /// (defaults to 40 when the caller passes 0).
-pub fn render_diff(diff_text: &str, mode: DiffViewMode, col_width: usize) -> Text<'static> {
+pub fn render_diff(diff_text: &str, mode: DiffViewMode, col_width: usize, p: &theme::ColorPalette) -> Text<'static> {
     match mode {
-        DiffViewMode::Unified => render_unified(diff_text),
+        DiffViewMode::Unified => render_unified(diff_text, p),
         DiffViewMode::SideBySide => {
             let w = if col_width == 0 { 40 } else { col_width };
-            render_side_by_side(diff_text, w)
+            render_side_by_side(diff_text, w, p)
         }
     }
 }

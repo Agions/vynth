@@ -107,13 +107,8 @@ impl Tool for ShellExecTool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::tools::tests_common::test_ctx;
 
-    fn test_ctx(dir: &std::path::Path) -> ToolContext {
-        ToolContext {
-            working_dir: dir.to_path_buf(),
-            ..Default::default()
-        }
-    }
 
     #[test]
     fn test_tool_name() {

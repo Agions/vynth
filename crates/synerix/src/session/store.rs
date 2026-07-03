@@ -10,7 +10,8 @@ use std::sync::{Arc, Mutex};
 
 use crate::error::AppError;
 use crate::session::migration::run_migrations;
-use crate::session::model::{Session, StoredMessage, StoredRole};
+use crate::session::model::{Session, StoredMessage};
+use synerix_core::types::role::Role as MessageRole;
 use synerix_core::utils::datetime::parse_rfc3339_or_default;
 
 /// SQLite-backed session store
@@ -43,7 +44,6 @@ impl SessionStore {
     }
 
     /// Create an in-memory store (for testing)
-    #[allow(dead_code)]
     pub fn memory() -> Result<Self, AppError> {
         let conn = Connection::open_in_memory()?;
         conn.execute_batch("PRAGMA foreign_keys=ON;")?;
@@ -64,7 +64,6 @@ impl SessionStore {
     }
 
     /// Create a new session
-    #[allow(dead_code)]
     pub fn create_session(&self, session: &Session) -> Result<(), AppError> {
         let conn = self.lock_conn()?;
         conn.execute(
@@ -84,7 +83,6 @@ impl SessionStore {
     }
 
     /// List all sessions (most recent first)
-    #[allow(dead_code)]
     pub fn list_sessions(&self) -> Result<Vec<Session>, AppError> {
         let conn = self.lock_conn()?;
         let mut stmt = conn.prepare(
@@ -110,15 +108,14 @@ impl SessionStore {
     }
 
     /// Save a message to a session
-    #[allow(dead_code)]
     pub fn save_message(&self, message: &StoredMessage) -> Result<(), AppError> {
         let conn = self.lock_conn()?;
 
         let role_str = match message.role {
-            StoredRole::System => "system",
-            StoredRole::User => "user",
-            StoredRole::Assistant => "assistant",
-            StoredRole::Tool => "tool",
+            MessageRole::System => MessageRole::System.as_str(),
+            MessageRole::User => MessageRole::User.as_str(),
+            MessageRole::Assistant => MessageRole::Assistant.as_str(),
+            MessageRole::Tool => MessageRole::Tool.as_str(),
         };
 
         let tool_calls_json = serde_json::to_string(&message.tool_calls).unwrap_or_default();
@@ -152,7 +149,6 @@ impl SessionStore {
     }
 
     /// Load all messages for a session
-    #[allow(dead_code)]
     pub fn load_messages(&self, session_id: &str) -> Result<Vec<StoredMessage>, AppError> {
         let conn = self.lock_conn()?;
         let mut stmt = conn.prepare(
@@ -163,13 +159,13 @@ impl SessionStore {
         let messages = stmt
             .query_map([session_id], |row| {
                 let role_str: String = row.get(2)?;
-                let role = match role_str.as_str() {
-                    "system" => StoredRole::System,
-                    "user" => StoredRole::User,
-                    "assistant" => StoredRole::Assistant,
-                    "tool" => StoredRole::Tool,
-                    _ => StoredRole::User,
-                };
+            let role = match role_str.as_str() {
+                "system" => MessageRole::System,
+                "user" => MessageRole::User,
+                "assistant" => MessageRole::Assistant,
+                "tool" => MessageRole::Tool,
+                _ => MessageRole::User,
+            };
 
                 let tool_calls_json: String = row.get(4)?;
                 let tool_calls = serde_json::from_str(&tool_calls_json).unwrap_or_default();
@@ -193,7 +189,8 @@ impl SessionStore {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::session::model::{Session, StoredMessage, StoredRole};
+    use crate::session::model::{Session, StoredMessage};
+    use synerix_core::types::role::Role as MessageRole;
 
     fn test_store() -> SessionStore {
         SessionStore::memory().expect("create memory store")
@@ -240,7 +237,7 @@ mod tests {
         let messages = store.load_messages(&session.id).unwrap();
         assert_eq!(messages.len(), 1);
         assert_eq!(messages[0].content, "Hello!");
-        assert!(matches!(messages[0].role, StoredRole::User));
+        assert!(matches!(messages[0].role, MessageRole::User));
     }
 
     #[test]
@@ -261,9 +258,9 @@ mod tests {
 
         let messages = store.load_messages(&session.id).unwrap();
         assert_eq!(messages.len(), 3);
-        assert!(matches!(messages[0].role, StoredRole::User));
-        assert!(matches!(messages[1].role, StoredRole::Assistant));
-        assert!(matches!(messages[2].role, StoredRole::User));
+        assert!(matches!(messages[0].role, MessageRole::User));
+        assert!(matches!(messages[1].role, MessageRole::Assistant));
+        assert!(matches!(messages[2].role, MessageRole::User));
     }
 
     #[test]

@@ -4,36 +4,14 @@ use async_trait::async_trait;
 
 use crate::error::AppError;
 
-/// Approval modes
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[allow(dead_code)]
-pub enum ApprovalMode {
-    /// Auto-approve all operations
-    ///
-    /// # ⚠️ Security Warning
-    /// `Auto` mode bypasses all user approval checks. Any tool call with
-    /// dangerous parameters (e.g., `rm -rf /`, `curl | sh`) will execute
-    /// immediately without user confirmation. Only use `Auto` in:
-    /// - Sandboxed/docker environments
-    /// - CI pipelines with trusted inputs
-    /// - Interactive sessions where the user has explicitly acknowledged the risk
-    Auto,
-    /// Ask user for confirmation
-    Confirm,
-    /// Preview only (never execute)
-    PreviewOnly,
-}
-
 /// Approval decision
 #[derive(Debug, Clone)]
 pub enum ApprovalDecision {
     /// Approve this operation
     Allow,
     /// Deny this operation
-    #[allow(dead_code)]
     Deny,
     /// Approve and remember for this session
-    #[allow(dead_code)]
     AllowAlways,
 }
 
@@ -55,23 +33,16 @@ impl ApprovalHandler for AutoApprove {
 }
 
 /// TUI-based approval handler (shows preview and asks for y/n)
-#[allow(dead_code)]
 pub struct TuiApprove {
-    /// Decision channel sender — kept for future sandbox UI
-    #[allow(dead_code)]
-    decision_tx: tokio::sync::mpsc::Sender<ApprovalDecision>,
     request_tx: tokio::sync::mpsc::Sender<String>,
 }
 
 impl TuiApprove {
-    #[allow(dead_code)]
     pub fn new() -> (Self, tokio::sync::mpsc::Receiver<String>) {
-        let (decision_tx, _decision_rx) = tokio::sync::mpsc::channel(1);
         let (request_tx, request_rx) = tokio::sync::mpsc::channel(1);
 
         (
             Self {
-                decision_tx,
                 request_tx,
             },
             request_rx,
@@ -94,14 +65,15 @@ impl ApprovalHandler for TuiApprove {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::SandboxMode;
 
     #[test]
     fn approval_mode_variants() {
-        assert_eq!(ApprovalMode::Auto, ApprovalMode::Auto);
-        assert_eq!(ApprovalMode::Confirm, ApprovalMode::Confirm);
-        assert_eq!(ApprovalMode::PreviewOnly, ApprovalMode::PreviewOnly);
-        assert_ne!(ApprovalMode::Auto, ApprovalMode::Confirm);
-        assert_ne!(ApprovalMode::Confirm, ApprovalMode::PreviewOnly);
+        assert_eq!(SandboxMode::Auto, SandboxMode::Auto);
+        assert_eq!(SandboxMode::Confirm, SandboxMode::Confirm);
+        assert_eq!(SandboxMode::PreviewOnly, SandboxMode::PreviewOnly);
+        assert_ne!(SandboxMode::Auto, SandboxMode::Confirm);
+        assert_ne!(SandboxMode::Confirm, SandboxMode::PreviewOnly);
     }
 
     #[test]

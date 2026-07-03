@@ -2,6 +2,7 @@
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use synerix_core::types::role::Role as MessageRole;
 
 /// A chat session
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -20,19 +21,11 @@ pub struct Session {
 pub struct StoredMessage {
     pub id: String,
     pub session_id: String,
-    pub role: StoredRole,
+    pub role: MessageRole,
     pub content: String,
     pub tool_calls: Vec<StoredToolCall>,
     pub timestamp: DateTime<Utc>,
     pub tokens_used: usize,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum StoredRole {
-    System,
-    User,
-    Assistant,
-    Tool,
 }
 
 /// A tool call stored in a message
@@ -65,7 +58,7 @@ impl StoredMessage {
         Self {
             id: uuid_v4(),
             session_id: session_id.to_string(),
-            role: StoredRole::User,
+            role: MessageRole::User,
             content: content.to_string(),
             tool_calls: Vec::new(),
             timestamp: Utc::now(),
@@ -77,7 +70,7 @@ impl StoredMessage {
         Self {
             id: uuid_v4(),
             session_id: session_id.to_string(),
-            role: StoredRole::Assistant,
+            role: MessageRole::Assistant,
             content: content.to_string(),
             tool_calls: Vec::new(),
             timestamp: Utc::now(),
@@ -94,6 +87,7 @@ fn uuid_v4() -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use synerix_core::types::role::Role as MessageRole;
 
     #[test]
     fn test_session_new() {
@@ -120,7 +114,7 @@ mod tests {
         let msg = StoredMessage::user("session-1", "Hello!");
         assert_eq!(msg.session_id, "session-1");
         assert_eq!(msg.content, "Hello!");
-        assert!(matches!(msg.role, StoredRole::User));
+        assert!(matches!(msg.role, MessageRole::User));
         assert!(msg.tool_calls.is_empty());
         assert_eq!(msg.tokens_used, 0);
         assert!(!msg.id.is_empty());
@@ -131,16 +125,15 @@ mod tests {
         let msg = StoredMessage::assistant("session-1", "Hi there!");
         assert_eq!(msg.session_id, "session-1");
         assert_eq!(msg.content, "Hi there!");
-        assert!(matches!(msg.role, StoredRole::Assistant));
+        assert!(matches!(msg.role, MessageRole::Assistant));
     }
 
     #[test]
     fn test_stored_role_variants() {
-        // Verify all variants can be constructed
-        let _ = StoredRole::System;
-        let _ = StoredRole::User;
-        let _ = StoredRole::Assistant;
-        let _ = StoredRole::Tool;
+        let _ = MessageRole::System;
+        let _ = MessageRole::User;
+        let _ = MessageRole::Assistant;
+        let _ = MessageRole::Tool;
     }
 
     #[test]

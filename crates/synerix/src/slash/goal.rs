@@ -6,7 +6,7 @@
 //! - 与 /clear, /reset 不同的是，/goal 涉及 GoalState、
 //!   status_bar、dirty_flags 多个字段的联动，保持独立模块
 
-use crate::app::{App, ChatMessage, GoalState, MessageRole};
+use crate::app::{App, ChatMessage, DirtyFlags, GoalState, MessageRole};
 use crate::slash::common::sys_msg;
 
 /// 处理 `/goal` 命令
@@ -38,10 +38,10 @@ fn is_clear_command(args: &str) -> bool {
 /// 清除活跃目标
 fn goal_handle_clear(app: &mut App) {
     if app.goal_state.is_active() {
-        app.goal_state = GoalState::inactive();
+        app.goal_state = GoalState::default();
         app.status_bar.goal_active = false;
         app.status_bar.goal_duration = String::new();
-        app.dirty_flags.status = true;
+        app.dirty_flags.insert(DirtyFlags::STATUS);
         sys_msg(app, "◎ /goal 已清除");
     } else {
         sys_msg(app, "当前没有活跃的 /goal");
@@ -103,7 +103,7 @@ fn goal_set_condition(app: &mut App, condition: &str) {
     // 同步 UI 状态
     app.status_bar.goal_active = true;
     app.status_bar.goal_duration = String::new();
-    app.dirty_flags.status = true;
+    app.dirty_flags.insert(DirtyFlags::STATUS);
 
     // 注入目标消息触发 Agent 循环
     app.chat_state.messages.push(ChatMessage {

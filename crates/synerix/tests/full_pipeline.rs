@@ -368,11 +368,11 @@ fn test_session_message_roles() {
     assert_eq!(messages.len(), 2);
     assert!(matches!(
         messages[0].role,
-        synerix::session::StoredRole::User
+        synerix_core::types::role::Role::User
     ));
     assert!(matches!(
         messages[1].role,
-        synerix::session::StoredRole::Assistant
+        synerix_core::types::role::Role::Assistant
     ));
 }
 

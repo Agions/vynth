@@ -4,12 +4,10 @@ use crossterm::event::{self, Event, KeyEvent, MouseEvent};
 use tokio::sync::mpsc;
 
 /// Application events
-#[allow(dead_code)]
 pub enum AppEvent {
     Key(KeyEvent),
     Mouse(MouseEvent),
     Resize,
-    #[allow(dead_code)]
     Tick,
 }
 

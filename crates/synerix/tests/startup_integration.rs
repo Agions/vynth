@@ -95,11 +95,8 @@ fn test_settings_llm_section() {
 #[test]
 fn test_coding_mode_labels() {
     for mode in &[
-        synerix::coding_modes::CodingMode::Plan,
-        synerix::coding_modes::CodingMode::Act,
-        synerix::coding_modes::CodingMode::Chat,
-        synerix::coding_modes::CodingMode::Architect,
-        synerix::coding_modes::CodingMode::Vibe,
+        synerix::app::CodingMode::Plan,
+        synerix::app::CodingMode::Vibe,
     ] {
         let label = mode.label();
         assert!(!label.is_empty(), "Coding mode label should not be empty");

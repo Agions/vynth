@@ -3,7 +3,7 @@
 use ratatui::layout::Rect;
 
 /// Which panel currently has focus
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum FocusedPanel {
     Chat,
     Diff,

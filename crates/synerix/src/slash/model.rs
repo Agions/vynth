@@ -42,7 +42,7 @@ const MODEL_PRESETS: &[ModelPreset] = &[
     ModelPreset {
         key: "openai",
         provider: Provider::Custom {
-            base_url: String::new(),
+            endpoint: String::new(),
         },
         model: "gpt-4.1",
         base_url: Some("https://api.openai.com/v1"),
@@ -132,7 +132,7 @@ fn model_use_preset(app: &mut App, key: &str) {
         Provider::DeepSeek => Provider::DeepSeek,
         Provider::MiMo => Provider::MiMo,
         Provider::Custom { .. } => Provider::Custom {
-            base_url: preset.base_url.unwrap_or_default().to_string(),
+            endpoint: preset.base_url.unwrap_or_default().to_string(),
         },
     };
     app.settings.llm.base_url = preset.base_url.map(str::to_string);
@@ -168,7 +168,7 @@ fn model_handle_custom(app: &mut App, rest: &str) {
     let model_name = parts[0].trim();
     let base_url = parts[1].trim();
     app.settings.llm.provider = Provider::Custom {
-        base_url: base_url.to_string(),
+        endpoint: base_url.to_string(),
     };
     app.settings.llm.base_url = Some(base_url.to_string());
     app.settings.llm.model = model_name.to_string();

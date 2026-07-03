@@ -56,7 +56,7 @@ pub fn provider_display(provider: &Provider) -> String {
     match provider {
         Provider::DeepSeek => "DeepSeek（默认）".to_string(),
         Provider::MiMo => "MiMo".to_string(),
-        Provider::Custom { base_url } => format!("自定义 (`{}`)", base_url),
+        Provider::Custom { endpoint } => format!("自定义 (`{}`)", endpoint),
     }
 }
 

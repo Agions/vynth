@@ -60,21 +60,26 @@ async fn watch_loop(
     interval.tick().await;
 
     loop {
-        interval.tick().await;
+        tokio::select! {
+            _ = interval.tick() => {
+                let current_mtime = get_mtime(&config_path);
+                if current_mtime != last_mtime {
+                    last_mtime = current_mtime;
+                    version += 1;
 
-        let current_mtime = get_mtime(&config_path);
-        if current_mtime != last_mtime {
-            last_mtime = current_mtime;
-            version += 1;
-
-            match Settings::load() {
-                Ok(settings) => {
-                    tracing::info!(version = version, "Config file changed, reloaded settings");
-                    let _ = tx.send(ConfigReload { settings, version });
+                    match Settings::load() {
+                        Ok(settings) => {
+                            tracing::info!(version = version, "Config file changed, reloaded settings");
+                            let _ = tx.send(ConfigReload { settings, version });
+                        }
+                        Err(e) => {
+                            tracing::error!("Config reload failed: {}, keeping previous settings", e);
+                        }
+                    }
                 }
-                Err(e) => {
-                    tracing::error!("Config reload failed: {}, keeping previous settings", e);
-                }
+            }
+            _ = tx.closed() => {
+                break;
             }
         }
     }
@@ -104,16 +109,22 @@ async fn handle_sighup(_config_path: PathBuf, tx: mpsc::UnboundedSender<ConfigRe
 
     let mut version: u64 = 0;
     loop {
-        stream.recv().await;
-        version += 1;
-        tracing::info!("SIGHUP received, reloading config (version={})", version);
+        tokio::select! {
+            _ = stream.recv() => {
+                version += 1;
+                tracing::info!("SIGHUP received, reloading config (version={})", version);
 
-        match Settings::load() {
-            Ok(settings) => {
-                let _ = tx.send(ConfigReload { settings, version });
+                match Settings::load() {
+                    Ok(settings) => {
+                        let _ = tx.send(ConfigReload { settings, version });
+                    }
+                    Err(e) => {
+                        tracing::error!("Config reload on SIGHUP failed: {}", e);
+                    }
+                }
             }
-            Err(e) => {
-                tracing::error!("Config reload on SIGHUP failed: {}", e);
+            _ = tx.closed() => {
+                break;
             }
         }
     }
