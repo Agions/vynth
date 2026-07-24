@@ -1,0 +1,24 @@
+{
+  "name": "vynth",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "AI-Native Coding Terminal — 你 terminal 里的代码合成器",
+  "workspaces": ["packages/*", "apps/*"],
+  "scripts": {
+    "compile": "bun build --compile --target=bun --minify apps/cli/src/main.ts --outfile dist/vynth",
+    "build": "bun run compile",
+    "dev": "bun run apps/cli/src/main.ts",
+    "test": "bun test packages",
+    "lint": "biome check .",
+    "fmt": "biome format --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "bun": ">=1.1"
+  },
+  "license": "MIT"
+}

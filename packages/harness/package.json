@@ -1,0 +1,14 @@
+{
+  "name": "@vynth/harness",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@vynth/core": "workspace:*",
+    "@vynth/engine": "workspace:*",
+    "@vynth/plugins": "workspace:*"
+  },
+  "scripts": {
+    "test": "bun test"
+  }
+}

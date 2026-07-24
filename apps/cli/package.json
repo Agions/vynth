@@ -1,0 +1,17 @@
+{
+  "name": "@vynth/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "vynth": "src/main.ts"
+  },
+  "dependencies": {
+    "@vynth/core": "workspace:*",
+    "@vynth/engine": "workspace:*",
+    "@vynth/tui": "workspace:*",
+    "@vynth/plugins": "workspace:*"
+  },
+  "scripts": {
+    "build": "bun build --compile --target=bun src/main.ts --outfile ../../dist/vynth"
+  }
+}

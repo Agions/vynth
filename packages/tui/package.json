@@ -1,0 +1,13 @@
+{
+  "name": "@vynth/tui",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@vynth/core": "workspace:*",
+    "@vynth/engine": "workspace:*",
+    "ansi-escapes": "^6.2.0"
+  },
+  "scripts": { "build": "echo '@vynth/tui consumed via workspace'" }
+}
