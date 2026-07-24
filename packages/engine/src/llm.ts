@@ -31,6 +31,16 @@ export function createProvider(config: VynthConfig): LLMProvider {
   return new OpenAiProvider(config);
 }
 
+function isLocalHost(host: string): boolean {
+  if (host === 'localhost' || host === '::1' || host === '0.0.0.0') return true;
+  if (/^127\./.test(host)) return true;
+  if (/^10\./.test(host)) return true;
+  if (/^192\.168\./.test(host)) return true;
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(host)) return true;
+  if (host.startsWith('::ffff:127.')) return true;
+  return false;
+}
+
 function assertSafeEndpoint(raw: string): void {
   let url: URL;
   try {
@@ -39,13 +49,13 @@ function assertSafeEndpoint(raw: string): void {
     throw new LlmError(`invalid LLM base URL: ${raw}`);
   }
   const host = url.hostname;
-  const isLocal = host === 'localhost' || host === '127.0.0.1' || host === '::1';
-  if (url.protocol === 'http:' && !isLocal) {
+  const local = isLocalHost(host);
+  if (url.protocol === 'http:' && !local) {
     throw new LlmError(
       'refusing to send API key over plaintext http; use https or a localhost endpoint for local dev'
     );
   }
-  if (host !== 'api.openai.com') {
+  if (!local && host !== 'api.openai.com') {
     console.warn(`⚠ Sending API key to non-default LLM endpoint: ${host} — ensure it is trusted.`);
   }
 }

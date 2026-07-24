@@ -11,7 +11,7 @@ import { fg, palette, reset } from './theme';
 export function startTui(config: VynthConfig): void {
   const c = palette(config.theme);
   const provider = createProvider(config);
-  const tools = builtinTools(config.sandbox.cwd);
+  const tools = builtinTools(config.sandbox.cwd, { networkAllowed: config.sandbox.networkAllowed });
   const history: string[] = [];
   let input = '';
   let live = '';

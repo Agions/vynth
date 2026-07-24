@@ -61,7 +61,7 @@ TUI 为轻量 ANSI 界面（**非 ink**），逐字符流式 + 工具调用回�
 
 插件入口需 `export const pluginName` 与 `export function activate(reg)`（参考 `packages/plugins/examples/hello-plugin.ts`）。
 
-> ⚠ **信任边界（必读）**：`-p` 加载的插件在当前进程中执行**任意代码**，拥有与 Vynth 同等的文件系统、环境变量（含 `VYNTH_API_KEY`）、网络与命令执行权限。**Vynth 不对插件代码做沙箱隔离**。仅从你完全信任的来源加载插件；恶意插件可窃取凭据或破坏系统。内置 `read_file`/`write_file` 受 cwd 越界守卫约束；`run_shell` 以**宿主权限**运行（`sh -c`，仅设工作目录、无隔离）；插件注册的自定义工具同样不受沙箱约束。另：联网开关（`VYNTH_NET='0'`）为尽力而为、且对 `run_shell` 当前不生效，非硬安全边界。
+> ⚠ **信任边界（必读）**：`-p` 加载的插件在当前进程中执行**任意代码**，拥有与 Vynth 同等的文件系统、环境变量（含 `VYNTH_API_KEY`）、网络与命令执行权限。**Vynth 不对插件代码做沙箱隔离**。仅从你完全信任的来源加载插件；恶意插件可窃取凭据或破坏系统。内置 `read_file`/`write_file` 受 cwd 越界守卫约束；`run_shell` 以**宿主权限**运行（`sh -c`，仅设工作目录、无隔离）；插件注册的自定义工具同样不受沙箱约束。另：联网开关（`VYNTH_NET='0'`）现已生效，`run_shell` 受其为阻断；网络隔离仍为尽力而为、非硬安全边界。
 
 ## 环境变量速查
 

@@ -81,14 +81,13 @@ export VYNTH_LLM_BASE_URL="https://api.openai.com/v1"    # 可选：兼容端点
 - **配置文件**：配置仅经环境变量注入，**不读取任何 `config.toml` / 配置文件**。
 - **预编译发行包**：本版需从源码 `bun build --compile` 自编译，不提供多平台预编译二进制下载。
 - **插件签名 / 市场 / 自动更新**：无插件签名验证、无插件市场、无自动更新机制。
-- **联网硬隔离**：内置 `run_shell` 默认允许联网，网络开关为尽力而为，非硬安全边界（见信任边界）。
+- **联网硬隔离**：本版不提供进程级硬网络隔离；`run_shell` 联网现受 `VYNTH_NET='0'` 网关阻断，但仍为软网关、非硬安全边界（见信任边界）。
 
 ## 已知局限
 
 - **二进制体积较大**：当前约 60 MiB（含未优化的运行时体积），目标收敛至 20–40 MiB。
 - **Demo 非真实 LLM**：`EchoProvider` 仅用于体验流式与工具循环，不调用真实模型，需自备 API key 才有实际能力。
 - **插件需可信来源**：插件经动态 `import()` 执行任意代码（详见下方信任边界），仅可从你信任的来源加载。
-- **联网隔离非保证**：内置 `run_shell` 默认放行网络，勿在不可信目标上依赖网络开关作为安全边界。
 - ✅ **符号链接越界逃逸 — 已在 v0.1.0 修复**：`safeResolve` 现解析符号链接，cwd 内 symlink 指向沙箱外将被拒绝。
 - ✅ **联网开关 — 已在 v0.1.0 修复**：`run_shell` 现受 `VYNTH_NET='0'` 阻断，不再对 shell 失效。
 - ✅ **API Key 明文端点 — 已在 v0.1.0 修复**：拒绝向远程明文 `http` 端点发送 API Key（localhost 放行以保留本地调试）；非默认端点打印告警。
@@ -112,7 +111,7 @@ export VYNTH_LLM_BASE_URL="https://api.openai.com/v1"    # 可选：兼容端点
 
 内置 `read_file` / `write_file` 受 cwd 越界守卫约束；`run_shell` 以**宿主权限**运行（`sh -c`，仅设置工作目录、无命令 / 文件系统隔离）；**插件注册的自定义工具同样不受沙箱约束**。工具的能力边界 = 你的进程能力边界。
 
-另：内置工具的联网开关（`VYNTH_NET='0'`）为**尽力而为**，**非硬安全边界**，勿将其作为不可信环境下的隔离保证。
+另：联网开关（`VYNTH_NET='0'`）现已生效，`run_shell` 受其为阻断；但仍属软网关、**非进程级硬安全边界**，勿将其作为不可信环境的唯一隔离保证。
 
 ## 安全模型摘要
 
@@ -121,7 +120,7 @@ export VYNTH_LLM_BASE_URL="https://api.openai.com/v1"    # 可选：兼容端点
 - **信任模型 = 宿主权限**：agent 循环、内置工具与插件均以你的用户权限运行；Vynth 不隔离、也不降低这些权限。
 - **`run_shell` 非隔离**：直接以 `sh -c` 在宿主执行命令，仅设置工作目录，无命令 / 文件系统沙箱。
 - **插件以宿主完整权限运行**：`-p` 经动态 `import()` 加载的代码可读取任意文件、读取所有环境变量（含 `VYNTH_API_KEY`）、发起任意网络请求、执行任意命令——仅加载可信来源。
-- **`VYNTH_API_KEY` 发往所配置的 LLM 端点**：请求地址由 `VYNTH_LLM_BASE_URL` 决定。**请核验该端点为 `https` 且为你信任的地址**——当前密钥会被无条件发往该 URL；若配置为 `http` 明文或指向钓鱼端点，密钥将面临泄露风险（端点 scheme/host 校验与明文拒绝为实现侧待修复项，见已知局限）。
+- **`VYNTH_API_KEY` 发往所配置的 LLM 端点**：请求地址由 `VYNTH_LLM_BASE_URL` 决定，并受端点校验保护——**已拒绝向远程明文 `http` 端点发送密钥**（localhost 放行以保留本地调试），非默认端点会打印告警。仍建议仅配置你信任的 `https` 端点。
 
 ## 安全审计状态
 
@@ -130,10 +129,10 @@ export VYNTH_LLM_BASE_URL="https://api.openai.com/v1"    # 可选：兼容端点
 | 发现 | 代码 / 修复状态 | 文档状态 |
 |------|----------------|----------|
 | **F1** — 插件 `import()` 无签名、宿主完整权限 | OPEN | 已披露（release-notes 信任边界 + getting-started） |
-| **F2** — sandbox / `run_shell` 无隔离 + `VYNTH_NET=0` 对 shell 失效 | OPEN | 已披露（release-notes + README 修正） |
-| **F3** — `read_file` / `write_file` 符号链接逃逸（`safeResolve` 未 `realpath`） | OPEN | 未覆盖 |
+| **F2** — sandbox / `run_shell` 无 fs·进程隔离（设计内）+ `VYNTH_NET='0'` 现阻断 run_shell 联网 | 部分修复（v0.1.0） | 已披露 |
+| **F3** — `read_file` / `write_file` 符号链接逃逸（`safeResolve` 未 `realpath`） | ✅ 已修复（v0.1.0） | 已披露 |
 | **F4** — 不可信 LLM 端点 `tool_call` 注入 → RCE | OPEN | 部分披露（安全模型摘要隐含 `run_shell` 非隔离） |
-| **F5** — `VYNTH_API_KEY` 无校验外发（http 明文 / 钓鱼） | OPEN（**阻塞 v1**） | 已披露（安全模型摘要） |
+| **F5** — `VYNTH_API_KEY` 无校验外发（http 明文 / 钓鱼） | ✅ 已修复（v0.1.0） | 已披露 |
 | **F6** — `.env` 未纳入 `.gitignore` | OPEN（仓库配置修复） | 未涉及 |
 | **F7** — LLM `fetch` 无超时 / SSE 缓冲无上限 | OPEN | 未涉及 |
 | **F8** — 工具参数缺类型 / 必填校验 | OPEN（低） | 未涉及 |
@@ -141,7 +140,7 @@ export VYNTH_LLM_BASE_URL="https://api.openai.com/v1"    # 可选：兼容端点
 | **F14** — `loadAll` 单插件异常致整体失败 | OPEN（低） | 未涉及 |
 | **A09** — 安全事件无审计日志 | OPEN（低） | 未涉及 |
 
-> 本版仅做文档披露；**F3、F5 为代码层阻塞项，计划在 v1 前完成**。F9 / F10 / F12 / F13 非独立发现（对应 OWASP 类别判定不适用或无发现），不在表中。
+> F3（符号链接逃逸）、F5（API Key 明文端点）、VYNTH_NET 空开关**已在 v0.1.0 修复**；F1（插件宿主权限）、F2（run_shell 无 fs/进程硬隔离）属设计内信任模型、非缺陷；F4 / F6 / F7 / F8 / F11 / F14 / A09 仍为代码层 OPEN，计划在后续版本完成。F9 / F10 / F12 / F13 非独立发现（对应 OWASP 类别判定不适用或无发现），不在表中。
 
 ## 升级与回滚
 
