@@ -18,9 +18,9 @@ export function loadConfig(overrides: Partial<VynthConfig> = {}): VynthConfig {
   const config: VynthConfig = {
     mode,
     llmBaseUrl:
-      overrides.llmBaseUrl ?? process.env.VYNTH_LLM_BASE_URL ?? 'https://api.openai.com/v1',
+      overrides.llmBaseUrl ?? process.env.VYNTH_LLM_BASE_URL ?? 'https://api.deepseek.com/v1',
     apiKey: overrides.apiKey ?? process.env.VYNTH_API_KEY ?? '',
-    model: overrides.model ?? process.env.VYNTH_MODEL ?? 'gpt-4o-mini',
+    model: overrides.model ?? process.env.VYNTH_MODEL ?? 'deepseek-chat',
     theme: overrides.theme ?? (process.env.VYNTH_THEME === 'latte' ? 'latte' : 'mocha'),
     sandbox: {
       networkAllowed,

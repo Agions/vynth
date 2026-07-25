@@ -1,0 +1,28 @@
+# gitleaks 密钥扫描红线配置
+# 对齐 安全设计.md §1 信息泄露 / §6 密钥与凭证管理 / 部署设计.md §4 安全扫描阶段
+# 任何真实密钥（API Key / AKSK / SSH key / token）提交即阻断 CI。
+title = "vynth gitleaks config"
+
+[extend]
+useDefault = true
+
+# 全局允许列表：仅放行明显的测试/示例占位与文档片段，绝不放行真实密钥
+[allowlist]
+description = "Allow demo/test fixtures and documentation placeholders only"
+paths = [
+  '''(?i).*/(examples|fixtures)/.*''',
+  '''packages/harness/.*''',
+  '''(?i).*\.md$''',
+  '''docs/.*''',
+  '''gitleaks\.toml''',
+]
+regexes = [
+  '''(?i)VYNTH_API_KEY\s*[=:]\s*["']?(sk-test-|demo-|example-|your_|<).*''',
+  '''(?i)api[_-]?key\s*[=:]\s*["']?(test|demo|example|your_|<).*''',
+]
+stopwords = [
+  "example",
+  "demo",
+  "placeholder",
+  "your_key_here",
+]

@@ -1,6 +1,8 @@
-import { expect, test } from 'bun:test';
+import { describe, expect, test } from 'bun:test';
+import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { resolve } from 'node:path';
 import { join } from 'node:path';
 import type { ChatMessage, StreamEvent, ToolCall, ToolDef } from '@vynth/core';
 import { loadConfig } from '@vynth/core';
@@ -145,4 +147,58 @@ test('OpenAiProvider refuses plaintext http to non-local endpoint', async () => 
   expect(() =>
     createProvider({ ...loadConfig(), apiKey: 'x', llmBaseUrl: 'http://evil.example.com/v1' })
   ).toThrow();
+});
+
+const REPO = resolve(import.meta.dir, '../../../');
+const CLI = resolve(REPO, 'apps/cli/src/main.ts');
+
+function runCli(args: string[]): { code: number; out: string; err: string } {
+  try {
+    const out = execFileSync(process.execPath, [CLI, ...args], {
+      cwd: REPO,
+      env: { ...process.env, VYNTH_API_KEY: '' },
+      timeout: 30000,
+      encoding: 'utf8'
+    });
+    return { code: 0, out: String(out), err: '' };
+  } catch (e) {
+    const er = e as { status?: number; stdout?: string; stderr?: string };
+    return {
+      code: er.status ?? 1,
+      out: String(er.stdout ?? ''),
+      err: String(er.stderr ?? '')
+    };
+  }
+}
+
+describe('CLI 退出码契约（F11）', () => {
+  test('--version 退出 0 且打印版本', () => {
+    const r = runCli(['--version']);
+    expect(r.code).toBe(0);
+    expect(r.out).toContain('0.1.0');
+  });
+
+  test('--help 退出 0 且打印用法', () => {
+    const r = runCli(['--help']);
+    expect(r.code).toBe(0);
+    expect(r.out).toContain('terminal');
+  });
+
+  test('未知参数 → 退出 2 并提示', () => {
+    const r = runCli(['--bogus']);
+    expect(r.code).toBe(2);
+    expect(r.err).toContain('未知参数');
+  });
+
+  test('-g 缺目标值 → 退出 2', () => {
+    const r = runCli(['-g']);
+    expect(r.code).toBe(2);
+    expect(r.err).toContain('目标参数');
+  });
+
+  test('-m 非法模式 → 退出 2', () => {
+    const r = runCli(['-m', 'bad']);
+    expect(r.code).toBe(2);
+    expect(r.err).toContain('非法模式');
+  });
 });

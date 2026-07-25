@@ -12,17 +12,29 @@ interface Parsed {
   plugin?: string;
   help?: boolean;
   version?: boolean;
+  issues: string[];
 }
 
 function parseArgs(argv: string[]): Parsed {
-  const out: Parsed = {};
+  const out: Parsed = { issues: [] };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '-v' || a === '--version') out.version = true;
     else if (a === '-h' || a === '--help') out.help = true;
-    else if (a === '-g' || a === '--goal') out.goal = argv[++i];
-    else if (a === '-m' || a === '--mode') out.mode = argv[++i] as Mode;
-    else if (a === '-p' || a === '--plugin') out.plugin = argv[++i];
+    else if (a === '-g' || a === '--goal') {
+      const v = argv[++i];
+      if (v === undefined) out.issues.push('缺少 -g/--goal 的目标参数');
+      else out.goal = v;
+    } else if (a === '-m' || a === '--mode') {
+      const v = argv[++i];
+      if (v === undefined) out.issues.push('缺少 -m/--mode 的模式参数');
+      else if (v !== 'plan' && v !== 'vibe') out.issues.push(`非法模式: ${v}（应为 plan|vibe）`);
+      else out.mode = v;
+    } else if (a === '-p' || a === '--plugin') {
+      const v = argv[++i];
+      if (v === undefined) out.issues.push('缺少 -p/--plugin 的路径参数');
+      else out.plugin = v;
+    } else out.issues.push(`未知参数: ${a}（使用 --help 查看用法）`);
   }
   return out;
 }
@@ -38,7 +50,7 @@ function printHelp(): void {
 
 环境变量:
   VYNTH_API_KEY       LLM API key（留空进入 demo 模式）
-  VYNTH_MODEL         模型名（默认 gpt-4o-mini）
+  VYNTH_MODEL         模型名（默认 deepseek-chat）
   VYNTH_LLM_BASE_URL  OpenAI 兼容端点
   VYNTH_MODE          plan | vibe
   VYNTH_THEME         mocha | latte
@@ -68,6 +80,10 @@ async function runHeadless(goal: string, pluginPath?: string): Promise<void> {
 
 async function main(): Promise<void> {
   const parsed = parseArgs(process.argv.slice(2));
+  if (parsed.issues.length > 0) {
+    for (const m of parsed.issues) console.error(`✗ ${m}`);
+    process.exit(2);
+  }
   if (parsed.version) {
     console.log(VERSION);
     return;

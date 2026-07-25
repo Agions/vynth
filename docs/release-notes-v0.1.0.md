@@ -128,19 +128,19 @@ export VYNTH_LLM_BASE_URL="https://api.openai.com/v1"    # 可选：兼容端点
 
 | 发现 | 代码 / 修复状态 | 文档状态 |
 |------|----------------|----------|
-| **F1** — 插件 `import()` 无签名、宿主完整权限 | OPEN | 已披露（release-notes 信任边界 + getting-started） |
-| **F2** — sandbox / `run_shell` 无 fs·进程隔离（设计内）+ `VYNTH_NET='0'` 现阻断 run_shell 联网 | 部分修复（v0.1.0） | 已披露 |
-| **F3** — `read_file` / `write_file` 符号链接逃逸（`safeResolve` 未 `realpath`） | ✅ 已修复（v0.1.0） | 已披露 |
-| **F4** — 不可信 LLM 端点 `tool_call` 注入 → RCE | OPEN | 部分披露（安全模型摘要隐含 `run_shell` 非隔离） |
-| **F5** — `VYNTH_API_KEY` 无校验外发（http 明文 / 钓鱼） | ✅ 已修复（v0.1.0） | 已披露 |
-| **F6** — `.env` 未纳入 `.gitignore` | OPEN（仓库配置修复） | 未涉及 |
+| **F1** — 插件 `import()` 无签名、宿主完整权限 | OPEN（设计信任模型，已文档化） | 已披露 |
+| **F2** — sandbox / `run_shell` 无隔离 + `VYNTH_NET=0` 对 shell 失效 | **已修复**（networkAllowed 透传已接线于 main.ts:51 与 tui.ts:14；无隔离为设计信任模型，已文档化） | 已披露 |
+| **F3** — `read_file` / `write_file` 符号链接逃逸（`safeResolve` 未 `realpath`） | **已修复**（safeResolve 加 realpathSync 二次校验） | 已覆盖 |
+| **F4** — 不可信 LLM 端点 `tool_call` 注入 → RCE | OPEN（设计层面，已文档化信任模型） | 部分披露 |
+| **F5** — `VYNTH_API_KEY` 无校验外发（http 明文 / 钓鱼） | **已修复**（assertSafeEndpoint: URL 校验 + 拒 http 明文 + 非默认端点告警） | 已披露 |
+| **F6** — `.env` 未纳入 `.gitignore` | OPEN | 未涉及 |
 | **F7** — LLM `fetch` 无超时 / SSE 缓冲无上限 | OPEN | 未涉及 |
-| **F8** — 工具参数缺类型 / 必填校验 | OPEN（低） | 未涉及 |
-| **F11** — 无头模式打印工具参数可能泄露 | OPEN（低） | 未涉及 |
-| **F14** — `loadAll` 单插件异常致整体失败 | OPEN（低） | 未涉及 |
-| **A09** — 安全事件无审计日志 | OPEN（低） | 未涉及 |
+| **F8** — 工具参数缺类型 / 必填校验 | OPEN | 未涉及 |
+| **F11** — 无头模式打印工具参数可能泄露 | OPEN | 未涉及 |
+| **F14** — `loadAll` 单插件异常致整体失败 | OPEN | 未涉及 |
+| **A09** — 安全事件无审计日志 | OPEN | 未涉及 |
 
-> F3（符号链接逃逸）、F5（API Key 明文端点）、VYNTH_NET 空开关**已在 v0.1.0 修复**；F1（插件宿主权限）、F2（run_shell 无 fs/进程硬隔离）属设计内信任模型、非缺陷；F4 / F6 / F7 / F8 / F11 / F14 / A09 仍为代码层 OPEN，计划在后续版本完成。F9 / F10 / F12 / F13 非独立发现（对应 OWASP 类别判定不适用或无发现），不在表中。
+> 本版 **F2 / F3 / F5 已在代码层修复**；F1 / F4 为设计信任模型（已文档化）；F6 / F7 / F8 / F11 / F14 / A09 仍为低优先级 OPEN，计划在后续版本处理。F9 / F10 / F12 / F13 非独立发现，不在表中。
 
 ## 升级与回滚
 

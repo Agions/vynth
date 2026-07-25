@@ -68,8 +68,8 @@ TUI 为轻量 ANSI 界面（**非 ink**），逐字符流式 + 工具调用回�
 | 变量 | 作用 | 默认 |
 |------|------|------|
 | `VYNTH_API_KEY` | LLM key（空 = demo） | 空 |
-| `VYNTH_MODEL` | 模型名 | `gpt-4o-mini` |
-| `VYNTH_LLM_BASE_URL` | OpenAI 兼容端点 | `https://api.openai.com/v1` |
+| `VYNTH_MODEL` | 模型名（默认已指向 DeepSeek 最新通用模型） | `deepseek-chat` |
+| `VYNTH_LLM_BASE_URL` | OpenAI 兼容端点（默认已指向 DeepSeek） | `https://api.deepseek.com/v1` |
 | `VYNTH_MODE` | `plan` \| `vibe` | `vibe` |
 | `VYNTH_THEME` | `mocha` \| `latte`（Catppuccin） | `mocha` |
 | `VYNTH_NET` | 沙箱网络开关（`'0'` = 禁网） | 开启 |

@@ -1,0 +1,67 @@
+name: CI
+
+# 阶段门禁对齐 docs/实施开发计划.md §1 工程规矩 + 部署设计 §4（CI/CD 8 阶段）
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history for secret scan)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # 阶段 1-2: install + lint/typecheck
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Lint & Typecheck
+        run: bun run lint
+
+      # 阶段 3: build packages (turbo)
+      - name: Build packages
+        run: bun run turbo run build
+
+      # 阶段 4: compile single binary (bun build --compile -> dist/vynth)
+      - name: Compile single binary
+        run: bun run compile
+
+      # 阶段 5: e2e + unit tests (harness)
+      - name: Tests
+        run: bun test packages
+
+      # 阶段 6: security scan — 密钥硬编码红线 (gitleaks)
+      - name: Secret scan (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITLEAKS_CONFIG: gitleaks.toml
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: 'false'
+
+      # 阶段 7: binary size gate (MVP <= 61MB)
+      - name: Binary size gate
+        run: bun scripts/check-binary-size.ts
+
+      # 阶段 8: sign/notarize + publish (release/main only)
+      - name: Sign & notarize (release tags)
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          echo "TODO: codesign + notarize dist/vynth (macOS) / gpg sign (linux)"
+          echo "see 部署设计.md §4 / §7"
+
+      - name: Publish beta channel (main)
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          echo "TODO: publish to beta channel (brew / npm dist-tag / GitHub Releases)"
+          echo "see 部署设计.md §4 发布阶段"

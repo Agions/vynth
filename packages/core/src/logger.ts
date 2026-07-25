@@ -9,7 +9,7 @@ export function setLogLevel(level: LogLevel): void {
 
 export function log(level: LogLevel, message: string, meta?: unknown): void {
   if (order[level] < order[current]) return;
-  const tag = level.toUpperCase().padEnd(5);
+  const tag = level.toUpperCase();
   const line = meta === undefined ? `[${tag}] ${message}` : `[${tag}] ${message} ${fmtMeta(meta)}`;
   if (level === 'error') console.error(line);
   else console.error(line);
