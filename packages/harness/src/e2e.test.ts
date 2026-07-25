@@ -178,7 +178,7 @@ describe('CLI 退出码契约（F11）', () => {
   test('--version 退出 0 且打印版本', () => {
     const r = runCli(['--version']);
     expect(r.code).toBe(0);
-    expect(r.out).toContain('0.1.0');
+    expect(r.out).toContain('0.2.0');
   });
 
   test('--help 退出 0 且打印用法', () => {

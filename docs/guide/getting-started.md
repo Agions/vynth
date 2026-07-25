@@ -17,7 +17,7 @@ bun install        # 推荐（脚本均使用 bun）；或 pnpm install（pnpm-w
 bun run compile     # → 产出 dist/vynth（bun build --compile）
 ```
 
-> 当前二进制体积约 61MB（含 react-devtools 残留），目标收敛到 20–40MB（优化进行中）。冷启动目标 50–150ms。
+> 实测：单二进制 **60.51 MB**（无 react-devtools 残留，TUI 走轻量 ANSI 不依赖 ink）；冷启动 **P95 = 30.5 ms**（10 次采样，远低于 150 ms 基线）。
 
 ## 3. 无 key 先跑 demo（无需 API key）
 

@@ -4,7 +4,7 @@ import { builtinTools, createProvider, runAgent } from '@vynth/engine';
 import { loadPlugin } from '@vynth/plugins';
 import { startTui } from '@vynth/tui';
 
-const VERSION = '0.1.0';
+const VERSION = '0.2.0';
 
 interface Parsed {
   goal?: string;
