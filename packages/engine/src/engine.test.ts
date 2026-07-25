@@ -104,3 +104,107 @@ test('OpenAiProvider 拒绝向非本地端点发送明文 http（安全红线）
     createProvider({ ...loadConfig(), apiKey: 'x', llmBaseUrl: 'http://evil.example.com/v1' })
   ).toThrow();
 });
+
+test('OpenAiProvider 解析 reasoning_content（DeepSeek V4 thinking 模式）', async () => {
+  const sse =
+    'data: {"choices":[{"delta":{"reasoning_content":"let me think"}}]}\n' +
+    'data: {"choices":[{"delta":{"content":"answer"}}]}\n' +
+    'data: [DONE]\n';
+  const fakeRes = new Response(sse, { status: 200 });
+  const orig = globalThis.fetch;
+  globalThis.fetch = (async () => fakeRes) as unknown as typeof fetch;
+  try {
+    const p = createProvider({ ...loadConfig(), apiKey: 'k' });
+    const events: StreamEvent[] = [];
+    for await (const ev of p.chat([{ role: 'user', content: 'go' }], [])) events.push(ev);
+    const reasoning = events.find((e) => e.type === 'reasoning');
+    const token = events.find((e) => e.type === 'token');
+    expect(reasoning && 'text' in reasoning && reasoning.text).toBe('let me think');
+    expect(token?.text).toBe('answer');
+  } finally {
+    globalThis.fetch = orig;
+  }
+});
+
+test('OpenAiProvider 400 错误时读取响应体（调试可见性）', async () => {
+  const fakeRes = new Response('{"error":{"message":"model not found"}}', { status: 400 });
+  const orig = globalThis.fetch;
+  globalThis.fetch = (async () => fakeRes) as unknown as typeof fetch;
+  try {
+    const p = createProvider({ ...loadConfig(), apiKey: 'k' });
+    let thrown: Error | null = null;
+    try {
+      for await (const _ of p.chat([{ role: 'user', content: 'go' }], [])) {
+        // consume
+      }
+    } catch (e) {
+      thrown = e instanceof Error ? e : new Error(String(e));
+    }
+    expect(thrown).not.toBeNull();
+    expect(thrown?.message).toContain('400');
+    expect(thrown?.message).toContain('model not found');
+  } finally {
+    globalThis.fetch = orig;
+  }
+});
+
+test('runAgent 正确构建 tool_calls + reasoning_content + tool_call_id 消息', async () => {
+  let secondCallMessages: ChatMessage[] | null = null;
+
+  class CaptureProvider implements LLMProvider {
+    private calls = 0;
+    async *chat(messages: ChatMessage[], tools: ToolDef[]): AsyncIterable<StreamEvent> {
+      this.calls++;
+      if (this.calls === 2) secondCallMessages = [...messages];
+      yield { type: 'reasoning', text: 'thinking...' };
+      yield { type: 'token', text: 'checking' };
+      if (this.calls === 1 && tools.length) {
+        yield {
+          type: 'tool',
+          call: {
+            id: 'call_1',
+            name: tools[0].name,
+            args: { x: 1 },
+            rawArgs: '{"x":1}'
+          } as ToolCall
+        };
+      }
+      yield { type: 'done' };
+    }
+  }
+
+  const reg = new ToolRegistry();
+  reg.register({
+    name: 'echo_tool',
+    description: 'echo',
+    parameters: [{ name: 'x', type: 'number', description: 'n', required: true }],
+    run: (a) => ({ ok: true, output: `got ${a.x}` })
+  });
+
+  for await (const _ of runAgent('test', {
+    provider: new CaptureProvider(),
+    tools: reg,
+    maxSteps: 2
+  })) {
+    // consume
+  }
+
+  expect(secondCallMessages).not.toBeNull();
+  const msgs = secondCallMessages ?? [];
+
+  // assistant 消息必须携带 tool_calls + reasoning_content
+  const assistant = msgs.find((m) => m.role === 'assistant');
+  expect(assistant).toBeDefined();
+  expect(assistant?.tool_calls).toBeDefined();
+  expect(assistant?.tool_calls?.[0]?.id).toBe('call_1');
+  expect(assistant?.tool_calls?.[0]?.type).toBe('function');
+  expect(assistant?.tool_calls?.[0]?.function?.name).toBe('echo_tool');
+  expect(assistant?.tool_calls?.[0]?.function?.arguments).toBe('{"x":1}');
+  expect(assistant?.reasoning_content).toBe('thinking...');
+
+  // tool 消息必须用 tool_call_id 而非 name
+  const tool = msgs.find((m) => m.role === 'tool');
+  expect(tool).toBeDefined();
+  expect(tool?.tool_call_id).toBe('call_1');
+  expect(tool?.content).toContain('got 1');
+});
