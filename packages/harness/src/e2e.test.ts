@@ -152,11 +152,14 @@ test('OpenAiProvider refuses plaintext http to non-local endpoint', async () => 
 const REPO = resolve(import.meta.dir, '../../../');
 const CLI = resolve(REPO, 'apps/cli/src/main.ts');
 
-function runCli(args: string[]): { code: number; out: string; err: string } {
+function runCli(
+  args: string[],
+  env: Record<string, string> = { ...process.env, VYNTH_API_KEY: '' }
+): { code: number; out: string; err: string } {
   try {
     const out = execFileSync(process.execPath, [CLI, ...args], {
       cwd: REPO,
-      env: { ...process.env, VYNTH_API_KEY: '' },
+      env,
       timeout: 30000,
       encoding: 'utf8'
     });
@@ -200,5 +203,23 @@ describe('CLI 退出码契约（F11）', () => {
     const r = runCli(['-m', 'bad']);
     expect(r.code).toBe(2);
     expect(r.err).toContain('非法模式');
+  });
+});
+
+describe('CLI TUI 分流契约（F2/F3）', () => {
+  test('无 -g 且非 TTY（stdin/stdout 都不可交互）→ 退出 2 提示用无头模式', () => {
+    // ensure both stdin and stdout look non-TTY by unsetting the indicators
+    const env: Record<string, string> = { ...process.env, VYNTH_API_KEY: '' };
+    const r = runCli([], env);
+    // bun:test piping makes stdin/stdout non-TTY, so the CLI should refuse to start TUI
+    expect(r.code).toBe(2);
+    expect(r.err).toContain('无头模式');
+  });
+
+  test('-g 在非 TTY 环境下也能跑通（headless 不依赖 TTY）', () => {
+    const r = runCli(['-g', 'demo-tool 分流测试']);
+    expect(r.code).toBe(0);
+    // headless should always reach at least the goal echo line
+    expect(r.out).toContain('demo-tool');
   });
 });
