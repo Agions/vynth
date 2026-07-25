@@ -1,7 +1,7 @@
 # Vynth 回滚 Runbook（v0.1.0）
 
 > 适用范围：Vynth 单二进制分发（`dist/vynth`）。升级 = 覆盖；回滚 = 恢复上一版本快照。
-> 本 runbook 与 `release-notes-v0.1.0.md` 的「升级与回滚」一节配套，提供更可操作的步骤。
+> 本 runbook 与 `changelog/v0.1.0.md` 的「升级与回滚」一节配套，提供更可操作的步骤。
 
 ## 1. 前置条件
 
@@ -52,8 +52,8 @@ cp dist/vynth.prev dist/vynth
 ./dist/vynth -g "用一句话介绍 vynth"
 ```
 
-- 预期：进入 agent 循环并以 Demo（`EchoProvider`）流式输出（未设置 `VYNTH_API_KEY` 时），或接入真实 LLM 输出结果；最终正常退出，退出码 `0`。
-- 若设置真实 key，请确认 `VYNTH_LLM_BASE_URL` 指向可信 `https` 端点。
+- 预期：进入 agent 循环并以真实 LLM 流式输出（需设置 `VYNTH_API_KEY`）；最终正常退出，退出码 `0`。
+- 请确认 `VYNTH_API_KEY` 已设置且 `VYNTH_LLM_BASE_URL` 指向可信 `https` 端点。
 - 验证目的：确认二进制可正常启动、agent 循环与内置工具（含 `read_file`/`run_shell`）工作正常。
 
 ## 4. 紧急快速回滚（一行）

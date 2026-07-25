@@ -15,6 +15,7 @@ interface OpenAiDelta {
   choices?: Array<{
     delta?: {
       content?: string;
+      reasoning_content?: string;
       tool_calls?: Array<{
         index: number;
         id?: string;
@@ -27,7 +28,7 @@ interface OpenAiDelta {
 }
 
 export function createProvider(config: VynthConfig): LLMProvider {
-  if (!config.apiKey) return new EchoProvider();
+  if (!config.apiKey) throw new LlmError('missing VYNTH_API_KEY; set it to use a real LLM');
   return new OpenAiProvider(config);
 }
 
@@ -94,7 +95,11 @@ class OpenAiProvider implements LLMProvider {
       },
       body: JSON.stringify(body)
     });
-    if (!res.ok || !res.body) throw new LlmError(`LLM HTTP ${res.status}`);
+    if (!res.ok || !res.body) {
+      const errBody = await res.text().catch(() => '');
+      const detail = errBody ? ` — ${errBody.slice(0, 500)}` : '';
+      throw new LlmError(`LLM HTTP ${res.status}${detail}`);
+    }
 
     const acc = new Map<number, { id: string; name: string; args: string }>();
     let promptTokens = 0;
@@ -122,6 +127,7 @@ class OpenAiProvider implements LLMProvider {
         }
         const choice = json.choices?.[0];
         const delta = choice?.delta;
+        if (delta?.reasoning_content) yield { type: 'reasoning', text: delta.reasoning_content };
         if (delta?.content) yield { type: 'token', text: delta.content };
         for (const tc of delta?.tool_calls ?? []) {
           const slot = acc.get(tc.index) ?? { id: '', name: '', args: '' };
@@ -144,31 +150,10 @@ class OpenAiProvider implements LLMProvider {
       } catch {
         args = {};
       }
-      const call: ToolCall = { id: slot.id, name: slot.name, args };
+      const call: ToolCall = { id: slot.id, name: slot.name, args, rawArgs: slot.args || '{}' };
       yield { type: 'tool', call };
     }
     yield { type: 'done', usage: { promptTokens, completionTokens } };
-  }
-}
-
-class EchoProvider implements LLMProvider {
-  async *chat(messages: ChatMessage[], tools: ToolDef[]): AsyncIterable<StreamEvent> {
-    const last = messages[messages.length - 1];
-    const goal = last?.content ?? '';
-    if (goal.includes('demo-tool') && tools.length) {
-      const tool = tools[0];
-      const sample: Record<string, unknown> = {};
-      for (const p of tool.parameters)
-        sample[p.name] = p.type === 'number' ? 1 : p.type === 'boolean' ? true : 'demo';
-      const text = `好的，我来调用 ${tool.name} 完成这个任务。`;
-      for (const ch of text) yield { type: 'token', text: ch };
-      yield { type: 'tool', call: { id: 'call-demo', name: tool.name, args: sample } };
-      yield { type: 'done', usage: { promptTokens: 12, completionTokens: 18 } };
-      return;
-    }
-    const reply = `（demo）收到目标：${goal}。设置 VYNTH_API_KEY 可接入真实 LLM。`;
-    for (const ch of reply) yield { type: 'token', text: ch };
-    yield { type: 'done', usage: { promptTokens: 8, completionTokens: reply.length } };
   }
 }
 

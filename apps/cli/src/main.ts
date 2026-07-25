@@ -4,7 +4,18 @@ import { builtinTools, createProvider, runAgent } from '@vynth/engine';
 import { loadPlugin } from '@vynth/plugins';
 import { startTui } from '@vynth/tui';
 
-const VERSION = '0.2.0';
+const VERSION = '0.2.1';
+
+/** 把已知 VynthError 带上 6 位码前缀（其它错误原样） */
+function formatErr(err: unknown): string {
+  if (err && typeof err === 'object' && 'numericCode' in err && 'message' in err) {
+    const e = err as { numericCode?: string; message?: string };
+    if (e.numericCode && /^VC-\d{6}$/.test(e.numericCode)) {
+      return `[${e.numericCode}] ${e.message ?? ''}`.trim();
+    }
+  }
+  return err instanceof Error ? err.message : String(err);
+}
 
 interface Parsed {
   goal?: string;
@@ -23,18 +34,19 @@ function parseArgs(argv: string[]): Parsed {
     else if (a === '-h' || a === '--help') out.help = true;
     else if (a === '-g' || a === '--goal') {
       const v = argv[++i];
-      if (v === undefined) out.issues.push('缺少 -g/--goal 的目标参数');
+      if (v === undefined) out.issues.push('[VC-010004] 缺少 -g/--goal 的目标参数');
       else out.goal = v;
     } else if (a === '-m' || a === '--mode') {
       const v = argv[++i];
-      if (v === undefined) out.issues.push('缺少 -m/--mode 的模式参数');
-      else if (v !== 'plan' && v !== 'vibe') out.issues.push(`非法模式: ${v}（应为 plan|vibe）`);
+      if (v === undefined) out.issues.push('[VC-010004] 缺少 -m/--mode 的模式参数');
+      else if (v !== 'plan' && v !== 'vibe')
+        out.issues.push(`[VC-010002] 非法模式: ${v}（应为 plan|vibe）`);
       else out.mode = v;
     } else if (a === '-p' || a === '--plugin') {
       const v = argv[++i];
-      if (v === undefined) out.issues.push('缺少 -p/--plugin 的路径参数');
+      if (v === undefined) out.issues.push('[VC-010004] 缺少 -p/--plugin 的路径参数');
       else out.plugin = v;
-    } else out.issues.push(`未知参数: ${a}（使用 --help 查看用法）`);
+    } else out.issues.push(`[VC-010003] 未知参数: ${a}（使用 --help 查看用法）`);
   }
   return out;
 }
@@ -49,8 +61,8 @@ function printHelp(): void {
   vynth -p <路径>     加载插件（示例见 packages/plugins/examples）
 
 环境变量:
-  VYNTH_API_KEY       LLM API key（留空进入 demo 模式）
-  VYNTH_MODEL         模型名（默认 deepseek-chat）
+  VYNTH_API_KEY       LLM API key（必填）
+  VYNTH_MODEL         模型名（默认 deepseek-v4-pro）
   VYNTH_LLM_BASE_URL  OpenAI 兼容端点
   VYNTH_MODE          plan | vibe
   VYNTH_THEME         mocha | latte
@@ -79,29 +91,35 @@ async function runHeadless(goal: string, pluginPath?: string): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  const parsed = parseArgs(process.argv.slice(2));
-  if (parsed.issues.length > 0) {
-    for (const m of parsed.issues) console.error(`✗ ${m}`);
-    process.exit(2);
+  try {
+    const parsed = parseArgs(process.argv.slice(2));
+    if (parsed.issues.length > 0) {
+      for (const m of parsed.issues) console.error(`✗ ${m}`);
+      process.exit(2);
+    }
+    if (parsed.version) {
+      console.log(VERSION);
+      return;
+    }
+    if (parsed.help) {
+      printHelp();
+      return;
+    }
+    const config = loadConfig({ mode: parsed.mode });
+    if (parsed.goal) {
+      await runHeadless(parsed.goal, parsed.plugin);
+      return;
+    }
+    if (!process.stdout.isTTY || !process.stdin.isTTY) {
+      console.error('当前不是交互式终端。请使用无头模式： vynth -g "<目标>"');
+      process.exit(2);
+    }
+    startTui(config);
+  } catch (err) {
+    // 顶层捕获：所有 VynthError 都带 [VC-XXXXXX] 前缀输出
+    console.error(`✗ ${formatErr(err)}`);
+    process.exit(1);
   }
-  if (parsed.version) {
-    console.log(VERSION);
-    return;
-  }
-  if (parsed.help) {
-    printHelp();
-    return;
-  }
-  const config = loadConfig({ mode: parsed.mode });
-  if (parsed.goal) {
-    await runHeadless(parsed.goal, parsed.plugin);
-    return;
-  }
-  if (!process.stdout.isTTY || !process.stdin.isTTY) {
-    console.error('当前不是交互式终端。请使用无头模式： vynth -g "<目标>"');
-    process.exit(2);
-  }
-  startTui(config);
 }
 
 void main();

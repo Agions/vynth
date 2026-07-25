@@ -22,7 +22,43 @@
 
 - 格式化/校验：**biome**（`biome check .` 必须 0 error）。规则：`single` 引号、`semicolons: always`、`noExplicitAny: error`、`noDefaultExport: error`、`lineWidth: 100`。
 - TypeScript：`strict: true`，`verbatimModuleSyntax: false`。
-- 错误表达：统一 `VynthError` 子类；**演进目标**为 6 位全局错误码 `VC-XXXXXX`（当前为字符串域 `config/llm/tool/...`，见 `packages/core/src/errors.ts`，需在 F 系列中迁移）。
+- 错误表达：统一 `VynthError` 子类；**v0.2.1 起落地 6 位全局错误码 `VC-XXXXXX`**（旧字符串域 `config/llm/tool/...` 由 `fromLegacy()` 兼容映射，详见 `packages/core/src/error-codes.ts`）。
+
+### 错误码权威表（`packages/core/src/error-codes.ts`）
+
+**编号规则**：`VC-AABBCC`，AA = 族、BB = 子类、CC = 实例。
+
+| 码 | 语义 | 抛出位置 |
+|---|---|---|
+| `VC-010001` | `CONFIG_MISSING_KEY` | （预留） |
+| `VC-010002` | `CONFIG_INVALID_MODE` | `apps/cli` 非法 `-m` |
+| `VC-010003` | `CONFIG_UNKNOWN_FLAG` | `apps/cli` 未知参数 |
+| `VC-010004` | `CONFIG_VALUE_MISSING` | `apps/cli` `-g`/`-m`/`-p` 缺值 |
+| `VC-020001` | `LLM_AUTH_FAILED` | （预留） |
+| `VC-020002` | `LLM_RATE_LIMITED` | （预留） |
+| `VC-020003` | `LLM_NETWORK` | （预留） |
+| `VC-020004` | `LLM_INVALID_RESPONSE` | `OpenAiProvider` SSE 解析失败 |
+| `VC-020005` | `LLM_PLAINTEXT_HTTP` | `OpenAiProvider` 拒绝明文 http |
+| `VC-030001` | `SANDBOX_PATH_ESCAPE` | `safeResolve` 拒绝 `../` 与绝对路径 |
+| `VC-030002` | `SANDBOX_SYMLINK_ESCAPE` | `safeResolve` realpath 后越界 |
+| `VC-030003` | `SANDBOX_NETWORK_BLOCKED` | `runCommand` `VYNTH_NET=0` 阻断 |
+| `VC-030004` | `SANDBOX_READ_FAILED` | `runCommand` 命令超时 |
+| `VC-030005` | `SANDBOX_WRITE_FAILED` | `runCommand` 非 0 exit |
+| `VC-040001` | `TOOL_NOT_FOUND` | `ToolRegistry.run` 未知工具 |
+| `VC-040002` | `TOOL_EXECUTION_FAILED` | （预留） |
+| `VC-040003` | `TOOL_INVALID_ARGS` | （预留） |
+| `VC-050001` | `PLUGIN_LOAD_FAILED` | `loadPlugin` 动态 import 失败 |
+| `VC-050002` | `PLUGIN_MISSING_ACTIVATE` | `loadPlugin` 缺导出 |
+| `VC-050003` | `PLUGIN_MISSING_NAME` | `loadPlugin` 缺导出 |
+| `VC-060001` | `MCP_NOT_IMPLEMENTED` | （F12 接入占位） |
+| `VC-060002` | `MCP_PROTOCOL_PARSE` | （F12） |
+| `VC-060003` | `MCP_REQUEST_TIMEOUT` | （F12） |
+
+> 抛出约定：`new SandboxError('msg', 'VC-030001')` —— 第二个参数为 6 位码。
+> CLI / 工具结果中的错误字符串前缀格式：`"[VC-030001] path escapes sandbox: ../x"`，
+> 可被 grep / 日志聚合 / 监控告警按码字符串直接定位。
+
+
 - 依赖纪律：**禁止引入大依赖**（直接威胁单二进制体积 ≤61MB 门禁）。新增依赖须 PR 说明体积影响。
 
 ## 3. CI/CD 8 阶段（`.github/workflows/ci.yml`）
@@ -62,7 +98,7 @@
 | 项 | 值 | 来源 |
 |---|---|---|
 | LLM 端点 | `https://api.deepseek.com/v1` | `packages/core/src/config.ts` |
-| 默认模型 | `deepseek-chat` | `packages/core/src/config.ts`（已修正，原 `deepseek-v4-pro` 与冻结冲突） |
+| 默认模型 | `deepseek-v4-pro` | `packages/core/src/config.ts` |
 | 插件 CLI | `--plugin` 无头已接入 | 高层架构 O1/F9 |
 | sandbox symlink | 已由 `safeResolve` 守卫修复 | 冲突 X3 |
 | workspace 声明 | pnpm 双声明历史兼容 | 冲突 X5 |

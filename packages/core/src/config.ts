@@ -20,7 +20,7 @@ export function loadConfig(overrides: Partial<VynthConfig> = {}): VynthConfig {
     llmBaseUrl:
       overrides.llmBaseUrl ?? process.env.VYNTH_LLM_BASE_URL ?? 'https://api.deepseek.com/v1',
     apiKey: overrides.apiKey ?? process.env.VYNTH_API_KEY ?? '',
-    model: overrides.model ?? process.env.VYNTH_MODEL ?? 'deepseek-chat',
+    model: overrides.model ?? process.env.VYNTH_MODEL ?? 'deepseek-v4-pro',
     theme: overrides.theme ?? (process.env.VYNTH_THEME === 'latte' ? 'latte' : 'mocha'),
     sandbox: {
       networkAllowed,

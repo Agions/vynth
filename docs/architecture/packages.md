@@ -17,7 +17,7 @@
 | `src/logger.ts` | `log(level, msg, meta?)` 分级日志（debug/info/warn/error），`setLogLevel` |
 | `src/index.ts` | 统一再导出 |
 
-**配置默认值（`loadConfig`）**：`mode=vibe`、`llmBaseUrl=https://api.openai.com/v1`、`apiKey=`(空)、`model=gpt-4o-mini`、`theme=mocha`、`sandbox.networkAllowed = VYNTH_NET !== '0'`、`sandbox.cwd = process.cwd()`、`dataDir = ~/.vynth`。
+**配置默认值（`loadConfig`）**：`mode=vibe`、`llmBaseUrl=https://api.deepseek.com/v1`、`apiKey=`(空)、`model=deepseek-v4-pro`、`theme=mocha`、`sandbox.networkAllowed = VYNTH_NET !== '0'`、`sandbox.cwd = process.cwd()`、`dataDir = ~/.vynth`。
 
 ---
 
@@ -27,7 +27,7 @@
 
 | 文件 | 职责 |
 |------|------|
-| `src/llm.ts` | `LLMProvider` 接口 + `createProvider(config)`；`OpenAiProvider`（OpenAI 兼容 SSE 客户端，逐行解析 `data:` 帧，累加 `tool_calls`）；`EchoProvider`（无 key 时的 demo provider） |
+| `src/llm.ts` | `LLMProvider` 接口 + `createProvider(config)`；`OpenAiProvider`（OpenAI 兼容 SSE 客户端，逐行解析 `data:` 帧，累加 `tool_calls`）；空 `apiKey` 时抛出 `LlmError` |
 | `src/tools.ts` | `ToolRegistry`（register/get/list/run，重名抛 `ToolError`，未知工具返回 `ok:false`）；`builtinTools(cwd)` 注册 `read_file`/`write_file`/`run_shell` |
 | `src/agent-loop.ts` | `runAgent(goal, opts)`：异步生成器，按 `maxSteps`（默认 8）循环 `provider.chat` → 收集 token/tool → `tools.run` → 回填 `messages` |
 | `src/index.ts` | 统一再导出 |
@@ -37,7 +37,6 @@
 - `runAgent(goal, { provider, tools, system?, maxSteps? }): AsyncGenerator<StreamEvent>`
 - 工具定义遵循 `core` 的 `ToolDef`（`run` 可同步或异步返回 `ToolResult`）。
 
-**demo 行为**：`EchoProvider` 在 goal 含 `demo-tool` 且存在工具时，流式输出中文 + 调用首个工具并填示例参数；否则回显「（demo）收到目标：…」。
 
 ---
 
@@ -118,4 +117,4 @@ e2e / 集成测试驱动，私包（`private: true`）。依赖 `core`、`engine
 | `src/main.ts` | `parseArgs`（`-g/--goal`、`-m/--mode`、`-v/--version`、`-h/--help`）；`printHelp`；`runHeadless(goal)`（无头流式）；`main()` 分发到 TUI 或无头 |
 | `package.json` | `bin: { vynth: src/main.ts }`；`build` = `bun build --compile ... --outfile ../../dist/vynth` |
 
-**分发**：`bun run compile` 产出单二进制 `dist/vynth`；`--version` 输出 `0.1.0`。
+**分发**：`bun run compile` 产出单二进制 `dist/vynth`；`--version` 输出 `0.2.1`。

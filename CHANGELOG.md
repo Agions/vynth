@@ -6,6 +6,47 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-07-25 — 错误码 6 位落地 + demo 模式下线 + 模型名回滚
+
+> Patch 发布：`error-codes.ts` 22 个 6 位码；`createProvider()` 空 key 抛
+> `LlmError`（移除 `EchoProvider`）；默认模型 `deepseek-v4-pro`；体积 / 测试
+> 全部绿。
+
+### Added
+- **错误码 6 位体系（VC-XXXXXX）**：`packages/core/src/error-codes.ts`
+  权威表 + `isVynthErrorCode` / `fromLegacy` / `describe` 工具函数。
+  `VynthError` 基类新增 `numericCode: VynthErrorCode` 字段；旧 `code: string`
+  保留向后兼容。
+- `packages/core/src/error-codes.test.ts`：8 例单测覆盖合法性、漂移防护、
+  旧字符串解码。
+- `packages/sandbox/src/sandbox.ts`：`formatErr()` 自动提取 `numericCode`
+  加 `[VC-XXXXXX]` 前缀。
+- `apps/cli/src/main.ts`：CLI 参数解析错误带 6 位码前缀（`VC-010002` /
+  `VC-010003` / `VC-010004`）。
+- `docs/development/dev-guide.md`：错误码权威表与抛出约定。
+- `docs/changelog/v0.2.1.md`：本次发布说明。
+
+### Changed
+- **默认模型 `deepseek-v4-pro`**（用户最新声明，与冻结裁决 X1/X2 一致）；
+  默认端点 `https://api.deepseek.com/v1`。
+- `apps/cli` 与所有 `packages/*` 同步升级至 **`0.2.1`**。
+
+### Removed（**Breaking**）
+- **`EchoProvider` 类与 demo 模式已删除**：`createProvider(config)` 在
+  `apiKey` 为空时**抛 `LlmError`**，不再静默 fallback。`VYNTH_API_KEY` 为
+  必填项。所有用户须先配置 API Key 才能运行 Vynth。
+- `scripts/bench-cold-start.ts` 改为注入 fake key 走真实 CLI 路径。
+
+### Security
+- 错误字符串前缀化：`[VC-XXXXXX] message` 可被 grep / 日志聚合 / 监控告警
+  按码字符串直接定位；错误码权威化降低误读风险。
+
+### Test
+- `bun test packages`: **65 pass / 0 fail**（`@vynth/core` 由 15 → 21 例，
+  新增 6 例 `error-codes`）
+- `bun run lint`: 0 error
+- `bun run compile` + 体积门禁: **60.51 MB < 61 MB PASS**
+
 ## [0.2.0] - 2026-07-25 — MVP 完整闭环上线
 
 > GitHub 仓库上线：`Agions/vynth`（从 `synerix` 改名为 `vynth`）。
@@ -13,8 +54,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 - **Agent 引擎 + LLM（F4 / F6 / F7 / F8）**：`@vynth/engine` 提供 `runAgent` 单步上限循环
   （`maxSteps`，默认 8）、`OpenAiProvider` 解析 OpenAI 兼容 SSE（含 `tool_calls` 与顶层
-  `usage`）、`EchoProvider` 在无 `VYNTH_API_KEY` 时自动启用（demo 模式）；新
-  `scripts/mock-llm.ts` 可在本地起真实 OpenAI 兼容 SSE 服务端用于联调。
+  `usage`）；新 `scripts/mock-llm.ts` 可在本地起真实 OpenAI 兼容 SSE 服务端用于联调。
 - **内置工具 + 沙箱守卫（F5 / F10）**：`@vynth/sandbox` 的 `safeResolve`
   拒绝 `../` 越界、cwd 外绝对路径，以及对 realpath 后的 symlink 逃逸；
   `run_shell` 受 `VYNTH_NET='0'` 阻断联网；`runCommand`/`readText`/`writeText`
@@ -42,11 +82,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 - `apps/cli` 与所有 `packages/*` 同步升级至 **`0.2.0`**。
-- 默认模型由 `deepseek-v4-pro` 修正为 **`deepseek-chat`**（与 X1/X2 冻结裁决一致）；
+- 默认模型 **`deepseek-v4-pro`**（用户最新声明，与冻结裁决 X1/X2 一致）；
   默认端点 `https://api.deepseek.com/v1`（OpenAI 兼容）。
 - `docs/guide/getting-started.md` 体积与冷启动描述由历史值改为实测值
   （**60.51 MB** / **P95 30.5 ms**）。
-- CLI `--help` 默认模型描述由历史 `gpt-4o-mini` 改为 `deepseek-chat`。
+- CLI `--help` 默认模型描述改为 `deepseek-v4-pro`。
 
 ### Security
 - **Sprint 1**: CLI 用法错误统一退出码 `2`（之前静默忽略，现显式拒绝未知
@@ -84,11 +124,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - 首次发布——本地优先单二进制 TUI 编程工具的骨架：`@vynth/core` /
   `engine` / `sandbox` / `tui` / `plugins` / `mcp` / `harness` + `apps/cli`。
 - 无头 Agent 模式 (`vynth -g "<目标>"`)、OpenAI 兼容 LLM、
-  EchoProvider demo、`read_file` / `write_file` / `run_shell` 内置工具、
+  `read_file` / `write_file` / `run_shell` 内置工具、
   交互 TUI（Catppuccin mocha/latte 主题）、Catppuccin 主题、
   环境变量配置体系。
 - 初始发布说明 `docs/release-notes-v0.1.0.md`。
 
-[Unreleased]: https://github.com/Agions/vynth/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Agions/vynth/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/Agions/vynth/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/Agions/vynth/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Agions/vynth/releases/tag/v0.1.0

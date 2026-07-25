@@ -42,7 +42,7 @@ test('agent streams tokens and runs a tool', async () => {
 
   const events: StreamEvent[] = [];
   let toolName = '';
-  for await (const ev of runAgent('demo-tool please', {
+  for await (const ev of runAgent('echo run', {
     provider: new MockProvider(),
     tools: reg,
     maxSteps: 4
@@ -87,17 +87,20 @@ test('plugin activates and registers a tool', async () => {
   expect(r.output).toContain('x=2');
 });
 
-test('demo EchoProvider streams tokens when no API key', async () => {
-  const provider = createProvider({ ...loadConfig(), apiKey: '' });
-  let tokenText = '';
-  let toolCount = 0;
-  for await (const ev of provider.chat([{ role: 'user', content: 'hello' }], [])) {
-    if (ev.type === 'token') tokenText += ev.text;
-    else if (ev.type === 'tool') toolCount++;
-  }
-  expect(tokenText.length).toBeGreaterThan(0);
-  expect(tokenText).toContain('demo');
-  expect(toolCount).toBe(0);
+test('createProvider throws LlmError when API key is empty (v0.2.1 demo removed)', () => {
+  // v0.2.1 起不再有 EchoProvider：空 apiKey 必须立刻抛 LlmError，不静默 fallback
+  expect(() => createProvider({ ...loadConfig(), apiKey: '' })).toThrow();
+  const e = (() => {
+    try {
+      createProvider({ ...loadConfig(), apiKey: '' });
+      return null;
+    } catch (err) {
+      return err as Error & { code?: string; numericCode?: string };
+    }
+  })();
+  expect(e).not.toBeNull();
+  expect(e?.name).toBe('LlmError');
+  expect(e?.numericCode).toMatch(/^VC-\d{6}$/);
 });
 
 test('sandbox read_file reads within cwd and rejects escape', async () => {
@@ -154,7 +157,7 @@ const CLI = resolve(REPO, 'apps/cli/src/main.ts');
 
 function runCli(
   args: string[],
-  env: Record<string, string> = { ...process.env, VYNTH_API_KEY: '' }
+  env: Record<string, string> = { ...process.env, VYNTH_API_KEY: 'test-key-for-cli-tests' }
 ): { code: number; out: string; err: string } {
   try {
     const out = execFileSync(process.execPath, [CLI, ...args], {
@@ -178,7 +181,7 @@ describe('CLI 退出码契约（F11）', () => {
   test('--version 退出 0 且打印版本', () => {
     const r = runCli(['--version']);
     expect(r.code).toBe(0);
-    expect(r.out).toContain('0.2.0');
+    expect(r.out).toContain('0.2.1');
   });
 
   test('--help 退出 0 且打印用法', () => {
@@ -187,39 +190,49 @@ describe('CLI 退出码契约（F11）', () => {
     expect(r.out).toContain('terminal');
   });
 
-  test('未知参数 → 退出 2 并提示', () => {
+  test('未知参数 → 退出 2 + 6 位码 + 提示', () => {
     const r = runCli(['--bogus']);
     expect(r.code).toBe(2);
     expect(r.err).toContain('未知参数');
+    expect(r.err).toMatch(/VC-\d{6}/);
   });
 
-  test('-g 缺目标值 → 退出 2', () => {
+  test('-g 缺目标值 → 退出 2 + 6 位码', () => {
     const r = runCli(['-g']);
     expect(r.code).toBe(2);
     expect(r.err).toContain('目标参数');
+    expect(r.err).toMatch(/VC-\d{6}/);
   });
 
-  test('-m 非法模式 → 退出 2', () => {
+  test('-m 非法模式 → 退出 2 + 6 位码', () => {
     const r = runCli(['-m', 'bad']);
     expect(r.code).toBe(2);
     expect(r.err).toContain('非法模式');
+    expect(r.err).toMatch(/VC-\d{6}/);
+  });
+
+  test('空 VYNTH_API_KEY 跑 headless → 退出 1 + LLM 6 位码', () => {
+    // v0.2.1 起 demo 已移除：缺 apiKey 必须抛 LlmError 并以 6 位码前缀输出
+    const r = runCli(['-g', 'echo run'], { ...process.env, VYNTH_API_KEY: '' });
+    expect(r.code).toBe(1);
+    expect(r.err).toMatch(/\[VC-\d{6}\]\s+missing VYNTH_API_KEY/);
   });
 });
 
 describe('CLI TUI 分流契约（F2/F3）', () => {
   test('无 -g 且非 TTY（stdin/stdout 都不可交互）→ 退出 2 提示用无头模式', () => {
-    // ensure both stdin and stdout look non-TTY by unsetting the indicators
-    const env: Record<string, string> = { ...process.env, VYNTH_API_KEY: '' };
-    const r = runCli([], env);
-    // bun:test piping makes stdin/stdout non-TTY, so the CLI should refuse to start TUI
+    // v0.2.1 起即便有 key 也仍受 TTY 约束
+    const r = runCli([]);
     expect(r.code).toBe(2);
     expect(r.err).toContain('无头模式');
   });
 
   test('-g 在非 TTY 环境下也能跑通（headless 不依赖 TTY）', () => {
-    const r = runCli(['-g', 'demo-tool 分流测试']);
-    expect(r.code).toBe(0);
-    // headless should always reach at least the goal echo line
-    expect(r.out).toContain('demo-tool');
+    // 通过默认注入的 fake apiKey，CLI 应当能够启动 headless；
+    // 真实 LLM 不可达会以 LlmError 形式体现到 stderr/stdout，不再依赖 demo
+    const r = runCli(['-g', 'echo run']);
+    expect(r.code).not.toBe(0); // fake key 不会真正命中 DeepSeek
+    // 但 CLI 不应崩溃到 exit 2（参数错误），也不应静默进入 demo
+    expect(r.code).not.toBe(2);
   });
 });

@@ -17,13 +17,13 @@ afterEach(() => {
 });
 
 describe('loadConfig 默认值（冻结 X1/X2）', () => {
-  it('默认模型 deepseek-chat、端点 api.deepseek.com/v1', () => {
+  it('默认模型 deepseek-v4-pro、端点 api.deepseek.com/v1', () => {
     const c = loadConfig();
-    expect(c.model).toBe('deepseek-chat');
+    expect(c.model).toBe('deepseek-v4-pro');
     expect(c.llmBaseUrl).toBe('https://api.deepseek.com/v1');
   });
 
-  it('VYNTH_API_KEY 缺省为空串（进入 demo 模式）', () => {
+  it('VYNTH_API_KEY 缺省为空串（createProvider 时会抛出 LlmError）', () => {
     expect(loadConfig().apiKey).toBe('');
   });
 

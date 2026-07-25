@@ -1,6 +1,6 @@
 # 快速开始（30 秒跑通）
 
-Vynth 是「你 terminal 里的代码合成器」——纯 TypeScript 全量构建，单二进制分发。无需 API key 即可体验**流式输出与工具循环（demo 模式）**。
+Vynth 是「你 terminal 里的代码合成器」——纯 TypeScript 全量构建，单二进制分发。设置 `VYNTH_API_KEY` 即可接入真实 LLM。
 
 ## 1. 安装依赖
 
@@ -19,31 +19,23 @@ bun run compile     # → 产出 dist/vynth（bun build --compile）
 
 > 实测：单二进制 **60.51 MB**（无 react-devtools 残留，TUI 走轻量 ANSI 不依赖 ink）；冷启动 **P95 = 30.5 ms**（10 次采样，远低于 150 ms 基线）。
 
-## 3. 无 key 先跑 demo（无需 API key）
+## 3. 接入真实 LLM
 
-```bash
-./dist/vynth -g '用一句话介绍 vynth'
-```
-
-未设置 `VYNTH_API_KEY` 时自动进入 **demo（EchoProvider）** 模式：离线流式输出 +（goal 含 `demo-tool` 时）工具调用演示。
-
-## 4. 接入真实 LLM
-
-设置环境变量后再次运行，即可接入 OpenAI 兼容端点：
+设置环境变量后运行：
 
 ```bash
 export VYNTH_API_KEY="sk-..."                 # 必填：真实 LLM key
-export VYNTH_MODEL="gpt-4o-mini"              # 可选：默认 gpt-4o-mini
-export VYNTH_LLM_BASE_URL="https://api.openai.com/v1"  # 可选：OpenAI 兼容端点
+export VYNTH_MODEL="deepseek-v4-pro"             # 可选：默认 deepseek-v4-pro
+export VYNTH_LLM_BASE_URL="https://api.deepseek.com/v1"  # 可选：DeepSeek 兼容端点
 export VYNTH_MODE="vibe"                      # 可选：plan | vibe（默认 vibe）
 
 ./dist/vynth -g '给当前目录写一份 README.md'
 ```
 
-- `VYNTH_API_KEY` 为空 → demo；非空 → `OpenAiProvider` 走 SSE 流式。
+- `VYNTH_API_KEY` 为空将抛出 `LlmError`，不会进入 demo 模式。
 - 想用本地 / 第三方兼容服务，改 `VYNTH_LLM_BASE_URL` 即可（如 `http://localhost:11434/v1`）。
 
-## 5. 启动交互 TUI
+## 4. 启动交互 TUI
 
 ```bash
 ./dist/vynth        # 需真实 TTY（raw mode）；无 TTY 时退化为普通输入
@@ -51,7 +43,7 @@ export VYNTH_MODE="vibe"                      # 可选：plan | vibe（默认 vi
 
 TUI 为轻量 ANSI 界面（**非 ink**），逐字符流式 + 工具调用回显；`Ctrl-C` / `Ctrl-D` 退出。
 
-## 6. 加载插件与信任边界
+## 5. 加载插件与信任边界
 
 插件经动态 `import()` 直接加载并执行，能力等同 Vynth 本体——**请勿加载来源不明的插件**。
 
@@ -67,8 +59,8 @@ TUI 为轻量 ANSI 界面（**非 ink**），逐字符流式 + 工具调用回�
 
 | 变量 | 作用 | 默认 |
 |------|------|------|
-| `VYNTH_API_KEY` | LLM key（空 = demo） | 空 |
-| `VYNTH_MODEL` | 模型名（默认已指向 DeepSeek 最新通用模型） | `deepseek-chat` |
+| `VYNTH_API_KEY` | LLM key（必填） | 空 |
+| `VYNTH_MODEL` | 模型名（默认已指向 DeepSeek 最新通用模型） | `deepseek-v4-pro` |
 | `VYNTH_LLM_BASE_URL` | OpenAI 兼容端点（默认已指向 DeepSeek） | `https://api.deepseek.com/v1` |
 | `VYNTH_MODE` | `plan` \| `vibe` | `vibe` |
 | `VYNTH_THEME` | `mocha` \| `latte`（Catppuccin） | `mocha` |
@@ -79,6 +71,6 @@ TUI 为轻量 ANSI 界面（**非 ink**），逐字符流式 + 工具调用回�
 
 ## 常见问题
 
-- **`vynth` 命令找不到**：用 `./dist/vynth`，或 `bun link` / 加入 `PATH`。
+- **`vynth` 命令找不到**：��� `./dist/vynth`，或 `bun link` / 加入 `PATH`。
 - **TUI 卡住 / 无响应**：确认在真实终端（TTY）中运行；管道 / CI 环境请用 `-g` 无头模式。
-- **想体验工具调用**：demo 下用 `./dist/vynth -g 'demo-tool 请调用示例工具'` 触发内置 `EchoProvider` 的工具演示链路。
+- **想体验工具调用**：确保已设置 `VYNTH_API_KEY`，使用 `./dist/vynth -g '你的目标'` 触发真实 LLM 的工具调用链路。

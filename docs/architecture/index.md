@@ -60,7 +60,7 @@
         │  - 有 key → OpenAiProvider           │   │   safeResolve 越界守卫        │
         │    fetch POST {baseUrl}/chat/completions │ runCommand(sh -c):          │
         │    SSE 逐行解析 → token / tool_calls │   │   网络开关(networkAllowed)   │
-        │  - 无 key → EchoProvider (demo)      │   │   超时 30s(SIGKILL)          │
+        │  - 无 key → 抛出 LlmError            │   │   超时 30s(SIGKILL)          │
         └─────────────────────────────────────┘   └─────────────────────────────┘
                     │                                │ ToolResult {ok,output,error}
                     └───────────────┬────────────────┘
@@ -77,7 +77,7 @@
 - **StreamEvent 是唯一跨层协议**：`engine` 向 `tui` / `cli` 只暴露 `StreamEvent`（`token` / `tool` / `done`），渲染层与上层解耦。
 - **工具结果统一为 `ToolResult`**：`{ ok, output, error? }`；失败不抛异常，而是 `ok:false` 回灌 `messages`，由 LLM 决定下一步。
 - **沙箱是工具执行的唯一出口**：所有 fs / shell 访问经 `sandbox` 的 `safeResolve` 越界守卫与网络开关，agent 不能直接触达宿主机任意路径。
-- **无 key 即 demo**：`createProvider` 在 `apiKey` 为空时返回 `EchoProvider`，离线可体验流式与工具循环（见 [getting-started](/guide/getting-started.md)）。
+- **无 key 即失败**：`createProvider` 在 `apiKey` 为空时抛出 `LlmError`，要求显式配置 `VYNTH_API_KEY`。
 
 ## 构建与分发
 

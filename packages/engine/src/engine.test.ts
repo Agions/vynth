@@ -16,17 +16,9 @@ class MockProvider implements LLMProvider {
   }
 }
 
-test('createProvider → 无 Key 自动切换 EchoProvider（F8 demo）', async () => {
-  const p = createProvider({ ...loadConfig(), apiKey: '' });
-  let txt = '';
-  let tools = 0;
-  for await (const ev of p.chat([{ role: 'user', content: 'hi' }], [])) {
-    if (ev.type === 'token') txt += ev.text;
-    else if (ev.type === 'tool') tools++;
-  }
-  expect(txt.length).toBeGreaterThan(0);
-  expect(txt).toContain('demo');
-  expect(tools).toBe(0);
+test('createProvider → 空 apiKey 抛出 LlmError（v0.2.1 起 demo 模式已移除）', () => {
+  expect(() => createProvider({ ...loadConfig(), apiKey: '' })).toThrow();
+  expect(() => createProvider({ ...loadConfig(), apiKey: undefined })).toThrow();
 });
 
 test('runAgent 流式 token + 单个工具调用后终止（F4）', async () => {
@@ -42,7 +34,7 @@ test('runAgent 流式 token + 单个工具调用后终止（F4）', async () => 
     }
   });
   const events: StreamEvent[] = [];
-  for await (const ev of runAgent('demo-tool please', {
+  for await (const ev of runAgent('echo run', {
     provider: new MockProvider(),
     tools: reg,
     maxSteps: 4

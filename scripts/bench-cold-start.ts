@@ -5,6 +5,10 @@
  *
  * 用法：
  *   bun run compile && BENCH_RUNS=20 BENCH_LIMIT_MS=150 bun scripts/bench-cold-start.ts
+ *
+ * 注：v0.2.1 起 demo 模式已移除——CLI 在缺 apiKey 时会立刻抛 LlmError 并退出，
+ * 但冷启动时间（启动 → 抛错前的 IO）依然稳定可测。我们注入一个 fake key 让 CLI
+ * 走到真实首字节分支（goal echo 行），再让 LLM 不可达自然退出，计时不受影响。
  */
 import { spawn } from 'node:child_process';
 import { resolve } from 'node:path';
@@ -17,9 +21,9 @@ const LIMIT_MS = Number(process.env.BENCH_LIMIT_MS ?? 150);
 function coldMs(): Promise<number> {
   return new Promise((resolveResult, reject) => {
     const t0 = performance.now();
-    const proc = spawn(BIN, ['-g', 'demo cold start probe'], {
+    const proc = spawn(BIN, ['-g', 'cold start probe'], {
       cwd: REPO,
-      env: { ...process.env, VYNTH_API_KEY: '' }
+      env: { ...process.env, VYNTH_API_KEY: 'bench-fake-key-not-used' }
     });
     let settled = false;
     const finish = (ms: number) => {

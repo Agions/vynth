@@ -1,0 +1,174 @@
+# 配置详解
+
+Vynth **仅通过环境变量** 配置，不读取任何配置文件（如 `.env`、`config.toml`、`yaml`）。这一设计决策确保单二进制无需额外配置即可运行，同时避免敏感配置被意外提交到仓库。
+
+---
+
+## 完整变量表
+
+| 变量 | 作用 | 默认值 | 必填 | 读取位置 |
+|------|------|--------|------|----------|
+| `VYNTH_API_KEY` | LLM API Key | 空 | **是** | `core` `loadConfig` |
+| `VYNTH_MODEL` | 模型名 | `deepseek-v4-pro` | 否 | `core` `loadConfig` |
+| `VYNTH_LLM_BASE_URL` | OpenAI 兼容端点 | `https://api.deepseek.com/v1` | 否 | `core` `loadConfig` |
+| `VYNTH_MODE` | 运行模式 | `vibe` | 否 | `core` `loadConfig` |
+| `VYNTH_THEME` | TUI 主题 | `mocha` | 否 | `core` `loadConfig` |
+| `VYNTH_NET` | 沙箱网络开关 | 开启 | 否 | `core` `loadConfig` → `sandbox` |
+| `VYNTH_DATA_DIR` | 数据目录 | `~/.vynth` | 否 | `core` `loadConfig` |
+
+---
+
+## 变量详解
+
+### VYNTH_API_KEY
+
+LLM 提供商的 API Key。
+
+- **必填**：未设置时将抛出 `LlmError`，不会进入 demo 模式。
+- **非空值**：使用 `OpenAiProvider` 走 OpenAI 兼容 SSE 流式。
+
+```bash
+# 真实 LLM
+export VYNTH_API_KEY="sk-..."
+./dist/vynth -g '重构 utils'
+```
+
+> **安全提示**：`VYNTH_API_KEY` 通过环境变量注入，不会被写入日志或配置文件。插件可访问环境变量，请仅加载可信插件。
+
+### VYNTH_MODEL
+
+指定 LLM 模型名。
+
+- 默认：`deepseek-v4-pro`
+- 支持任何 OpenAI 兼容端点支持的模型
+
+```bash
+export VYNTH_MODEL="deepseek-v4-pro"
+./dist/vynth -g '写一个快速排序'
+```
+
+### VYNTH_LLM_BASE_URL
+
+OpenAI 兼容 SSE 端点。
+
+- 默认：`https://api.deepseek.com/v1`
+- 支持本地服务（如 Ollama）
+
+```bash
+# 本地 Ollama
+export VYNTH_LLM_BASE_URL="http://localhost:11434/v1"
+export VYNTH_API_KEY="ollama"  # Ollama 通常忽略 key
+./dist/vynth -g '解释量子纠缠'
+```
+
+> **安全红线**：非默认端点发送 API Key 时，`OpenAiProvider` 会发出告警。`http`（非 `https`）且非 `localhost` 会被拒绝。
+
+### VYNTH_MODE
+
+运行模式。
+
+| 值 | 行为 |
+|----|------|
+| `vibe`（默认） | 边聊边写，agent 自主决定工具调用 |
+| `plan` | 先规划再动手，输出计划而非直接执行 |
+
+```bash
+./dist/vynth -m plan '设计用户认证模块'
+```
+
+### VYNTH_THEME
+
+TUI 主题。
+
+| 值 | 说明 |
+|----|------|
+| `mocha`（默认） | 深色主题（Catppuccin Mocha） |
+| `latte` | 浅色主题（Catppuccin Latte） |
+
+### VYNTH_NET
+
+沙箱网络开关。
+
+| 值 | 行为 |
+|----|------|
+| 未设置 / `1` / `true` / `yes` | 允许联网（默认） |
+| `0` / `off` / `false` / `no` | 禁止联网 |
+
+`run_shell` 工具执行时会检查此开关。关闭时，任何出站网络请求（除 `localhost` 外）都会被拦截。
+
+```bash
+# 禁用联网
+export VYNTH_NET="0"
+./dist/vynth -g '分析本地代码'
+```
+
+### VYNTH_DATA_DIR
+
+数据存储目录。
+
+- 默认：`~/.vynth`
+- 用于存储会话历史、审计日志（完整版功能）
+
+```bash
+export VYNTH_DATA_DIR="/path/to/data"
+./dist/vynth
+```
+
+---
+
+## 最佳实践
+
+### 开发环境
+
+```bash
+# .zshrc / .bashrc
+export VYNTH_API_KEY="sk-..."
+export VYNTH_MODEL="deepseek-v4-pro"
+export VYNTH_MODE="vibe"
+export VYNTH_THEME="mocha"
+```
+
+### CI / 脚本环境
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+# 无头模式 + 禁用联网（安全基线）
+VYNTH_NET="0" ./dist/vynth -g '运行测试并修复 lint 错误'
+```
+
+### 多项目隔离
+
+```bash
+# 项目级 .env（需配合 direnv / autoenv）
+export VYNTH_DATA_DIR="$(pwd)/.vynth"
+export VYNTH_API_KEY="sk-..."
+```
+
+---
+
+## 配置优先级
+
+`loadConfig` 的解析顺序（高优先级覆盖低优先级）：
+
+1. **代码参数**（`overrides`，仅内部测试使用）
+2. **环境变量**（`process.env`）
+3. **默认值**
+
+```typescript
+const config = loadConfig({
+  mode: 'plan',  // 最高优先级
+});
+// 等价于
+const config = loadConfig();
+// 但 VYNTH_MODE 环境变量会被 mode 参数覆盖
+```
+
+---
+
+## 相关文档
+
+- [快速开始](getting-started.md) —— 30 秒跑通真实链路
+- [API 参考](api/overview.md) —— CLI 参数与退出码
+- [开发规范](development/dev-guide.md) —— 安全红线与冻结值

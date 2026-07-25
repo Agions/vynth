@@ -6,7 +6,7 @@ Vynth 的对外接口是单二进制 `dist/vynth`（bin 名 `vynth`）。以下�
 
 | 参数 | 等价长名 | 作用 | 备注 |
 |------|----------|------|------|
-| `-g <目标>` | `--goal <目标>` | 无头 agent 模式，把 `<目标>` 流式输出到 stdout | 无需 TTY；无 key 走 demo |
+| `-g <目标>` | `--goal <目标>` | 无头 agent 模式，把 `<目标>` 流式输出到 stdout | 无需 TTY；需设置 `VYNTH_API_KEY` |
 | `-m <mode>` | `--mode <mode>` | 指定模式 `plan` \| `vibe` | 覆盖 `VYNTH_MODE`，默认 `vibe` |
 | `--plugin <path>` | — | 加载本地插件入口（示例 / 扩展工具） | **见「实现状态」** |
 | `-v` | `--version` | 输出版本号（`0.1.0`）并退出 | 退出码 0 |
@@ -27,9 +27,9 @@ Vynth 的对外接口是单二进制 `dist/vynth`（bin 名 `vynth`）。以下�
 
 | 变量 | 作用 | 默认值 | 读取位置 |
 |------|------|--------|----------|
-| `VYNTH_API_KEY` | LLM API key；**空 = demo 模式** | 空 | `core` `loadConfig` |
-| `VYNTH_MODEL` | 模型名 | `gpt-4o-mini` | `core` `loadConfig` |
-| `VYNTH_LLM_BASE_URL` | OpenAI 兼容端点 | `https://api.openai.com/v1` | `core` `loadConfig` |
+| `VYNTH_API_KEY` | LLM API key（必填） | 空 | `core` `loadConfig` |
+| `VYNTH_MODEL` | 模型名 | `deepseek-v4-pro` | `core` `loadConfig` |
+| `VYNTH_LLM_BASE_URL` | OpenAI 兼容端点 | `https://api.deepseek.com/v1` | `core` `loadConfig` |
 | `VYNTH_MODE` | `plan` \| `vibe` | `vibe` | `core` `loadConfig` |
 | `VYNTH_THEME` | `mocha` \| `latte`（Catppuccin） | `mocha` | `core` `loadConfig` |
 | `VYNTH_NET` | 沙箱网络开关；`'0'` = 禁止联网 | 开启（非 `'0'`） | `core` `loadConfig` → `sandbox` |
