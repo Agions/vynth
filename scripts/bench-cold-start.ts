@@ -6,7 +6,7 @@
  * 用法：
  *   bun run compile && BENCH_RUNS=20 BENCH_LIMIT_MS=150 bun scripts/bench-cold-start.ts
  *
- * 注：v0.2.1 起 demo 模式已移除——CLI 在缺 apiKey 时会立刻抛 LlmError 并退出，
+ * 注：v0.1.0 起 demo 模式已移除——CLI 在缺 apiKey 时会立刻抛 LlmError 并退出，
  * 但冷启动时间（启动 → 抛错前的 IO）依然稳定可测。我们注入一个 fake key 让 CLI
  * 走到真实首字节分支（goal echo 行），再让 LLM 不可达自然退出，计时不受影响。
  */

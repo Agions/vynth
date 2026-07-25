@@ -4,7 +4,7 @@ import { builtinTools, createProvider, runAgent } from '@vynth/engine';
 import { loadPlugin } from '@vynth/plugins';
 import { startTui } from '@vynth/tui';
 
-const VERSION = '0.2.1';
+const VERSION = '0.1.0';
 
 /** 把已知 VynthError 带上 6 位码前缀（其它错误原样） */
 function formatErr(err: unknown): string {

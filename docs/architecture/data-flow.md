@@ -90,7 +90,7 @@ for step in 0..maxSteps:
 
 | Provider | 触发条件 | 行为 |
 |----------|----------|------|
-| `OpenAiProvider` | `VYNTH_API_KEY` 非空 | 真实 SSE 流式（v0.2.1 起移除 EchoProvider；空 key 抛 `LlmError`） |
+| `OpenAiProvider` | `VYNTH_API_KEY` 非空 | 真实 SSE 流式（v0.1.0 起移除 EchoProvider；空 key 抛 `LlmError`） |
 
 #### SSE 解析流程
 

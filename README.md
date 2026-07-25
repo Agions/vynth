@@ -189,7 +189,7 @@ vyntoh/
 | [贡献指南](docs/development/contributing.md)  | 贡献者            | 提交流程、PR 规范、评审标准       |
 | [测试指南](docs/development/testing.md)       | 贡献者            | 测试策略、基准测试、覆盖率        |
 | [FAQ](docs/faq/index.md)                      | 所有用户          | 常见问题与故障排查                |
-| [变更日志](docs/changelog/v0.2.1.md)          | 所有用户          | 版本历史与迁移指南                |
+| [变更日志](docs/changelog/v0.1.0.md)          | 所有用户          | 版本历史与迁移指南                |
 
 ---
 

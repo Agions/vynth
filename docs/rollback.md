@@ -67,8 +67,8 @@ cp dist/vynth.prev dist/vynth && ./dist/vynth --version
 无需覆盖，可保留多个版本并分别放入 `PATH`：
 
 ```bash
-cp dist/vynth.prev dist/vynth-0.1.0
-cp dist/vynth      dist/vynth-0.2.0   # 假设新版本为 0.2.0
+cp dist/vynth.prev dist/vynth-0.0.x   # 历史快照
+cp dist/vynth      dist/vynth-0.1.0    # 当前版本
 # 使用时按需软链 / 直接调用对应版本
 ```
 

@@ -16,7 +16,7 @@ class MockProvider implements LLMProvider {
   }
 }
 
-test('createProvider → 空 apiKey 抛出 LlmError（v0.2.1 起 demo 模式已移除）', () => {
+test('createProvider → 空 apiKey 抛出 LlmError（v0.1.0 起 demo 模式已移除）', () => {
   expect(() => createProvider({ ...loadConfig(), apiKey: '' })).toThrow();
   expect(() => createProvider({ ...loadConfig(), apiKey: undefined })).toThrow();
 });

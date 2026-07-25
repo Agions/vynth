@@ -117,4 +117,4 @@ e2e / 集成测试驱动，私包（`private: true`）。依赖 `core`、`engine
 | `src/main.ts` | `parseArgs`（`-g/--goal`、`-m/--mode`、`-v/--version`、`-h/--help`）；`printHelp`；`runHeadless(goal)`（无头流式）；`main()` 分发到 TUI 或无头 |
 | `package.json` | `bin: { vynth: src/main.ts }`；`build` = `bun build --compile ... --outfile ../../dist/vynth` |
 
-**分发**：`bun run compile` 产出单二进制 `dist/vynth`；`--version` 输出 `0.2.1`。
+**分发**：`bun run compile` 产出单二进制 `dist/vynth`；`--version` 输出 `0.1.0`。

@@ -87,8 +87,8 @@ test('plugin activates and registers a tool', async () => {
   expect(r.output).toContain('x=2');
 });
 
-test('createProvider throws LlmError when API key is empty (v0.2.1 demo removed)', () => {
-  // v0.2.1 起不再有 EchoProvider：空 apiKey 必须立刻抛 LlmError，不静默 fallback
+test('createProvider throws LlmError when API key is empty (v0.1.0 demo removed)', () => {
+  // v0.1.0 起不再有 EchoProvider：空 apiKey 必须立刻抛 LlmError，不静默 fallback
   expect(() => createProvider({ ...loadConfig(), apiKey: '' })).toThrow();
   const e = (() => {
     try {
@@ -181,7 +181,7 @@ describe('CLI 退出码契约（F11）', () => {
   test('--version 退出 0 且打印版本', () => {
     const r = runCli(['--version']);
     expect(r.code).toBe(0);
-    expect(r.out).toContain('0.2.1');
+    expect(r.out).toContain('0.1.0');
   });
 
   test('--help 退出 0 且打印用法', () => {
@@ -212,7 +212,7 @@ describe('CLI 退出码契约（F11）', () => {
   });
 
   test('空 VYNTH_API_KEY 跑 headless → 退出 1 + LLM 6 位码', () => {
-    // v0.2.1 起 demo 已移除：缺 apiKey 必须抛 LlmError 并以 6 位码前缀输出
+    // v0.1.0 起 demo 已移除：缺 apiKey 必须抛 LlmError 并以 6 位码前缀输出
     const r = runCli(['-g', 'echo run'], { ...process.env, VYNTH_API_KEY: '' });
     expect(r.code).toBe(1);
     expect(r.err).toMatch(/\[VC-\d{6}\]\s+missing VYNTH_API_KEY/);
@@ -221,7 +221,7 @@ describe('CLI 退出码契约（F11）', () => {
 
 describe('CLI TUI 分流契约（F2/F3）', () => {
   test('无 -g 且非 TTY（stdin/stdout 都不可交互）→ 退出 2 提示用无头模式', () => {
-    // v0.2.1 起即便有 key 也仍受 TTY 约束
+    // v0.1.0 起即便有 key 也仍受 TTY 约束
     const r = runCli([]);
     expect(r.code).toBe(2);
     expect(r.err).toContain('无头模式');

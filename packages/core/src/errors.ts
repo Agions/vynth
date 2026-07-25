@@ -8,8 +8,8 @@ import {
 export type { VynthErrorCode } from './error-codes';
 
 /**
- * 所有 Vynth 错误的根类。v0.2.1 起，每个错误实例同时携带：
- *   - `code: string`  — 向后兼容字段（v0.2.0 时代的族名 `config`/`llm`/...）
+ * 所有 Vynth 错误的根类。v0.1.0 起，每个错误实例同时携带：
+ *   - `code: string`  — 向后兼容字段（旧族名 `config`/`llm`/...）
  *   - `numericCode: VynthErrorCode` — 权威 6 位码 `VC-XXXXXX`
  *
  * 老调用点：`new ConfigError('xxx')` —— 自动取族默认码

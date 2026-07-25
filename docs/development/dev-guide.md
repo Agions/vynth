@@ -22,7 +22,7 @@
 
 - 格式化/校验：**biome**（`biome check .` 必须 0 error）。规则：`single` 引号、`semicolons: always`、`noExplicitAny: error`、`noDefaultExport: error`、`lineWidth: 100`。
 - TypeScript：`strict: true`，`verbatimModuleSyntax: false`。
-- 错误表达：统一 `VynthError` 子类；**v0.2.1 起落地 6 位全局错误码 `VC-XXXXXX`**（旧字符串域 `config/llm/tool/...` 由 `fromLegacy()` 兼容映射，详见 `packages/core/src/error-codes.ts`）。
+- 错误表达：统一 `VynthError` 子类；**v0.1.0 起落地 6 位全局错误码 `VC-XXXXXX`**（旧字符串域 `config/llm/tool/...` 由 `fromLegacy()` 兼容映射，详见 `packages/core/src/error-codes.ts`）。
 
 ### 错误码权威表（`packages/core/src/error-codes.ts`）
 

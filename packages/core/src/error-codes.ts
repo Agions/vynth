@@ -7,7 +7,7 @@
  *     BB = 子类（同族内聚类）
  *     CC = 实例序号
  *
- * 设计动机：在 v0.2.0 之前的字符串码（`config`/`llm`/`tool`/`sandbox`/`mcp`/`plugin`）
+ * 设计动机：在 6 位码之前的字符串码（`config`/`llm`/`tool`/`sandbox`/`mcp`/`plugin`）
  * 对应的人类可读性与可 grep 性差，给运维与用户诊断带来负担。本表统一 6 位码，
  * 旧字符串仍可经 `fromLegacy()` 解码为新码（向后兼容）。
  *
