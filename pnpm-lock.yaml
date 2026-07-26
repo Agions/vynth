@@ -88,6 +88,9 @@ importers:
       '@vynth/engine':
         specifier: workspace:*
         version: link:../engine
+      '@vynth/plugins':
+        specifier: workspace:*
+        version: link:../plugins
       ansi-escapes:
         specifier: ^6.2.0
         version: 6.2.1

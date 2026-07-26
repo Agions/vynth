@@ -23,7 +23,7 @@ Vynth 是一个 AI-Native Coding Terminal，支持 **Plan**（先规划再动手
 | **插件无头接入** | `-p/--plugin` 动态加载，工具注册表热扩展                | ✅ MVP    |
 | **沙箱守卫**     | safeResolve 路径越界拦截 + VYNTH_NET 联网开关           | ✅ MVP    |
 | **MCP CLI 接入** | `-s/--mcp` 接入 stdio JSON-RPC 2024-11-05 server，工具并入 agent 工具集 | ✅ v0.1.0 |
-| **TUI 内插件**   | 交互界面内插件加载与渲染                                | ⏳ 完整版 |
+| **TUI 内插件**   | 交互界面内插件加载 + 信任确认门禁（信任模型联动）          | ✅ v0.1.0 |
 | **OS 级硬隔离**  | bubblewrap/seatbelt 进程级沙箱                          | ⏳ 完整版 |
 
 ---
@@ -125,9 +125,14 @@ export VYNTH_NET="0"
 ### 加载插件
 
 ```bash
-# 加载本地插件
+# 无头模式加载插件（脚本中 -p 即视为已授权，直接加载）
 ./dist/vynth -g '使用自定义工具' -p packages/plugins/examples/hello-plugin.ts
+
+# 交互 TUI 加载插件（启动后会弹出信任确认，确认后才加载）
+./dist/vynth -p packages/plugins/examples/hello-plugin.ts
 ```
+
+> ⚠ 插件在 Vynth 进程内执行任意代码，拥有同等权限。**TUI 模式**会在 `import` 前弹出信任确认（信任模型联动）；**无头模式**中 `-p` 显式授权即视为已信任，不做交互确认（适合脚本/管道）。仅加载你完全信任的插件。
 
 ### 接入 MCP server
 

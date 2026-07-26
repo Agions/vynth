@@ -104,10 +104,11 @@ interface ToolResult {
 ### 加载方式
 
 ```bash
-# 无头模式加载插件
+# 无头模式加载插件（脚本中 -p 即视为已授权，直接加载）
 ./dist/vynth -g '使用 hello 工具问好' -p ./my-plugin.ts
 
-# 交互 TUI 暂不支持插件加载（完整版功能）
+# 交互 TUI 加载插件（启动后弹出信任确认，确认后才加载）
+./dist/vynth -p ./my-plugin.ts
 ```
 
 ### 生命周期
@@ -129,6 +130,25 @@ const plugins = await loadAll([
 ]);
 
 // plugins = ['hello-world', 'code-review']
+```
+
+---
+
+## 信任确认（F13 · 信任模型联动）
+
+插件在本进程内执行任意代码，拥有与 Vynth 同等的权限。因此加载插件必须受信任门禁约束：
+
+- **无头模式（`-g ... -p <路径>`）**：`-p` 是脚本/管道中的显式授权，启动即加载，不做交互确认。
+- **交互 TUI（`-p <路径>`）**：进入 TUI 后会**在 `import` 之前**弹出信任确认，展示插件路径与信任边界警告，需用户输入 `y`/`yes` 才真正加载；输入其他（`n`/回车）则拒绝，插件代码不会被执行。
+
+底层由 `@vynth/plugins` 的 `loadPluginsWithTrust(paths, reg, confirm)` 实现：确认回调返回 `true` 才 `import` + `activate`，故门禁在任意代码执行前生效。
+
+```typescript
+import { loadPluginsWithTrust } from '@vynth/plugins';
+
+// TUI：确认回调弹出交互式信任提示
+const res = await loadPluginsWithTrust(paths, tools, async ({ path }) => askUserTrust(path));
+// res = { loaded: string[], declined: string[], errors: { path, error }[] }
 ```
 
 ---

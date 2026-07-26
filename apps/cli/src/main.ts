@@ -2,7 +2,7 @@ import { resolve } from 'node:path';
 import { type Mode, loadConfig } from '@vynth/core';
 import { builtinTools, createProvider, runAgent } from '@vynth/engine';
 import { McpClient, McpError } from '@vynth/mcp';
-import { loadPlugin } from '@vynth/plugins';
+import { loadPluginsWithTrust } from '@vynth/plugins';
 import { startTui } from '@vynth/tui';
 
 const VERSION = '0.1.0';
@@ -67,7 +67,7 @@ function printHelp(): void {
   vynth                启动交互式 TUI（需真实终端）
   vynth -g "<目标>"   无头 agent 模式（流式输出到终端）
   vynth -m plan       指定模式 plan|vibe
-  vynth -p <路径>     加载插件（示例见 packages/plugins/examples）
+  vynth -p <路径>     加载插件（无头模式直接加载；TUI 模式会弹出信任确认后再加载）
   vynth -s "<命令>"   接入 MCP server（stdio JSON-RPC 2024-11-05，可重复指定多个）
 
 环境变量:
@@ -88,10 +88,13 @@ async function runHeadless(
   const provider = createProvider(config);
   const tools = builtinTools(config.sandbox.cwd, { networkAllowed: config.sandbox.networkAllowed });
   if (pluginPath) {
-    const abs = resolve(config.sandbox.cwd, pluginPath);
-    const plugin = await loadPlugin(abs);
-    plugin.activate(tools);
-    console.log(`› 已加载插件: ${plugin.name}`);
+    const res = await loadPluginsWithTrust(
+      [resolve(config.sandbox.cwd, pluginPath)],
+      tools,
+      async () => true // 无头脚本中 -p 显式授权即视为已信任
+    );
+    for (const n of res.loaded) console.log(`› 已加载插件: ${n}`);
+    for (const e of res.errors) console.error(`✗ 插件加载失败: ${e.error}`);
   }
   const mcpClients: McpClient[] = [];
   for (const spec of mcpCommands) {
@@ -151,7 +154,7 @@ async function main(): Promise<void> {
       console.error('当前不是交互式终端。请使用无头模式： vynth -g "<目标>"');
       process.exit(2);
     }
-    startTui(config);
+    await startTui(config, parsed.plugin ? [parsed.plugin] : []);
   } catch (err) {
     // 顶层捕获：所有 VynthError 都带 [VC-XXXXXX] 前缀输出
     console.error(`✗ ${formatErr(err)}`);
