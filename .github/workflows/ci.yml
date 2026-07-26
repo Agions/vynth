@@ -24,8 +24,15 @@ jobs:
           bun-version: latest
 
       # 阶段 1-2: install + lint/typecheck
+      # 注意：用 pnpm 而非 bun install —— bun 1.3.14 不会自动 link workspace 软链，
+      # 会导致 `bun test packages` 在 e2e 中报 "Cannot find module @vynth/mcp"。
+      # .npmrc 已开 shamefully-hoist=true，pnpm 会把 @vynth/* hoist 到顶层 node_modules/@vynth/。
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
       - name: Install
-        run: bun install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Lint & Typecheck
         run: bun run lint

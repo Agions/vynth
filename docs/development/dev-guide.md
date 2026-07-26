@@ -63,7 +63,7 @@
 
 ## 3. CI/CD 8 阶段（`.github/workflows/ci.yml`）
 
-1. install（`bun install --frozen-lockfile`）
+1. install（`pnpm install --frozen-lockfile` —— 见下方说明）
 2. lint & typecheck（`bun run lint`）
 3. build packages（`bun run turbo run build`）
 4. compile single binary（`bun run compile` → `dist/vynth`）
@@ -72,7 +72,23 @@
 7. **体积门禁**（`bun scripts/check-binary-size.ts`，MVP ≤61MB）
 8. sign/notarize + publish（仅 tag/release 或 main 推送）
 
-本地等价校验：`bun run lint && bun run compile && bun test packages && bun scripts/check-binary-size.ts`。
+本地等价校验：`pnpm install && bun run lint && bun run compile && bun test packages && bun scripts/check-binary-size.ts`。
+
+### 3.1 为什么 install 用 pnpm 而不是 bun install
+
+bun 1.3.14 **不会** 自动给 monorepo workspace 建立 `node_modules/@vynth/*` 软链接，导致 `bun test packages` 在执行 `import { McpClient } from '@vynth/mcp'` 时报 `Cannot find module '@vynth/mcp'`。
+
+项目已有 `pnpm-workspace.yaml`，CI 改用 pnpm 安装，并通过根目录 `.npmrc` 设置：
+
+```ini
+shamefully-hoist=true
+```
+
+pnpm 在严格模式下默认不把 workspace 依赖 hoist 到顶层；`shamefully-hoist=true` 强制把所有 `@vynth/*` 软链到顶层 `node_modules/@vynth/`，bun 即可正常解析。锁文件同时维护两份可能引起混淆，**项目仅维护 `pnpm-lock.yaml`**，提交策略：
+
+- CI / 本地均用 `pnpm install --frozen-lockfile`
+- 锁文件更新：用 `pnpm install` 后再 `pnpm install --lockfile-only` 校验
+- 历史 `bun.lock` 已不再使用
 
 ## 4. 提交与分支模型
 

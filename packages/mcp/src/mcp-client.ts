@@ -95,7 +95,8 @@ export class McpClient {
     });
     if (res.error) throw new McpError(`initialize failed: ${res.error.message}`, 'VC-060001');
     const listRes = await this.rpc('tools/list', {});
-    if (listRes.error) throw new McpError(`tools/list failed: ${listRes.error.message}`, 'VC-060001');
+    if (listRes.error)
+      throw new McpError(`tools/list failed: ${listRes.error.message}`, 'VC-060001');
     const list = (listRes.result as { tools?: McpTool[] })?.tools ?? [];
     for (const t of list) this.tools.set(t.name, t);
   }
