@@ -9,6 +9,7 @@
   "dependencies": {
     "@vynth/core": "workspace:*",
     "@vynth/engine": "workspace:*",
+    "@vynth/mcp": "workspace:*",
     "@vynth/tui": "workspace:*",
     "@vynth/plugins": "workspace:*"
   },

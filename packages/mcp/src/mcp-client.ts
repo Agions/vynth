@@ -1,5 +1,8 @@
 import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process';
-import { McpError, type ToolResult } from '@vynth/core';
+import { McpError, type ToolDef, type ToolParam, type ToolResult } from '@vynth/core';
+
+/** MCP stdio JSON-RPC 协议版本（F12 锁定 2024-11-05，见实施开发计划 §2.3 / 风险 U-05） */
+export const MCP_PROTOCOL_VERSION = '2024-11-05';
 
 interface JsonRpcReq {
   jsonrpc: '2.0';
@@ -15,12 +18,59 @@ interface JsonRpcRes {
   error?: { message: string };
 }
 
+/** MCP `tools/list` 返回的单个工具定义（2024-11-05 子集） */
+export interface McpTool {
+  name: string;
+  description?: string;
+  inputSchema?: {
+    type?: string;
+    properties?: Record<string, { type?: string; description?: string }>;
+    required?: string[];
+  };
+}
+
+type McpCall = (name: string, args: Record<string, unknown>) => Promise<ToolResult>;
+
+/**
+ * 将 MCP 工具定义转换为 engine 的 `ToolDef`，使 MCP 工具能并入 agent 工具集（F12）。
+ * `call` 由 `McpClient` 注入，绑定到对应服务器的 `tools/call`，从而复用同一套沙箱/审计链路。
+ */
+export function mcpToolToToolDef(tool: McpTool, call: McpCall): ToolDef {
+  const schema = tool.inputSchema ?? {};
+  const props = schema.properties ?? {};
+  const required = new Set(schema.required ?? []);
+  const parameters: ToolParam[] = Object.entries(props).map(([name, p]) => ({
+    name,
+    type: mapJsonType(p?.type),
+    description: p?.description ?? '',
+    required: required.has(name)
+  }));
+  return {
+    name: tool.name,
+    description: tool.description ?? '',
+    parameters,
+    run: (args) => call(tool.name, args)
+  };
+}
+
+function mapJsonType(t?: string): ToolParam['type'] {
+  switch (t) {
+    case 'number':
+    case 'integer':
+      return 'number';
+    case 'boolean':
+      return 'boolean';
+    default:
+      return 'string';
+  }
+}
+
 export class McpClient {
   private proc: ChildProcessWithoutNullStreams | null = null;
   private buf = '';
   private nextId = 1;
   private pending = new Map<number, (res: JsonRpcRes) => void>();
-  readonly tools = new Map<string, unknown>();
+  private readonly tools = new Map<string, McpTool>();
 
   constructor(
     private readonly command: string,
@@ -30,16 +80,29 @@ export class McpClient {
   async connect(): Promise<void> {
     this.proc = spawn(this.command, this.args, { stdio: ['pipe', 'pipe', 'inherit'] });
     this.proc.stdout.on('data', (d) => this.onData(String(d)));
+    // 服务器异常退出时，让所有挂起请求失败，避免调用方永久挂起
+    this.proc.on('exit', (code) => {
+      if (code === null || code === 0) return;
+      for (const resolve of this.pending.values()) {
+        resolve({ jsonrpc: '2.0', id: -1, error: { message: `mcp server exited (${code})` } });
+      }
+      this.pending.clear();
+    });
     const res = await this.rpc('initialize', {
-      protocolVersion: '2024-11-05',
+      protocolVersion: MCP_PROTOCOL_VERSION,
       capabilities: {},
       clientInfo: { name: 'vynth', version: '0.1.0' }
     });
-    if (res.error) throw new McpError(res.error.message);
-    await this.rpc('tools/list', {}).then((r) => {
-      const list = (r.result as { tools?: Array<{ name: string }> })?.tools ?? [];
-      for (const t of list) this.tools.set(t.name, t);
-    });
+    if (res.error) throw new McpError(`initialize failed: ${res.error.message}`, 'VC-060001');
+    const listRes = await this.rpc('tools/list', {});
+    if (listRes.error) throw new McpError(`tools/list failed: ${listRes.error.message}`, 'VC-060001');
+    const list = (listRes.result as { tools?: McpTool[] })?.tools ?? [];
+    for (const t of list) this.tools.set(t.name, t);
+  }
+
+  /** 返回并入 agent 工具集所需的 `ToolDef[]`（每个 MCP 工具绑定到本客户端的 tools/call） */
+  getToolDefs(): ToolDef[] {
+    return [...this.tools.values()].map((t) => mcpToolToToolDef(t, (n, a) => this.callTool(n, a)));
   }
 
   async callTool(name: string, args: Record<string, unknown>): Promise<ToolResult> {
@@ -56,7 +119,7 @@ export class McpClient {
 
   private rpc(method: string, params: unknown): Promise<JsonRpcRes> {
     const proc = this.proc;
-    if (!proc) throw new McpError('not connected');
+    if (!proc) throw new McpError('not connected', 'VC-060002');
     const id = this.nextId++;
     const req: JsonRpcReq = { jsonrpc: '2.0', id, method, params };
     return new Promise((resolve) => {

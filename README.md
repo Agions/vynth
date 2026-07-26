@@ -22,7 +22,7 @@ Vynth 是一个 AI-Native Coding Terminal，支持 **Plan**（先规划再动手
 | **LLM 默认对齐** | DeepSeek 端点 + `deepseek-v4-pro`，OpenAI 兼容 SSE      | ✅ MVP    |
 | **插件无头接入** | `-p/--plugin` 动态加载，工具注册表热扩展                | ✅ MVP    |
 | **沙箱守卫**     | safeResolve 路径越界拦截 + VYNTH_NET 联网开关           | ✅ MVP    |
-| **MCP 客户端**   | stdio JSON-RPC，已就绪待接入 CLI                        | ⏳ 完整版 |
+| **MCP CLI 接入** | `-s/--mcp` 接入 stdio JSON-RPC 2024-11-05 server，工具并入 agent 工具集 | ✅ v0.1.0 |
 | **TUI 内插件**   | 交互界面内插件加载与渲染                                | ⏳ 完整版 |
 | **OS 级硬隔离**  | bubblewrap/seatbelt 进程级沙箱                          | ⏳ 完整版 |
 
@@ -48,7 +48,7 @@ export VYNTH_API_KEY="sk-..."
 ./dist/vynth
 ```
 
-> **实测基线**：单二进制 **60.51 MB**；冷启动 **P95 = 30.5 ms**（远低于 150 ms 基线）。
+> **实测基线**：单二进制 **60.52 MB**；冷启动 **P95 = 30.5 ms**（远低于 150 ms 基线）。
 
 ---
 
@@ -128,6 +128,17 @@ export VYNTH_NET="0"
 # 加载本地插件
 ./dist/vynth -g '使用自定义工具' -p packages/plugins/examples/hello-plugin.ts
 ```
+
+### 接入 MCP server
+
+```bash
+# 接入一个 stdio MCP server（可重复 -s 接入多个）
+./dist/vynth -g '用 MCP 工具完成任务' -s "bun run packages/mcp/examples/echo-server.ts"
+# 生产环境常见写法（任意 stdio 命令均可）：
+./dist/vynth -g '查询天气' -s "npx -y @modelcontextprotocol/server-xxx"
+```
+
+> MCP server 以子进程启动（stdio JSON-RPC，协议版本锁定 **2024-11-05**），其工具会被自动转换为 agent 工具集并参与同一套沙箱 / 审计链路。
 
 ---
 

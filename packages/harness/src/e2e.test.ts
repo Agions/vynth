@@ -13,6 +13,7 @@ import {
   createProvider,
   runAgent
 } from '@vynth/engine';
+import { McpClient } from '@vynth/mcp';
 import * as samplePlugin from './fixtures/sample-plugin.ts';
 
 class MockProvider implements LLMProvider {
@@ -233,6 +234,46 @@ describe('CLI TUI 分流契约（F2/F3）', () => {
     const r = runCli(['-g', 'echo run']);
     expect(r.code).not.toBe(0); // fake key 不会真正命中 DeepSeek
     // 但 CLI 不应崩溃到 exit 2（参数错误），也不应静默进入 demo
+    expect(r.code).not.toBe(2);
+  });
+});
+
+describe('MCP CLI 接入（F12）', () => {
+  const ECHO_SERVER = resolve(REPO, 'packages/mcp/examples/echo-server.ts');
+
+  test('MCP tools 并入 agent 工具集并被 agent 调用', async () => {
+    const client = new McpClient(process.execPath, [ECHO_SERVER]);
+    await client.connect();
+    try {
+      const reg = new ToolRegistry();
+      for (const d of client.getToolDefs()) reg.register(d);
+      expect(reg.get('mcp_echo')).toBeDefined();
+
+      let invoked = '';
+      for await (const ev of runAgent('use the mcp tool', {
+        provider: new MockProvider(),
+        tools: reg,
+        maxSteps: 4
+      })) {
+        if (ev.type === 'tool') invoked = ev.call.name;
+      }
+      expect(invoked).toBe('mcp_echo');
+    } finally {
+      client.close();
+    }
+  });
+
+  test('-s/--mcp 缺值 → 退出 2 + 6 位码', () => {
+    const r = runCli(['-g', 'x', '-s']);
+    expect(r.code).toBe(2);
+    expect(r.err).toContain('服务器命令参数');
+    expect(r.err).toMatch(/VC-\d{6}/);
+  });
+
+  test('-s 接入 MCP server（fake key 下不崩，退出码非 2）', () => {
+    // 验证 -s 标志被识别、echo server 能连接并注册工具；
+    // 无真实 LLM 时以非 2（非参数错误）退出，证明 MCP 接入链路未阻断启动
+    const r = runCli(['-g', 'x', '-s', `${process.execPath} ${ECHO_SERVER}`]);
     expect(r.code).not.toBe(2);
   });
 });

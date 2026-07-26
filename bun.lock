@@ -18,6 +18,7 @@
       "dependencies": {
         "@vynth/core": "workspace:*",
         "@vynth/engine": "workspace:*",
+        "@vynth/mcp": "workspace:*",
         "@vynth/plugins": "workspace:*",
         "@vynth/tui": "workspace:*",
       },
@@ -40,6 +41,7 @@
       "dependencies": {
         "@vynth/core": "workspace:*",
         "@vynth/engine": "workspace:*",
+        "@vynth/mcp": "workspace:*",
         "@vynth/plugins": "workspace:*",
       },
     },

@@ -1,6 +1,7 @@
 import { resolve } from 'node:path';
 import { type Mode, loadConfig } from '@vynth/core';
 import { builtinTools, createProvider, runAgent } from '@vynth/engine';
+import { McpClient, McpError } from '@vynth/mcp';
 import { loadPlugin } from '@vynth/plugins';
 import { startTui } from '@vynth/tui';
 
@@ -21,6 +22,7 @@ interface Parsed {
   goal?: string;
   mode?: Mode;
   plugin?: string;
+  mcp?: string[];
   help?: boolean;
   version?: boolean;
   issues: string[];
@@ -46,6 +48,13 @@ function parseArgs(argv: string[]): Parsed {
       const v = argv[++i];
       if (v === undefined) out.issues.push('[VC-010004] 缺少 -p/--plugin 的路径参数');
       else out.plugin = v;
+    } else if (a === '-s' || a === '--mcp') {
+      const v = argv[++i];
+      if (v === undefined) out.issues.push('[VC-010004] 缺少 -s/--mcp 的服务器命令参数');
+      else {
+        if (!out.mcp) out.mcp = [];
+        out.mcp.push(v);
+      }
     } else out.issues.push(`[VC-010003] 未知参数: ${a}（使用 --help 查看用法）`);
   }
   return out;
@@ -59,6 +68,7 @@ function printHelp(): void {
   vynth -g "<目标>"   无头 agent 模式（流式输出到终端）
   vynth -m plan       指定模式 plan|vibe
   vynth -p <路径>     加载插件（示例见 packages/plugins/examples）
+  vynth -s "<命令>"   接入 MCP server（stdio JSON-RPC 2024-11-05，可重复指定多个）
 
 环境变量:
   VYNTH_API_KEY       LLM API key（必填）
@@ -69,7 +79,11 @@ function printHelp(): void {
 `);
 }
 
-async function runHeadless(goal: string, pluginPath?: string): Promise<void> {
+async function runHeadless(
+  goal: string,
+  pluginPath?: string,
+  mcpCommands: string[] = []
+): Promise<void> {
   const config = loadConfig();
   const provider = createProvider(config);
   const tools = builtinTools(config.sandbox.cwd, { networkAllowed: config.sandbox.networkAllowed });
@@ -79,13 +93,36 @@ async function runHeadless(goal: string, pluginPath?: string): Promise<void> {
     plugin.activate(tools);
     console.log(`› 已加载插件: ${plugin.name}`);
   }
-  console.log(`› ${goal}`);
-  for await (const ev of runAgent(goal, { provider, tools })) {
-    if (ev.type === 'token') {
-      process.stdout.write(ev.text);
-    } else if (ev.type === 'tool') {
-      console.log(`\n  ⚙ ${ev.call.name}(${JSON.stringify(ev.call.args)})`);
+  const mcpClients: McpClient[] = [];
+  for (const spec of mcpCommands) {
+    const parts = spec.trim().split(/\s+/);
+    const cmd = parts[0];
+    const args = parts.slice(1);
+    if (!cmd) throw new McpError(`空的 MCP server 命令: ${spec}`, 'VC-060003');
+    const client = new McpClient(cmd, args);
+    await client.connect();
+    mcpClients.push(client);
+    const defs = client.getToolDefs();
+    for (const d of defs) {
+      try {
+        tools.register(d);
+      } catch {
+        // 与内置/插件工具重名时跳过，避免阻断启动
+      }
     }
+    console.log(`› 已连接 MCP server: ${spec}（${defs.length} 个工具）`);
+  }
+  console.log(`› ${goal}`);
+  try {
+    for await (const ev of runAgent(goal, { provider, tools })) {
+      if (ev.type === 'token') {
+        process.stdout.write(ev.text);
+      } else if (ev.type === 'tool') {
+        console.log(`\n  ⚙ ${ev.call.name}(${JSON.stringify(ev.call.args)})`);
+      }
+    }
+  } finally {
+    for (const c of mcpClients) c.close();
   }
   console.log();
 }
@@ -107,7 +144,7 @@ async function main(): Promise<void> {
     }
     const config = loadConfig({ mode: parsed.mode });
     if (parsed.goal) {
-      await runHeadless(parsed.goal, parsed.plugin);
+      await runHeadless(parsed.goal, parsed.plugin, parsed.mcp ?? []);
       return;
     }
     if (!process.stdout.isTTY || !process.stdin.isTTY) {
