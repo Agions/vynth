@@ -1,5 +1,6 @@
 {
   "name": "@vynth/cli",
+  "description": "CLI 入口：单二进制分发、TTY 双模式路由（无头 / 交互式 TUI）、参数解析与退出码契约",
   "version": "0.1.0",
   "type": "module",
   "bin": {

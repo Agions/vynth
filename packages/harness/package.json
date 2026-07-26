@@ -1,5 +1,6 @@
 {
   "name": "@vynth/harness",
+  "description": "端到端测试工具包：CLI 退出码契约、安全红线用例、插件 fixtures、冷启动性能基准",
   "version": "0.1.0",
   "type": "module",
   "private": true,

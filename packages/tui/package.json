@@ -1,5 +1,6 @@
 {
   "name": "@vynth/tui",
+  "description": "终端 UI：交互式 TUI（catppuccin 主题 + ANSI 转义）+ 无头模式流式输出",
   "version": "0.1.0",
   "type": "module",
   "main": "src/index.ts",
