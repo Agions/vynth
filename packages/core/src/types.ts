@@ -64,4 +64,6 @@ export interface VynthConfig {
   theme: 'mocha' | 'latte';
   sandbox: { networkAllowed: boolean; cwd: string };
   dataDir: string;
+  /** F14 配置合规层：是否启用 5 维审计落盘（opt-in，默认 false） */
+  audit: boolean;
 }

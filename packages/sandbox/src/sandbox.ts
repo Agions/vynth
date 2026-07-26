@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import { realpathSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { basename, dirname, join, resolve, sep } from 'node:path';
-import { SandboxError, type ToolResult } from '@vynth/core';
+import { SandboxError, type ToolResult, audit } from '@vynth/core';
 
 function safeResolve(target: string, cwd: string): string {
   const abs = resolve(cwd, target);
@@ -28,8 +28,10 @@ export async function readText(path: string, cwd: string): Promise<ToolResult> {
   try {
     const abs = safeResolve(path, cwd);
     const content = await readFile(abs, 'utf8');
+    audit().record('file_access', { op: 'read', path: abs, ok: true }, true);
     return { ok: true, output: content };
   } catch (err) {
+    audit().record('file_access', { op: 'read', path, ok: false }, false);
     return { ok: false, output: '', error: formatErr(err) };
   }
 }
@@ -38,8 +40,10 @@ export async function writeText(path: string, content: string, cwd: string): Pro
   try {
     const abs = safeResolve(path, cwd);
     await writeFile(abs, content, 'utf8');
+    audit().record('file_access', { op: 'write', path: abs, ok: true }, true);
     return { ok: true, output: `wrote ${abs}` };
   } catch (err) {
+    audit().record('file_access', { op: 'write', path, ok: false }, false);
     return { ok: false, output: '', error: formatErr(err) };
   }
 }
@@ -53,8 +57,10 @@ export interface RunOpts {
 export async function runCommand(command: string, opts: RunOpts): Promise<ToolResult> {
   const timeout = opts.timeoutMs ?? 30_000;
   if (!opts.networkAllowed) {
+    audit().record('network_egress', { command, allowed: false, ok: false }, false);
     return { ok: false, output: '', error: '[VC-030003] network blocked by sandbox policy' };
   }
+  audit().record('network_egress', { command, allowed: true, ok: true }, true);
   return new Promise<ToolResult>((resolveResult) => {
     const shell = process.platform === 'win32' ? 'cmd' : 'sh';
     const args = process.platform === 'win32' ? ['/c', command] : ['-c', command];

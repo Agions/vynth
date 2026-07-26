@@ -1,4 +1,4 @@
-import { PluginError } from '@vynth/core';
+import { PluginError, audit } from '@vynth/core';
 import type { ToolRegistry } from '@vynth/engine';
 
 export interface Plugin {
@@ -16,11 +16,14 @@ export async function loadPlugin(entryPath: string): Promise<Plugin> {
   try {
     mod = (await import(entryPath)) as PluginModule;
   } catch (err) {
+    audit().record('plugin_load', { path: entryPath, ok: false }, false);
     throw new PluginError(`failed to load plugin ${entryPath}: ${errMsg(err)}`);
   }
   if (!mod.pluginName || typeof mod.activate !== 'function') {
+    audit().record('plugin_load', { path: entryPath, ok: false }, false);
     throw new PluginError(`plugin ${entryPath} must export pluginName and activate()`);
   }
+  audit().record('plugin_load', { path: entryPath, name: mod.pluginName, ok: true }, true);
   return { name: mod.pluginName, activate: mod.activate };
 }
 

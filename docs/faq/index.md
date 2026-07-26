@@ -124,7 +124,7 @@ A: LLM 请求发送到 `VYNTH_LLM_BASE_URL` 指定的端点（默认 DeepSeek）
 
 ### Q: 如何审计工具调用？
 
-A: 完整��（F14）将提供审计日志。当前可在插件中手动记录：
+A: F14 已内置 5 维审计日志（`tool_exec` / `file_access` / `network_egress` / `config_change` / `plugin_load`），通过 `VYNTH_AUDIT=1` 或配置文件 `audit:true` 启用，落盘 `<VYNTH_DATA_DIR>/audit.log`。插件也可在自身逻辑中手动记录：
 
 ```typescript
 execute: async (args) => {

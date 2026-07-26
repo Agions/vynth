@@ -24,6 +24,7 @@ Vynth 是一个 AI-Native Coding Terminal，支持 **Plan**（先规划再动手
 | **沙箱守卫**     | safeResolve 路径越界拦截 + VYNTH_NET 联网开关           | ✅ MVP    |
 | **MCP CLI 接入** | `-s/--mcp` 接入 stdio JSON-RPC 2024-11-05 server，工具并入 agent 工具集 | ✅ v0.1.0 |
 | **TUI 内插件**   | 交互界面内插件加载 + 信任确认门禁（信任模型联动）          | ✅ v0.1.0 |
+| **配置合规层**   | 可选配置文件（ADR-0003 扩展）+ 5 维审计（工具/文件/网络/配置/插件） | ✅ v0.1.0 |
 | **OS 级硬隔离**  | bubblewrap/seatbelt 进程级沙箱                          | ⏳ 完整版 |
 
 ---

@@ -21,6 +21,8 @@ export type VynthErrorCode =
   | 'VC-010002' // CONFIG_INVALID_MODE
   | 'VC-010003' // CONFIG_UNKNOWN_FLAG
   | 'VC-010004' // CONFIG_VALUE_MISSING // -g/-m/-p 缺值
+  | 'VC-010005' // CONFIG_FILE_SECRET // 配置文件中不得写入密钥
+  | 'VC-010006' // CONFIG_FILE_INVALID // 配置文件 schema / JSON 非法
   // ----- 02 LLM 族 -----
   | 'VC-020001' // LLM_AUTH_FAILED
   | 'VC-020002' // LLM_RATE_LIMITED
@@ -61,6 +63,8 @@ const ALL_CODES: ReadonlySet<VynthErrorCode> = new Set<VynthErrorCode>([
   'VC-010002',
   'VC-010003',
   'VC-010004',
+  'VC-010005',
+  'VC-010006',
   'VC-020001',
   'VC-020002',
   'VC-020003',
@@ -124,6 +128,10 @@ export function describe(code: VynthErrorCode): string {
       return 'CONFIG_UNKNOWN_FLAG';
     case 'VC-010004':
       return 'CONFIG_VALUE_MISSING';
+    case 'VC-010005':
+      return 'CONFIG_FILE_SECRET';
+    case 'VC-010006':
+      return 'CONFIG_FILE_INVALID';
     case 'VC-020001':
       return 'LLM_AUTH_FAILED';
     case 'VC-020002':

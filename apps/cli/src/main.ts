@@ -1,5 +1,5 @@
 import { resolve } from 'node:path';
-import { type Mode, loadConfig } from '@vynth/core';
+import { type Mode, audit, initAudit, loadConfig } from '@vynth/core';
 import { builtinTools, createProvider, runAgent } from '@vynth/engine';
 import { McpClient, McpError } from '@vynth/mcp';
 import { loadPluginsWithTrust } from '@vynth/plugins';
@@ -85,6 +85,12 @@ async function runHeadless(
   mcpCommands: string[] = []
 ): Promise<void> {
   const config = loadConfig();
+  initAudit(config); // F14：按 config.audit 启用 5 维审计单例
+  audit().record(
+    'config_change',
+    { source: process.env.VYNTH_CONFIG_FILE ? 'file' : 'env', auditEnabled: config.audit },
+    true
+  );
   const provider = createProvider(config);
   const tools = builtinTools(config.sandbox.cwd, { networkAllowed: config.sandbox.networkAllowed });
   if (pluginPath) {
@@ -146,6 +152,12 @@ async function main(): Promise<void> {
       return;
     }
     const config = loadConfig({ mode: parsed.mode });
+    initAudit(config); // F14：TUI 路径同样初始化审计单例
+    audit().record(
+      'config_change',
+      { source: process.env.VYNTH_CONFIG_FILE ? 'file' : 'env', auditEnabled: config.audit },
+      true
+    );
     if (parsed.goal) {
       await runHeadless(parsed.goal, parsed.plugin, parsed.mcp ?? []);
       return;

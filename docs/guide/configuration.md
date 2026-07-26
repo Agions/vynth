@@ -167,6 +167,61 @@ const config = loadConfig();
 
 ---
 
+## 可选配置文件（F14，ADR-0003 扩展）
+
+Vynth **仍以环境变量为主配置源**。F14 增加了一个**可选**的 JSON 配置文件层，作为便利补充；环境变量始终拥有最高优先级，配置文件**不会**覆盖环境变量。
+
+查找顺序：
+
+1. `VYNTH_CONFIG_FILE` 指向的显式路径；
+2. 否则 `<VYNTH_DATA_DIR>/config.json`（默认 `~/.vynth/config.json`）。
+
+示例 `~/.vynth/config.json`：
+
+```json
+{
+  "model": "deepseek-v4-pro",
+  "theme": "latte",
+  "audit": true
+}
+```
+
+合并优先级（高 → 低）：**代码 overrides > 环境变量 > 配置文件 > 默认值**。
+
+> **安全红线**：配置文件中**不得写入 `apiKey`**（违反将抛 `VC-010005`）。密钥只允许通过 `VYNTH_API_KEY` 环境变量注入。包含未知键或非法 JSON 会抛 `VC-010006`，配置文件即停止生效——宁可启动失败，也不静默接受错误配置。
+
+允许的键：`mode` / `model` / `llmBaseUrl` / `theme` / `sandbox.{networkAllowed,cwd}` / `dataDir` / `audit`。
+
+---
+
+## 审计日志（F14）
+
+Vynth 内置 **5 维审计**，用于完整版的合规留痕：
+
+| 维度 | 触发点 |
+|------|--------|
+| `tool_exec` | agent 工具执行（成功 / 失败） |
+| `file_access` | 文件读 / 写（沙箱，含越界失败） |
+| `network_egress` | `run_shell` 联网出站（放行 / 被 `VYNTH_NET` 拦截） |
+| `config_change` | 配置文件加载 / 生效 |
+| `plugin_load` | 插件 `import` + `activate`（成功 / 失败） |
+
+审计落盘为 **append-only JSONL** 文件 `<VYNTH_DATA_DIR>/audit.log`（零依赖，符合 ADR-0003 对单二进制的约束，不引入原生模块）。每条记录含 `ts`（ISO 8601）、`kind`、`ok`、`detail`。
+
+**默认关闭**。启用方式（任选其一）：
+
+```bash
+# 环境变量
+export VYNTH_AUDIT=1
+
+# 或配置文件
+echo '{ "audit": true }' > ~/.vynth/config.json
+```
+
+启用后，高危操作即被 100% 策略留痕（详见验收闸门「完整版：高危操作 100% 策略留痕」）。
+
+---
+
 ## 相关文档
 
 - [快速开始](getting-started.md) —— 30 秒跑通真实链路

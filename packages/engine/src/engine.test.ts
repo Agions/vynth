@@ -1,6 +1,9 @@
 import { describe, expect, test } from 'bun:test';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import type { ChatMessage, StreamEvent, ToolCall, ToolDef } from '@vynth/core';
-import { loadConfig } from '@vynth/core';
+import { audit, initAudit, loadConfig, resetAudit } from '@vynth/core';
 import { type LLMProvider, ToolRegistry, createProvider, runAgent } from './index';
 
 // 一个可控的 Mock Provider：第一次返回 token + 一个工具调用，之后只返回 token。
@@ -207,4 +210,35 @@ test('runAgent 正确构建 tool_calls + reasoning_content + tool_call_id 消息
   expect(tool).toBeDefined();
   expect(tool?.tool_call_id).toBe('call_1');
   expect(tool?.content).toContain('got 1');
+});
+
+test('runAgent 工具执行被 F14 审计记录（tool_exec 维度）', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'vynth-eng-audit-'));
+  try {
+    initAudit({ dataDir: dir, audit: true });
+    const reg = new ToolRegistry();
+    reg.register({
+      name: 'echo_tool',
+      description: 'echo',
+      parameters: [{ name: 'x', type: 'number', description: 'n', required: true }],
+      run: (a) => ({ ok: true, output: `got ${a.x}` })
+    });
+    for await (const _ of runAgent('audit me', {
+      provider: new MockProvider(),
+      tools: reg,
+      maxSteps: 2
+    })) {
+      // consume
+    }
+    const records = audit().readAllSync();
+    expect(
+      records.some(
+        (r) =>
+          r.kind === 'tool_exec' && (r.detail as { name?: string }).name === 'echo_tool' && r.ok
+      )
+    ).toBe(true);
+  } finally {
+    resetAudit();
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

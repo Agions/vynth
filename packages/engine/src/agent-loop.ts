@@ -1,4 +1,4 @@
-import type { ChatMessage, StreamEvent, ToolCall } from '@vynth/core';
+import { type ChatMessage, type StreamEvent, type ToolCall, audit } from '@vynth/core';
 import type { LLMProvider } from './llm';
 import type { ToolRegistry } from './tools';
 
@@ -60,6 +60,7 @@ export async function* runAgent(goal: string, opts: AgentOpts): AsyncGenerator<S
     for (const tc of pendingTools) {
       yield { type: 'tool', call: tc };
       const result = await opts.tools.run(tc.name, tc.args);
+      audit().record('tool_exec', { name: tc.name, ok: result.ok }, result.ok);
       messages.push({
         role: 'tool',
         tool_call_id: tc.id,
