@@ -407,7 +407,7 @@ export function renderInputPanel(opts: {
   });
 }
 
-/** 渲染一个带样式的工具调用块（name + 摘要 + 状态） */
+/** 渲染一个带样式的工具调用块（面板样式，与输入区视觉统一） */
 export function renderToolBlock(opts: {
   name: string;
   args: string;
@@ -423,18 +423,29 @@ export function renderToolBlock(opts: {
         ? opts.palette.green
         : opts.palette.red;
   const statusIcon = opts.status === 'running' ? '◐' : opts.status === 'ok' ? '✓' : '✗';
-  const innerW = Math.max(10, opts.width - 4);
-  const lines: string[] = [];
-  lines.push(
-    `${fg(statusColor)}${statusIcon} ${fg(opts.palette.lavender)}${opts.name}${reset} ${fg(opts.palette.subtext)}${opts.args}${reset}`
-  );
+  const innerW = Math.max(20, opts.width - 4);
+
+  // 标题行
+  const title = ` ${statusIcon} ${opts.name} `;
+  const bodyLines: string[] = [];
+  if (opts.args && opts.args !== '{}') {
+    bodyLines.push(`args: ${opts.args}`);
+  }
   if (opts.output) {
     const head = renderInline(opts.output, opts.palette);
-    for (const ln of wrapLine(head, innerW - 2)) {
-      lines.push(`  ${fg(opts.palette.subtext)}│${reset} ${ln}`);
-    }
+    const wrapped = wrapLine(head, innerW - 4);
+    bodyLines.push(...wrapped);
   }
-  return lines.join('\n');
+
+  return renderPanel({
+    width: opts.width,
+    title,
+    titleAlign: 'left',
+    body: bodyLines,
+    borderColor: statusColor,
+    titleColor: statusColor,
+    accent: opts.status === 'running' ? fg(opts.palette.yellow) : ''
+  });
 }
 
 /** 把光标移到 (0,0) 并清屏下方 */
