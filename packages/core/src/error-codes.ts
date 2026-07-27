@@ -35,6 +35,8 @@ export type VynthErrorCode =
   | 'VC-030003' // SANDBOX_NETWORK_BLOCKED // run_shell 被 VYNTH_NET=0 阻断
   | 'VC-030004' // SANDBOX_READ_FAILED
   | 'VC-030005' // SANDBOX_WRITE_FAILED
+  | 'VC-030006' // SANDBOX_HARDEN_UNAVAILABLE // sandbox-exec / bwrap 不可用或策略非法
+  | 'VC-030007' // SANDBOX_HARDEN_LAUNCH_FAILED // OS 级隔离启动失败
   // ----- 04 Tool 族 -----
   | 'VC-040001' // TOOL_NOT_FOUND
   | 'VC-040002' // TOOL_EXECUTION_FAILED
@@ -75,6 +77,8 @@ const ALL_CODES: ReadonlySet<VynthErrorCode> = new Set<VynthErrorCode>([
   'VC-030003',
   'VC-030004',
   'VC-030005',
+  'VC-030006',
+  'VC-030007',
   'VC-040001',
   'VC-040002',
   'VC-040003',
@@ -152,6 +156,10 @@ export function describe(code: VynthErrorCode): string {
       return 'SANDBOX_READ_FAILED';
     case 'VC-030005':
       return 'SANDBOX_WRITE_FAILED';
+    case 'VC-030006':
+      return 'SANDBOX_HARDEN_UNAVAILABLE';
+    case 'VC-030007':
+      return 'SANDBOX_HARDEN_LAUNCH_FAILED';
     case 'VC-040001':
       return 'TOOL_NOT_FOUND';
     case 'VC-040002':
