@@ -105,6 +105,32 @@ function padToWidth(input: string, width: number): string {
   return input + ' '.repeat(width - w);
 }
 
+/** 渲染一个 kbd 标签（小圆角矩形背��） */
+export function renderKbd(text: string, palette: Palette): string {
+  const c = palette;
+  return `${bg(c.surface0 ?? c.mantle)}${fg(c.text)} ${text} ${reset}`;
+}
+
+/** 渲染一条 subtle 分隔线（带可选中间标签） */
+export function renderDivider(opts: {
+  width: number;
+  label?: string;
+  color?: string;
+  char?: string;
+}): string {
+  const w = Math.max(10, opts.width);
+  const color = opts.color ?? '#585b70';
+  const ch = opts.char ?? '─';
+  if (opts.label) {
+    const t = ` ${opts.label} `;
+    const tw = visibleWidth(t);
+    const left = Math.max(1, Math.floor((w - tw) / 2));
+    const right = Math.max(1, w - tw - left);
+    return `${fg(color)}${ch.repeat(left)}${t}${ch.repeat(right)}${reset}`;
+  }
+  return `${fg(color)}${ch.repeat(w)}${reset}`;
+}
+
 /** 渲染一个面板：上下左右各 1 格边框，圆角，可选标题 */
 export function renderPanel(opts: {
   width: number;
@@ -321,6 +347,65 @@ export function renderInputArea(opts: {
   const hintLine = `  ${hints}`;
 
   return [sep, blank, inputLine, blank, hintLine];
+}
+
+/**
+ * 渲染专业底栏输入面板（带边框）：
+ *   ╭─ input ─────────────────────────────────────╮
+ *   │  ❯ {input}▏                                 │
+ *   ╰──────────────────────────────────────────────╯
+ *
+ *   ⏎ send   ⎋ esc   ^c quit   ⇧↑↓ scroll   ⇟ page
+ */
+export function renderInputPanel(opts: {
+  width: number;
+  input: string;
+  model: string;
+  mode: string;
+  theme: string;
+  status: string;
+  statusColor: string;
+  palette: Palette;
+}): string {
+  const c = opts.palette;
+  const w = Math.max(20, opts.width);
+  const innerW = w - 2;
+
+  // 面板标题
+  const title = ` ${opts.mode === 'plan' ? 'plan' : 'vibe'} · ${opts.model} · ${opts.theme} `;
+  const titleColor = c.mauve;
+
+  // 输入行
+  const promptIcon = `${fg(c.mauve)}❯${reset}`;
+  const inputText = `${fg(c.text)}${opts.input}${reset}`;
+  const cursor = `${fg(c.subtext)}▏${reset}`;
+  const inputContent = `  ${promptIcon} ${inputText}${cursor}`;
+
+  // 底部状态 + 键位提示
+  const statusText = ` ${opts.status} `;
+  const hints = [
+    renderKbd('⏎', c),
+    'send',
+    renderKbd('⎋', c),
+    'esc',
+    renderKbd('^c', c),
+    'quit',
+    renderKbd('⇧↑↓', c),
+    'scroll',
+    renderKbd('⇟', c),
+    'page'
+  ].join('  ');
+
+  const bodyLines = [inputContent, '', `  ${hints}`];
+  return renderPanel({
+    width: w,
+    title,
+    titleAlign: 'left',
+    body: bodyLines,
+    borderColor: c.overlay0 ?? c.subtext,
+    titleColor,
+    accent: ''
+  });
 }
 
 /** 渲染一个带样式的工具调用块（name + 摘要 + 状态） */

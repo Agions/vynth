@@ -5,8 +5,9 @@ import { builtinTools, createProvider, runAgent } from '@vynth/engine';
 import { type TrustConfirm, loadPluginsWithTrust } from '@vynth/plugins';
 import {
   renderBadge,
+  renderDivider,
   renderInline,
-  renderInputArea,
+  renderInputPanel,
   renderMessage,
   renderStatusBar,
   renderToolBlock,
@@ -120,17 +121,25 @@ export async function startTui(config: VynthConfig, pluginPaths: string[] = []):
     const cols = Math.max(60, Math.min(140, (process.stdout.columns ?? 100) - 1));
     const rows = Math.max(20, process.stdout.rows ?? 32);
     const innerW = cols - 4;
-    const TOP_H = 1;
-    const BOT_H = 5;
+    const TOP_H = 2;
+    const BOT_H = 8;
     const midH = Math.max(5, rows - TOP_H - BOT_H);
 
     // 1. 清屏 + 光标归位
     process.stdout.write(`${CLEAR_SCREEN}${CURSOR_HOME}`);
 
-    // 2. 顶栏（1 行，用 mantle 背景填满）
-    process.stdout.write(`${renderTopLine(cols)}\n${reset}`);
+    // 2. 顶栏（2 行：品牌 + 状态）
+    const topLines = renderTopBar(cols);
+    for (const line of topLines) {
+      process.stdout.write(`${line}${reset}\n`);
+    }
 
-    // 3. 中间聊天区（midH 行）
+    // 3. 分隔线
+    process.stdout.write(
+      `${renderDivider({ width: cols, color: c.overlay0 ?? c.subtext })}${reset}\n`
+    );
+
+    // 4. 中间聊天区（midH 行）
     const visibleLines =
       userScrollOffset === 0
         ? scrollback.visibleForViewport(midH)
@@ -143,7 +152,12 @@ export async function startTui(config: VynthConfig, pluginPaths: string[] = []):
       process.stdout.write(`${truncated}${reset}\n`);
     }
 
-    // 4. 底栏（5 行：分隔线 / 空行 / 输入 / 空行 / 键位提示）
+    // 5. 底栏分隔线
+    process.stdout.write(
+      `${renderDivider({ width: cols, color: c.overlay0 ?? c.subtext })}${reset}\n`
+    );
+
+    // 6. 底栏（面板式输入框 + 键位提示）
     const statusText =
       liveStatus === 'streaming'
         ? 'streaming'
@@ -153,7 +167,7 @@ export async function startTui(config: VynthConfig, pluginPaths: string[] = []):
     const statusColor =
       liveStatus === 'streaming' ? c.yellow : liveStatus === 'tool' ? c.lavender : c.green;
 
-    const bottomLines = renderInputArea({
+    const inputPanel = renderInputPanel({
       width: cols,
       input,
       model: config.model,
@@ -163,41 +177,61 @@ export async function startTui(config: VynthConfig, pluginPaths: string[] = []):
       statusColor,
       palette: c
     });
-    for (const line of bottomLines) {
+    for (const line of inputPanel.split('\n')) {
       const truncated = truncateVisible(line, cols);
       process.stdout.write(`${truncated}${reset}\n`);
     }
 
-    // 5. 光标定位到输入行（第 3 行底栏 = rows - BOT_H + 3）
+    // 7. 光标定位到输入行（输入框第 2 行 = rows - BOT_H + 3）
     const cursorRow = rows - BOT_H + 3;
     const cursorCol = visibleWidth(`  ❯ ${input}`) + 3;
     process.stdout.write(`${ESC}[${cursorRow};${cursorCol}H`);
   }
 
-  function renderTopLine(cols: number): string {
-    const left = [
-      renderBadge(` ${config.mode === 'plan' ? 'PLAN' : 'VIBE'} `, c.crust ?? c.base, c.mauve),
-      renderBadge(` ${config.theme} `, c.crust ?? c.base, c.blue),
-      renderBadge(` ${config.model} `, c.crust ?? c.base, c.teal),
+  function renderTopBar(cols: number): string[] {
+    // Line 1: 品牌 + 模式徽章 + 模型 + 主题
+    const brand = `${fg(c.mauve)}VYNT${reset}`;
+    const modeBadge = renderBadge(
+      ` ${config.mode === 'plan' ? 'PLAN' : 'VIBE'} `,
+      c.crust ?? c.base,
+      c.mauve
+    );
+    const modelBadge = renderBadge(` ${config.model} `, c.crust ?? c.base, c.teal);
+    const themeBadge = renderBadge(` ${config.theme} `, c.crust ?? c.base, c.blue);
+    const left = [brand, modeBadge, modelBadge, themeBadge].join('  ');
+
+    // Line 2: 状态 + 回合数
+    const statusBadge =
       liveStatus === 'streaming'
         ? renderBadge(' streaming ', c.crust ?? c.base, c.yellow)
         : liveStatus === 'tool'
           ? renderBadge(` tool: ${lastToolName ?? '…'} `, c.crust ?? c.base, c.lavender)
-          : renderBadge(' idle ', c.crust ?? c.base, c.green)
-    ].join(' ');
+          : renderBadge(' ready ', c.crust ?? c.base, c.green);
     const right = renderBadge(
       ` turn ${transcript.filter((t) => t.role === 'user').length} `,
       c.crust ?? c.base,
       c.mantle
     );
-    return renderStatusBar({
+    const statusLine = renderStatusBar({
       width: cols,
-      left,
+      left: statusBadge,
       right,
       color: c.subtext,
       bgHex: c.mantle,
-      textColor: c.text
+      textColor: c.subtext
     });
+
+    return [
+      renderStatusBar({
+        width: cols,
+        left,
+        right: '',
+        color: c.subtext,
+        bgHex: c.mantle,
+        textColor: c.text
+      }),
+      statusLine
+    ];
   }
 
   function appendToMid(multiLine: string): void {
