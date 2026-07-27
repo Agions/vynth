@@ -1,5 +1,14 @@
 import ansiEscapes from 'ansi-escapes';
 
+type Escapes = {
+  cursorLeft: string;
+  clearLine: string;
+  [key: string]: unknown;
+};
+
+const esc = ansiEscapes as unknown as Escapes;
+const clearLineSeq = `${esc.cursorLeft}${esc.clearLine}`;
+
 /**
  * 流式逃生舱：在 TUI 之外（或无头模式）用原始 ANSI 直写，
  * 绕过 ink 的 React reconciliation，避免每个 token 触发全树重渲染。
@@ -9,13 +18,13 @@ export class StreamArea {
   constructor(private readonly write: (s: string) => void = (s) => process.stdout.write(s)) {}
 
   update(text: string): void {
-    if (this.lastLen > 0) this.write(ansiEscapes.cursorLeft + ansiEscapes.clearLine);
+    if (this.lastLen > 0) this.write(clearLineSeq);
     this.write(text);
     this.lastLen = text.length;
   }
 
   clear(): void {
-    if (this.lastLen > 0) this.write(ansiEscapes.cursorLeft + ansiEscapes.clearLine);
+    if (this.lastLen > 0) this.write(clearLineSeq);
     this.lastLen = 0;
   }
 }

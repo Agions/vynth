@@ -11,6 +11,13 @@ export interface Palette {
   red: string;
   yellow: string;
   blue: string;
+  surface0?: string;
+  surface1?: string;
+  surface2?: string;
+  overlay0?: string;
+  rosewater?: string;
+  peach?: string;
+  sapphire?: string;
 }
 
 const catppuccin: Record<'mocha' | 'latte', Palette> = {

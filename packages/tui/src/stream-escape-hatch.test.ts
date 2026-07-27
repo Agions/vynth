@@ -2,6 +2,15 @@ import { describe, expect, it } from 'bun:test';
 import ansiEscapes from 'ansi-escapes';
 import { StreamArea } from './stream-escape-hatch';
 
+type Escapes = {
+  cursorLeft: string;
+  clearLine: string;
+  [key: string]: unknown;
+};
+
+const esc = ansiEscapes as unknown as Escapes;
+const clearLineSeq = `${esc.cursorLeft}${esc.clearLine}`;
+
 describe('StreamArea (F3 headless 流式退路 / F2 TUI 流式退路)', () => {
   it('first update writes text directly without a leading clearLine', () => {
     const writes: string[] = [];
@@ -15,7 +24,7 @@ describe('StreamArea (F3 headless 流式退路 / F2 TUI 流式退路)', () => {
     const area = new StreamArea((s) => writes.push(s));
     area.update('first');
     area.update('second');
-    expect(writes).toEqual(['first', ansiEscapes.cursorLeft + ansiEscapes.clearLine, 'second']);
+    expect(writes).toEqual(['first', clearLineSeq, 'second']);
   });
 
   it('clear() after update emits cursorLeft + clearLine and resets lastLen', () => {
@@ -24,7 +33,7 @@ describe('StreamArea (F3 headless 流式退路 / F2 TUI 流式退路)', () => {
     area.update('x');
     writes.length = 0;
     area.clear();
-    expect(writes).toEqual([ansiEscapes.cursorLeft + ansiEscapes.clearLine]);
+    expect(writes).toEqual([clearLineSeq]);
     // 再 update 应该不再擦线（lastLen=0）
     writes.length = 0;
     area.update('y');
