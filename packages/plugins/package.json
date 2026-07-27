@@ -1,7 +1,7 @@
 {
   "name": "@vynth/plugins",
   "description": "插件系统：动态加载、工具注册、MVP 无头模式（M5 扩展即 TUI 内插件属完整版 F13）",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "main": "src/index.ts",
   "exports": { ".": "./src/index.ts" },

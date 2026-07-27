@@ -33,8 +33,8 @@
 
 ## 版本
 
-- **当前版本**：v0.1.0（错误码 6 位落地 + demo 模式移除 + 模型名回滚 + DeepSeek V4 thinking 支持）
-- **变更日志**：[v0.1.0](changelog/v0.1.0.md)（统一发布，涵盖 MVP 完整闭环 + 错误码 6 位化 + demo 移除）
+- **当前版本**：v0.1.1（TypeScript strict 合规 + TUI 全帧重绘 + 3 段式 IDE 布局）
+- **变更日志**：[v0.1.1](changelog/v0.1.1.md) | [v0.1.0](changelog/v0.1.0.md)
 
 ---
 

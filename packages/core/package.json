@@ -1,7 +1,7 @@
 {
   "name": "@vynth/core",
   "description": "核心契约：类型定义、配置加载、6 位错误码（VC-XXXXXX）体系、日志与进程内事件总线",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",

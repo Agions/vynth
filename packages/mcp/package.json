@@ -1,7 +1,7 @@
 {
   "name": "@vynth/mcp",
   "description": "MCP 客户端：stdio JSON-RPC 2024-11-05（完整版 F12，MVP 暂未启用）",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "main": "src/index.ts",
   "exports": { ".": "./src/index.ts" },

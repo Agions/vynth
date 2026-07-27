@@ -1,7 +1,7 @@
 {
   "name": "@vynth/engine",
   "description": "Agent 引擎 + LLM 客户端：多轮对话编排、SSE 流式解析、DeepSeek V4 thinking 兼容、工具调用闭环",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "main": "src/index.ts",
   "exports": {

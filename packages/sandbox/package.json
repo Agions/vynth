@@ -1,7 +1,7 @@
 {
   "name": "@vynth/sandbox",
   "description": "安全沙箱：路径守卫（safeResolve）、symlink 逃逸拦截、VYNTH_NET 联网闸门（OS 级硬隔离推迟至 F15）",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "main": "src/index.ts",
   "exports": { ".": "./src/index.ts" },

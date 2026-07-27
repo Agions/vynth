@@ -6,7 +6,39 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [0.1.0] - 2026-07-25 — MVP 完整闭环 + 错误码 6 位化 + demo 移除 + DeepSeek V4 thinking
+## [0.1.1] - 2026-07-27 — TypeScript strict 合规 + TUI 全帧重绘 + 3 段式 IDE 布局
+
+### Added
+- **TypeScript strict mode 全量合规**：8 个 workspace 全部通过 `tsc --noEmit`；
+  新增 `@types/node` + `@types/bun` 依赖；修复 `packages/core` / `packages/mcp` /
+  `packages/sandbox` 的 strict 错误（null guard、Pick 类型、default code 映射）。
+- **TUI 全帧重绘 + 3 段式 IDE 布局**：废弃 DECSTBM 增量绘制 + SGR 颜色泄漏，
+  改用 `ESC[2J` 全帧重绘消除乱码；顶部固定状态栏、中部可滚动聊天区、底部
+  4 行矩形输入框；移除角色标签（System/Vynth/You/Tool），改用左侧颜色条；
+  新增 CJK 感知宽度计算、2000 行 scrollback 环形缓冲区、SGR 1006 鼠标滚轮支持；
+  新增 `render.ts`（`renderBadge` / `renderStatusBar` / `renderPanel` /
+  `renderMessage` / `renderToolBlock` / `renderInputBox` / `clipHistory`）。
+
+### Changed
+- `packages/tui/src/tui.ts`：完整重写为 3 段式布局 + 全帧重绘循环；
+  鼠标追踪启用 SGR 1006 协议；滚轮事件映射 scrollback 偏移。
+- `packages/tui/src/theme.ts`：补充 TUI 全帧渲染所需色值常量。
+- `packages/tui/src/stream-escape-hatch.ts`：适配全帧重绘逃生舱路径。
+- CI 阶段 2 增加 8 个 workspace 的 `bun x tsc --noEmit` 检查。
+
+### Security
+- TUI 渲染每行强制 `\x1b[0m` 收尾，消除 SGR 颜色泄漏到后续行。
+
+### Test
+- `bun test packages`: **124 pass / 0 fail**
+  - 新增 `packages/tui/src/render.test.ts`：9 例渲染原语单测
+  - 新增 `packages/tui/src/viewport.test.ts`：10 例 viewport / 鼠标解析单测
+- `bun run lint`: 0 error
+- `bun run compile` + 体积门禁: **61 MB ≤ 61 MB PASS**
+
+[Unreleased]: https://github.com/Agions/vynth/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/Agions/vynth/releases/tag/v0.1.1
+[0.1.0]: https://github.com/Agions/vynth/releases/tag/v0.1.0
 
 > **统一发布**：本次发布合并 v0.1.0（初版骨架）/ v0.2.0（MVP 闭环）/
 > v0.2.1（错误码 6 位化 + demo 移除 + 模型回滚 + DeepSeek V4 thinking）三段
