@@ -29,8 +29,10 @@ export class VynthError extends Error {
       this.numericCode = numericCode;
     } else {
       const decoded = fromLegacy(code);
-      this.numericCode =
-        decoded ?? (DEFAULT_CODE_BY_FAMILY as Record<string, VynthErrorCode>)[code] ?? 'VC-010099';
+      const familyDefault = (DEFAULT_CODE_BY_FAMILY as Record<string, VynthErrorCode | undefined>)[
+        code
+      ];
+      this.numericCode = decoded ?? familyDefault ?? 'VC-010099';
     }
   }
 }

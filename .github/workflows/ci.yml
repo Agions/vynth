@@ -23,7 +23,7 @@ jobs:
         with:
           bun-version: latest
 
-      # 阶段 1-2: install + lint/typecheck
+      # 阶段 2: biome + workspace TypeScript strict check
       # 注意：用 pnpm 而非 bun install —— bun 1.3.14 不会自动 link workspace 软链，
       # 会导致 `bun test packages` 在 e2e 中报 "Cannot find module @vynth/mcp"。
       # .npmrc 已开 shamefully-hoist=true，pnpm 会把 @vynth/* hoist 到顶层 node_modules/@vynth/。
@@ -35,7 +35,16 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Lint & Typecheck
-        run: bun run lint
+        run: |
+          bun run lint
+          bun x tsc --noEmit -p packages/core/tsconfig.json
+          bun x tsc --noEmit -p packages/engine/tsconfig.json
+          bun x tsc --noEmit -p packages/sandbox/tsconfig.json
+          bun x tsc --noEmit -p packages/plugins/tsconfig.json
+          bun x tsc --noEmit -p packages/mcp/tsconfig.json
+          bun x tsc --noEmit -p packages/tui/tsconfig.json
+          bun x tsc --noEmit -p packages/harness/tsconfig.json
+          bun x tsc --noEmit -p apps/cli/tsconfig.json
 
       # 阶段 3: build packages (turbo)
       - name: Build packages
@@ -60,15 +69,45 @@ jobs:
       - name: Binary size gate
         run: bun scripts/check-binary-size.ts
 
-      # 阶段 8: sign/notarize + publish (release/main only)
+      # 阶段 8a: macOS sign/notarize（仅在 macOS runner 执行）
       - name: Sign & notarize (release tags)
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') && runner.os == 'macOS'
+        env:
+          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
         run: |
-          echo "TODO: codesign + notarize dist/vynth (macOS) / gpg sign (linux)"
-          echo "see 部署设计.md §4 / §7"
+          if [[ -z "$APPLE_CERTIFICATE_BASE64" || -z "$APPLE_CERTIFICATE_PASSWORD" || -z "$APPLE_SIGNING_IDENTITY" ]]; then
+            echo "Signing secrets are not configured; skipping macOS signing on this runner."
+            exit 0
+          fi
+          keychain="$RUNNER_TEMP/vynth-signing.keychain-db"
+          certificate="$RUNNER_TEMP/vynth-signing.p12"
+          echo "$APPLE_CERTIFICATE_BASE64" | base64 --decode > "$certificate"
+          security create-keychain -p "$RUNNER_TEMP" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$RUNNER_TEMP" "$keychain"
+          security import "$certificate" -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$keychain"
+          security list-keychains -d user -s "$keychain"
+          security default-keychain -s "$keychain"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$RUNNER_TEMP" "$keychain"
+          codesign --force --options runtime --timestamp --sign "$APPLE_SIGNING_IDENTITY" dist/vynth
+          codesign --verify --strict --verbose=2 dist/vynth
+          if [[ -n "$APPLE_ID" && -n "$APPLE_TEAM_ID" && -n "$APPLE_APP_PASSWORD" ]]; then
+            ditto -c -k --keepParent dist/vynth "$RUNNER_TEMP/vynth.zip"
+            xcrun notarytool submit "$RUNNER_TEMP/vynth.zip" --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_APP_PASSWORD" --wait
+          else
+            echo "Notarization secrets are not configured; signing completed without notarization."
+          fi
 
+      # 阶段 8b: publish（main push 仅验证构建；稳定发布由版本 tag 触发）
       - name: Publish beta channel (main)
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "TODO: publish to beta channel (brew / npm dist-tag / GitHub Releases)"
-          echo "see 部署设计.md §4 发布阶段"
+          echo "Binary compiled successfully; publishing is intentionally explicit via a version tag."
+          echo "Create and push a v* tag to run the signed release stage."

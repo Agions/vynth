@@ -14,7 +14,7 @@ import {
   runAgent
 } from '@vynth/engine';
 import { McpClient } from '@vynth/mcp';
-import * as samplePlugin from './fixtures/sample-plugin.ts';
+import * as samplePlugin from './fixtures/sample-plugin';
 
 class MockProvider implements LLMProvider {
   private calls = 0;

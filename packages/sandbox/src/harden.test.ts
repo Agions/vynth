@@ -24,6 +24,8 @@ afterEach(() => {
   process.env.VYNTH_HARDEN = '';
 });
 
+const EMPTY_CMD = { command: '' } as const;
+
 async function backendAvailable(): Promise<boolean> {
   if (backendKnown !== null) return backendKnown;
   backendKnown = await detectHardenBackend();
@@ -37,7 +39,7 @@ function fresh(): string {
 
 describe('buildSbplProfile', () => {
   test('deny default + 关键路径允许', () => {
-    const p = buildSbplProfile({ cwd: '/tmp/x', networkAllowed: true });
+    const p = buildSbplProfile({ cwd: '/tmp/x', networkAllowed: true, command: '' });
     expect(p).toContain('(deny default)');
     expect(p).toContain('(allow process-exec)');
     expect(p).toContain('(subpath "/tmp/x")');
@@ -46,7 +48,7 @@ describe('buildSbplProfile', () => {
   });
 
   test('networkAllowed=false 时 deny network', () => {
-    const p = buildSbplProfile({ cwd: '/x', networkAllowed: false });
+    const p = buildSbplProfile({ cwd: '/x', networkAllowed: false, command: '' });
     expect(p).toContain('(deny network-outbound)');
     expect(p).toContain('(deny network-inbound)');
     expect(p).not.toContain('(allow network');
@@ -55,7 +57,7 @@ describe('buildSbplProfile', () => {
 
 describe('buildBwrapArgs', () => {
   test('默认参数含 cap-drop ALL + cwd 读写', () => {
-    const a = buildBwrapArgs({ cwd: '/w', networkAllowed: true });
+    const a = buildBwrapArgs({ cwd: '/w', networkAllowed: true, command: '' });
     expect(a).toContain('--cap-drop');
     expect(a).toContain('ALL');
     expect(a).toContain('--bind');
@@ -63,7 +65,7 @@ describe('buildBwrapArgs', () => {
     expect(a).not.toContain('--unshare-net');
   });
   test('networkAllowed=false 时添加 --unshare-net', () => {
-    const a = buildBwrapArgs({ cwd: '/w', networkAllowed: false });
+    const a = buildBwrapArgs({ cwd: '/w', networkAllowed: false, command: '' });
     expect(a).toContain('--unshare-net');
   });
 });

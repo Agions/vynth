@@ -95,7 +95,9 @@ function commandExists(cmd: string): Promise<boolean> {
  *   - 进程创建、信号发送默认允许（子进程得 fork/exec）
  *   - 当 networkAllowed=true 时允许 outbound socket；否则 deny
  */
-export function buildSbplProfile(spec: Pick<HardenSpec, 'cwd' | 'networkAllowed'>): string {
+export function buildSbplProfile(
+  spec: Pick<HardenSpec, 'cwd' | 'networkAllowed' | 'command'>
+): string {
   const cwd = spec.cwd;
   const net = spec.networkAllowed
     ? '(allow network-outbound)\n(allow network-inbound)'
@@ -128,7 +130,9 @@ ${net}
 }
 
 /** linux 子进程参数（bubblewrap）：最少权限 + 只读 bind 必需目录 + cwd 读写 */
-export function buildBwrapArgs(spec: Pick<HardenSpec, 'cwd' | 'networkAllowed'>): string[] {
+export function buildBwrapArgs(
+  spec: Pick<HardenSpec, 'cwd' | 'networkAllowed' | 'command'>
+): string[] {
   const args = [
     '--unshare-user-try',
     '--unshare-pid',
@@ -179,7 +183,11 @@ export function buildBwrapArgs(spec: Pick<HardenSpec, 'cwd' | 'networkAllowed'>)
  */
 export function spawnHardened(spec: HardenSpec): ReturnType<typeof spawn> {
   if (process.platform === 'darwin') {
-    const profile = buildSbplProfile({ cwd: spec.cwd, networkAllowed: spec.networkAllowed });
+    const profile = buildSbplProfile({
+      cwd: spec.cwd,
+      networkAllowed: spec.networkAllowed,
+      command: spec.command
+    });
     return spawn('/usr/bin/sandbox-exec', ['-p', profile, '/bin/sh', '-c', spec.command], {
       cwd: spec.cwd
     });
@@ -187,7 +195,8 @@ export function spawnHardened(spec: HardenSpec): ReturnType<typeof spawn> {
   if (process.platform === 'linux') {
     const args = buildBwrapArgs({
       cwd: spec.cwd,
-      networkAllowed: spec.networkAllowed
+      networkAllowed: spec.networkAllowed,
+      command: spec.command
     });
     return spawn('bwrap', args, { cwd: spec.cwd });
   }

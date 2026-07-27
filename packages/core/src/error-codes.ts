@@ -23,12 +23,14 @@ export type VynthErrorCode =
   | 'VC-010004' // CONFIG_VALUE_MISSING // -g/-m/-p 缺值
   | 'VC-010005' // CONFIG_FILE_SECRET // 配置文件中不得写入密钥
   | 'VC-010006' // CONFIG_FILE_INVALID // 配置文件 schema / JSON 非法
+  | 'VC-010099' // CONFIG_DEFAULT // 未细分的配置错误
   // ----- 02 LLM 族 -----
   | 'VC-020001' // LLM_AUTH_FAILED
   | 'VC-020002' // LLM_RATE_LIMITED
   | 'VC-020003' // LLM_NETWORK
   | 'VC-020004' // LLM_INVALID_RESPONSE // SSE 解析失败
   | 'VC-020005' // LLM_PLAINTEXT_HTTP // 拒绝明文 http
+  | 'VC-020099' // LLM_DEFAULT // 未细分的 LLM 错误
   // ----- 03 Sandbox 族 -----
   | 'VC-030001' // SANDBOX_PATH_ESCAPE // ../ 越界
   | 'VC-030002' // SANDBOX_SYMLINK_ESCAPE
@@ -37,18 +39,22 @@ export type VynthErrorCode =
   | 'VC-030005' // SANDBOX_WRITE_FAILED
   | 'VC-030006' // SANDBOX_HARDEN_UNAVAILABLE // sandbox-exec / bwrap 不可用或策略非法
   | 'VC-030007' // SANDBOX_HARDEN_LAUNCH_FAILED // OS 级隔离启动失败
+  | 'VC-030099' // SANDBOX_DEFAULT // 未细分的沙箱错误
   // ----- 04 Tool 族 -----
   | 'VC-040001' // TOOL_NOT_FOUND
   | 'VC-040002' // TOOL_EXECUTION_FAILED
   | 'VC-040003' // TOOL_INVALID_ARGS
+  | 'VC-040099' // TOOL_DEFAULT // 未细分的工具错误
   // ----- 05 Plugin 族 -----
   | 'VC-050001' // PLUGIN_LOAD_FAILED // 动态 import 失败
   | 'VC-050002' // PLUGIN_MISSING_ACTIVATE
   | 'VC-050003' // PLUGIN_MISSING_NAME
+  | 'VC-050099' // PLUGIN_DEFAULT // 未细分的插件错误
   // ----- 06 MCP 族 -----
   | 'VC-060001' // MCP_NOT_IMPLEMENTED // F12 尚未落地
   | 'VC-060002' // MCP_PROTOCOL_PARSE
-  | 'VC-060003'; // MCP_REQUEST_TIMEOUT;
+  | 'VC-060003' // MCP_REQUEST_TIMEOUT;
+  | 'VC-060099'; // MCP_DEFAULT // 未细分的 MCP 错误
 
 // 默认族代码（错误类未显式传 code 时回退）
 export const DEFAULT_CODE_BY_FAMILY = {
@@ -67,11 +73,13 @@ const ALL_CODES: ReadonlySet<VynthErrorCode> = new Set<VynthErrorCode>([
   'VC-010004',
   'VC-010005',
   'VC-010006',
+  'VC-010099',
   'VC-020001',
   'VC-020002',
   'VC-020003',
   'VC-020004',
   'VC-020005',
+  'VC-020099',
   'VC-030001',
   'VC-030002',
   'VC-030003',
@@ -79,15 +87,19 @@ const ALL_CODES: ReadonlySet<VynthErrorCode> = new Set<VynthErrorCode>([
   'VC-030005',
   'VC-030006',
   'VC-030007',
+  'VC-030099',
   'VC-040001',
   'VC-040002',
   'VC-040003',
+  'VC-040099',
   'VC-050001',
   'VC-050002',
   'VC-050003',
+  'VC-050099',
   'VC-060001',
   'VC-060002',
-  'VC-060003'
+  'VC-060003',
+  'VC-060099'
 ]);
 
 const CODE_RE = /^VC-\d{6}$/;
@@ -136,6 +148,8 @@ export function describe(code: VynthErrorCode): string {
       return 'CONFIG_FILE_SECRET';
     case 'VC-010006':
       return 'CONFIG_FILE_INVALID';
+    case 'VC-010099':
+      return 'CONFIG_DEFAULT';
     case 'VC-020001':
       return 'LLM_AUTH_FAILED';
     case 'VC-020002':
@@ -146,6 +160,8 @@ export function describe(code: VynthErrorCode): string {
       return 'LLM_INVALID_RESPONSE';
     case 'VC-020005':
       return 'LLM_PLAINTEXT_HTTP';
+    case 'VC-020099':
+      return 'LLM_DEFAULT';
     case 'VC-030001':
       return 'SANDBOX_PATH_ESCAPE';
     case 'VC-030002':
@@ -160,24 +176,32 @@ export function describe(code: VynthErrorCode): string {
       return 'SANDBOX_HARDEN_UNAVAILABLE';
     case 'VC-030007':
       return 'SANDBOX_HARDEN_LAUNCH_FAILED';
+    case 'VC-030099':
+      return 'SANDBOX_DEFAULT';
     case 'VC-040001':
       return 'TOOL_NOT_FOUND';
     case 'VC-040002':
       return 'TOOL_EXECUTION_FAILED';
     case 'VC-040003':
       return 'TOOL_INVALID_ARGS';
+    case 'VC-040099':
+      return 'TOOL_DEFAULT';
     case 'VC-050001':
       return 'PLUGIN_LOAD_FAILED';
     case 'VC-050002':
       return 'PLUGIN_MISSING_ACTIVATE';
     case 'VC-050003':
       return 'PLUGIN_MISSING_NAME';
+    case 'VC-050099':
+      return 'PLUGIN_DEFAULT';
     case 'VC-060001':
       return 'MCP_NOT_IMPLEMENTED';
     case 'VC-060002':
       return 'MCP_PROTOCOL_PARSE';
     case 'VC-060003':
       return 'MCP_REQUEST_TIMEOUT';
+    case 'VC-060099':
+      return 'MCP_DEFAULT';
   }
 }
 

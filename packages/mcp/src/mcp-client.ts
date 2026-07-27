@@ -78,7 +78,11 @@ export class McpClient {
   ) {}
 
   async connect(): Promise<void> {
-    this.proc = spawn(this.command, this.args, { stdio: ['pipe', 'pipe', 'inherit'] });
+    const spawned = spawn(this.command, this.args, { stdio: ['pipe', 'pipe', 'inherit'] });
+    if (!spawned.stdout) {
+      throw new McpError('mcp server stdout unavailable', 'VC-060002');
+    }
+    this.proc = spawned as unknown as ChildProcessWithoutNullStreams;
     this.proc.stdout.on('data', (d) => this.onData(String(d)));
     // 服务器异常退出时，让所有挂起请求失败，避免调用方永久挂起
     this.proc.on('exit', (code) => {

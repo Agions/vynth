@@ -80,7 +80,7 @@ export async function runCommand(command: string, opts: RunOpts): Promise<ToolRe
     }
   }
   return new Promise<ToolResult>((resolveResult) => {
-    let proc: ReturnType<typeof spawn>;
+    let proc: ReturnType<typeof spawn> | null = null;
     let hardened = false;
     try {
       if (harden) {
@@ -88,7 +88,13 @@ export async function runCommand(command: string, opts: RunOpts): Promise<ToolRe
           command,
           cwd: opts.cwd,
           networkAllowed: true,
-          timeoutMs: timeout
+          timeoutMs: timeout,
+          onStdout: (chunk) => {
+            /* collected below */
+          },
+          onStderr: (chunk) => {
+            /* collected below */
+          }
         });
         hardened = true;
       } else {
@@ -114,17 +120,21 @@ export async function runCommand(command: string, opts: RunOpts): Promise<ToolRe
       }
       return;
     }
+    if (!proc) {
+      resolveResult({ ok: false, output: '', error: '[VC-030005] spawn returned no process' });
+      return;
+    }
     let out = '';
     let errOut = '';
     const timer = setTimeout(() => {
-      proc.kill('SIGKILL');
+      proc?.kill('SIGKILL');
       resolveResult({ ok: false, output: out, error: `[VC-030004] timeout after ${timeout}ms` });
     }, timeout);
 
-    proc.stdout.on('data', (d) => {
+    proc.stdout?.on('data', (d) => {
       out += String(d);
     });
-    proc.stderr.on('data', (d) => {
+    proc.stderr?.on('data', (d) => {
       errOut += String(d);
     });
     proc.on('close', (code) => {

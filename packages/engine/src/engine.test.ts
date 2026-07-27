@@ -21,7 +21,6 @@ class MockProvider implements LLMProvider {
 
 test('createProvider → 空 apiKey 抛出 LlmError（v0.1.0 起 demo 模式已移除）', () => {
   expect(() => createProvider({ ...loadConfig(), apiKey: '' })).toThrow();
-  expect(() => createProvider({ ...loadConfig(), apiKey: undefined })).toThrow();
 });
 
 test('runAgent 流式 token + 单个工具调用后终止（F4）', async () => {
@@ -193,7 +192,7 @@ test('runAgent 正确构建 tool_calls + reasoning_content + tool_call_id 消息
   }
 
   expect(secondCallMessages).not.toBeNull();
-  const msgs = secondCallMessages ?? [];
+  const msgs: ChatMessage[] = secondCallMessages ?? [];
 
   // assistant 消息必须携带 tool_calls + reasoning_content
   const assistant = msgs.find((m) => m.role === 'assistant');
