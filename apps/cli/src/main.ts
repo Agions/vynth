@@ -5,7 +5,7 @@ import { McpClient, McpError } from '@vynth/mcp';
 import { loadPluginsWithTrust } from '@vynth/plugins';
 import { startTui } from '@vynth/tui';
 
-const VERSION = '0.1.0';
+const VERSION = '0.1.1';
 
 /** 把已知 VynthError 带上 6 位码前缀（其它错误原样） */
 function formatErr(err: unknown): string {
