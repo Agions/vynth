@@ -3,18 +3,17 @@
  * 所有可见宽度都按 Unicode 宽度计算（CJK 字符按 2 个 col 算）。
  * 全部函数纯函数，不写 stdout（除 `renderFrame` 由调用方负责清屏与重绘）。
  */
-import ansiEscapes from 'ansi-escapes';
 import { bg, fg, reset } from './theme';
 import type { Palette } from './theme';
 
-const ESCAPES = ansiEscapes as unknown as {
-  cursorTo: (x: number, y?: number) => string;
-  eraseDown: string;
-  [key: string]: unknown;
-};
-
 const ESC = String.fromCharCode(0x1b);
 const CSI_RE = new RegExp(`${ESC}\\[[0-9;?]*[a-zA-Z]`, 'g');
+
+// 内联 ANSI 转义（替代 ansi-escapes 依赖）
+const ESCAPES = {
+  cursorTo: (x: number, y?: number) => `${ESC}[${y ?? 0};${x}H`,
+  eraseDown: `${ESC}[J`
+} as const;
 
 /** 一个 box-drawing 字符宽度（CJK 与宽字符仍由 visibleWidth 算） */
 export function visibleWidth(str: string): number {

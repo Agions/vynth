@@ -1,18 +1,10 @@
-import ansiEscapes from 'ansi-escapes';
-
-type Escapes = {
-  cursorLeft: string;
-  clearLine: string;
-  [key: string]: unknown;
-};
-
-const esc = ansiEscapes as unknown as Escapes;
-const clearLineSeq = `${esc.cursorLeft}${esc.clearLine}`;
-
 /**
  * 流式逃生舱：在 TUI 之外（或无头模式）用原始 ANSI 直写，
  * 绕过 ink 的 React reconciliation，避免每个 token 触发全树重渲染。
  */
+const ESC = String.fromCharCode(0x1b);
+const clearLineSeq = `${ESC}[G${ESC}[2K`;
+
 export class StreamArea {
   private lastLen = 0;
   constructor(private readonly write: (s: string) => void = (s) => process.stdout.write(s)) {}

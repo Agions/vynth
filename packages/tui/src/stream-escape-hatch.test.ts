@@ -1,15 +1,8 @@
 import { describe, expect, it } from 'bun:test';
-import ansiEscapes from 'ansi-escapes';
 import { StreamArea } from './stream-escape-hatch';
 
-type Escapes = {
-  cursorLeft: string;
-  clearLine: string;
-  [key: string]: unknown;
-};
-
-const esc = ansiEscapes as unknown as Escapes;
-const clearLineSeq = `${esc.cursorLeft}${esc.clearLine}`;
+const ESC = String.fromCharCode(0x1b);
+const clearLineSeq = `${ESC}[G${ESC}[2K`;
 
 describe('StreamArea (F3 headless 流式退路 / F2 TUI 流式退路)', () => {
   it('first update writes text directly without a leading clearLine', () => {

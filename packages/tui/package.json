@@ -8,8 +8,7 @@
   "dependencies": {
     "@vynth/core": "workspace:*",
     "@vynth/engine": "workspace:*",
-    "@vynth/plugins": "workspace:*",
-    "ansi-escapes": "^6.2.0"
+    "@vynth/plugins": "workspace:*"
   },
   "scripts": { "build": "echo '@vynth/tui consumed via workspace'" }
 }
