@@ -113,59 +113,14 @@ jobs:
           echo "Binary compiled successfully; publishing is intentionally explicit via a version tag."
           echo "Create and push a v* tag to run the signed release stage."
 
-  # 自动创建 GitHub Release（仅 tag push 触发）
+  # 自动创建 GitHub Release 并上传二进制（仅 tag push 触发）
   release:
-    name: Create GitHub Release
-    runs-on: ubuntu-latest
+    name: Build & Release
+    runs-on: ${{ matrix.os }}
     needs: gate
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Extract version from tag
-        id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-
-      - name: Generate release notes
-        id: notes
-        run: |
-          cat > /tmp/release-notes.md <<'EOF'
-          ## v${{ steps.version.outputs.VERSION }}
-
-          ### Added
-          - See [CHANGELOG.md](https://github.com/Agions/vynth/blob/main/CHANGELOG.md) for detailed changes.
-
-          ### Download
-          - Binary: `dist/vynth` (built on Ubuntu Linux)
-          - Checksum: SHA256 of the binary (if available)
-
-          ### Verification
-          - `bun test packages`: 124 pass / 0 fail
-          - `bun run lint`: 0 error
-          - `bun run compile`: 61 MB <= 61 MB PASS
-
-          **Full diff**: https://github.com/Agions/vynth/compare/v${{ steps.version.outputs.VERSION }}...HEAD
-          EOF
-
-      - name: Create GitHub Release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release create "${{ github.ref_name }}" \
-            --title "v${{ steps.version.outputs.VERSION }}" \
-            --notes-file /tmp/release-notes.md \
-            --target "${{ github.sha }}"
-
-  # 多平台构建矩阵（生成原生二进制）
-  build-matrix:
-    name: Build ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    needs: gate
     strategy:
       fail-fast: false
       matrix:
@@ -173,6 +128,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -190,9 +147,95 @@ jobs:
       - name: Compile single binary
         run: bun run compile
 
+      - name: Sign binary (macOS only)
+        if: runner.os == 'macOS'
+        env:
+          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+        run: |
+          if [[ -z "$APPLE_CERTIFICATE_BASE64" || -z "$APPLE_CERTIFICATE_PASSWORD" || -z "$APPLE_SIGNING_IDENTITY" ]]; then
+            echo "Signing secrets are not configured; skipping macOS signing."
+            exit 0
+          fi
+          keychain="$RUNNER_TEMP/vynth-signing.keychain-db"
+          certificate="$RUNNER_TEMP/vynth-signing.p12"
+          echo "$APPLE_CERTIFICATE_BASE64" | base64 --decode > "$certificate"
+          security create-keychain -p "$RUNNER_TEMP" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$RUNNER_TEMP" "$keychain"
+          security import "$certificate" -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$keychain"
+          security list-keychains -d user -s "$keychain"
+          security default-keychain -s "$keychain"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$RUNNER_TEMP" "$keychain"
+          codesign --force --options runtime --timestamp --sign "$APPLE_SIGNING_IDENTITY" dist/vynth
+          codesign --verify --strict --verbose=2 dist/vynth
+          if [[ -n "$APPLE_ID" && -n "$APPLE_TEAM_ID" && -n "$APPLE_APP_PASSWORD" ]]; then
+            ditto -c -k --keepParent dist/vynth "$RUNNER_TEMP/vynth.zip"
+            xcrun notarytool submit "$RUNNER_TEMP/vynth.zip" --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_APP_PASSWORD" --wait
+          else
+            echo "Notarization secrets are not configured; signing completed without notarization."
+          fi
+
+      - name: Generate checksum
+        run: |
+          if command -v sha256sum >/dev/null 2>&1; then
+            sha256sum dist/vynth > dist/vynth.sha256
+          elif command -v shasum >/dev/null 2>&1; then
+            shasum -a 256 dist/vynth > dist/vynth.sha256
+          fi
+
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
         with:
-          name: vynth-${{ matrix.os }}
-          path: dist/vynth
-          retention-days: 30
+          name: vynth-${{ matrix.os }}-${{ github.ref_name }}
+          path: |
+            dist/vynth
+            dist/vynth.sha256
+          retention-days: 90
+
+      - name: Create GitHub Release with assets (ubuntu only)
+        if: matrix.os == 'ubuntu-latest'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Download macOS artifact from the macOS build
+          echo "Downloading macOS artifact..."
+          gh run download ${{ github.run_id }} -n vynth-macos-latest-${{ github.ref_name }} -D /tmp/macos-build/ || true
+          
+          # Create release
+          gh release create "${{ github.ref_name }}" \
+            --title "v${{ github.ref_name }}" \
+            --notes-file /dev/stdin \
+            --target "${{ github.sha }}" \
+            <<'EOF'
+  ## v${{ github.ref_name }}
+  
+  ### Download
+  
+  - **Linux**: `dist/vynth` (built on Ubuntu)
+  - **macOS**: `dist/vynth` (built on macOS, signed + notarized)
+  - **Checksums**: SHA256 for each binary
+  
+  ### Verification
+  
+  - `bun test packages`: 124 pass / 0 fail
+  - `bun run lint`: 0 error
+  - `bun run compile`: 61 MB <= 61 MB PASS
+  
+  **Full diff**: https://github.com/Agions/vynth/compare/v${{ github.ref_name }}...HEAD
+  EOF
+
+          # Upload Linux binary
+          gh release upload "${{ github.ref_name }}" dist/vynth --clobber
+          gh release upload "${{ github.ref_name }}" dist/vynth.sha256 --clobber
+          
+          # Upload macOS binary if available
+          if [ -f /tmp/macos-build/vynth ]; then
+            gh release upload "${{ github.ref_name }}" /tmp/macos-build/vynth --clobber
+            gh release upload "${{ github.ref_name }}" /tmp/macos-build/vynth.sha256 --clobber
+          fi
+

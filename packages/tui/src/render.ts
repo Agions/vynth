@@ -246,12 +246,13 @@ export function renderInline(text: string, palette: Palette): string {
   return out.join('');
 }
 
-/** 渲染一行 role-aware 消息：仅用左侧 1 格色块 + 缩进体，不再显示角色文字。 */
+/** 渲染一行 role-aware 消息：左侧色块 + 可选背景 + 缩进，无角色文字。 */
 export function renderMessage(opts: {
   role: 'user' | 'assistant' | 'system' | 'tool';
   content: string;
   palette: Palette;
   width: number;
+  background?: boolean;
 }): string {
   const barColor = (
     {
@@ -266,13 +267,26 @@ export function renderMessage(opts: {
   const lines: string[] = [];
 
   const body = opts.role === 'tool' ? renderInline(opts.content, opts.palette) : opts.content;
+  const bgColor = opts.background ? (opts.palette.surface0 ?? opts.palette.mantle) : undefined;
+
   // 首行带左侧色块 + 缩进对齐；其余行沿用 2 空格缩进
   const wrapped = wrapLine(body, innerW);
   for (let i = 0; i < wrapped.length; i++) {
     if (i === 0) {
-      lines.push(`${fg(barColor)}▎${reset}  ${wrapped[i]}${reset}`);
+      const prefix = `${fg(barColor)}▎${reset}  `;
+      const text = wrapped[i];
+      if (bgColor) {
+        lines.push(`${prefix}${bg(bgColor)}${fg(opts.palette.text)}${text}${reset}`);
+      } else {
+        lines.push(`${prefix}${text}${reset}`);
+      }
     } else {
-      lines.push(`   ${wrapped[i]}${reset}`);
+      const indent = '   ';
+      if (bgColor) {
+        lines.push(`${indent}${bg(bgColor)}${fg(opts.palette.text)}${wrapped[i]}${reset}`);
+      } else {
+        lines.push(`${indent}${wrapped[i]}${reset}`);
+      }
     }
   }
   // 空消息时仍渲染一个色块，保证视觉对齐
@@ -341,7 +355,9 @@ export function renderInputArea(opts: {
     kbd('⎋', ' esc'),
     kbd('^c', ' quit'),
     kbd('⇧↑↓', ' scroll'),
-    kbd('⇟', ' page')
+    kbd('⇟', ' page'),
+    kbd('⇥', ' tool'),
+    kbd('enter', ' fold')
   ].join('   ');
   const hintLine = `  ${hints}`;
 
@@ -407,7 +423,7 @@ export function renderInputPanel(opts: {
   });
 }
 
-/** 渲染一个带样式的工具调用块（面板样式，与输入区视觉统一） */
+/** 渲染一个带样式的工具调用块（面板样式，支持折叠和选中） */
 export function renderToolBlock(opts: {
   name: string;
   args: string;
@@ -415,6 +431,8 @@ export function renderToolBlock(opts: {
   output?: string;
   palette: Palette;
   width: number;
+  collapsed?: boolean;
+  selected?: boolean;
 }): string {
   const statusColor =
     opts.status === 'running'
@@ -426,15 +444,29 @@ export function renderToolBlock(opts: {
   const innerW = Math.max(20, opts.width - 4);
 
   // 标题行
-  const title = ` ${statusIcon} ${opts.name} `;
-  const bodyLines: string[] = [];
-  if (opts.args && opts.args !== '{}') {
-    bodyLines.push(`args: ${opts.args}`);
+  let title = ` ${statusIcon} ${opts.name} `;
+  if (opts.collapsed) {
+    title += '▸';
+  } else {
+    title += '▾';
   }
-  if (opts.output) {
-    const head = renderInline(opts.output, opts.palette);
-    const wrapped = wrapLine(head, innerW - 4);
-    bodyLines.push(...wrapped);
+  if (opts.selected) {
+    title = `▸ ${title.slice(1, -1)} ◂`;
+  }
+
+  const bodyLines: string[] = [];
+
+  if (!opts.collapsed) {
+    if (opts.args && opts.args !== '{}') {
+      bodyLines.push(`args: ${opts.args}`);
+    }
+    if (opts.output) {
+      const head = renderInline(opts.output, opts.palette);
+      const wrapped = wrapLine(head, innerW - 4);
+      bodyLines.push(...wrapped);
+    }
+  } else {
+    bodyLines.push(`${fg(opts.palette.subtext)}... collapsed (press Enter to expand)${reset}`);
   }
 
   return renderPanel({
@@ -442,8 +474,8 @@ export function renderToolBlock(opts: {
     title,
     titleAlign: 'left',
     body: bodyLines,
-    borderColor: statusColor,
-    titleColor: statusColor,
+    borderColor: opts.selected ? opts.palette.yellow : statusColor,
+    titleColor: opts.selected ? opts.palette.yellow : statusColor,
     accent: opts.status === 'running' ? fg(opts.palette.yellow) : ''
   });
 }

@@ -54,12 +54,20 @@ export async function startTui(config: VynthConfig, pluginPaths: string[] = []):
   });
 
   const scrollback = new Scrollback(2_000);
-  const transcript: Array<{ role: 'user' | 'assistant' | 'system' | 'tool'; content: string }> = [];
+  const transcript: Array<{
+    role: 'user' | 'assistant' | 'system' | 'tool';
+    content: string;
+    toolId?: string;
+    collapsed?: boolean;
+  }> = [];
   let input = '';
   let liveStatus: 'idle' | 'streaming' | 'tool' = 'idle';
   let prompting = false;
   let lastToolName: string | null = null;
   let userScrollOffset = 0;
+  const connectionStatus: 'connected' | 'disconnected' | 'error' = 'connected';
+  let selectedToolId: string | null = null;
+  let toolIdCounter = 0;
 
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   readline.emitKeypressEvents(process.stdin, rl);
@@ -122,7 +130,7 @@ export async function startTui(config: VynthConfig, pluginPaths: string[] = []):
     const rows = Math.max(20, process.stdout.rows ?? 32);
     const innerW = cols - 4;
     const TOP_H = 2;
-    const BOT_H = 8;
+    const BOT_H = selectedToolId ? 10 : 8;
     const midH = Math.max(5, rows - TOP_H - BOT_H);
 
     // 1. 清屏 + 光标归位
@@ -140,24 +148,44 @@ export async function startTui(config: VynthConfig, pluginPaths: string[] = []):
     );
 
     // 4. 中间聊天区（midH 行）
-    const visibleLines =
-      userScrollOffset === 0
-        ? scrollback.visibleForViewport(midH)
-        : scrollback.scrollUp(userScrollOffset).slice(-midH);
+    const allLines = renderTranscriptToLines(innerW);
+    const totalLines = allLines.length;
+    const maxScroll = Math.max(0, totalLines - midH);
+    const effectiveScroll = Math.min(userScrollOffset, maxScroll);
+
+    let visibleLines: string[];
+    if (effectiveScroll === 0) {
+      visibleLines = allLines.slice(-midH);
+    } else {
+      visibleLines = allLines.slice(effectiveScroll, effectiveScroll + midH);
+    }
 
     for (let i = 0; i < midH; i++) {
       const line = visibleLines[i] ?? '';
-      // 每行截断到 cols 宽度并以 reset 收尾
       const truncated = truncateVisible(line, cols);
       process.stdout.write(`${truncated}${reset}\n`);
     }
 
-    // 5. 底栏分隔线
+    // 6. 底栏分隔线
     process.stdout.write(
       `${renderDivider({ width: cols, color: c.overlay0 ?? c.subtext })}${reset}\n`
     );
 
-    // 6. 底栏（面板式输入框 + 键位提示）
+    // 6b. Tool 选中状态指示
+    if (selectedToolId) {
+      const toolEntry = transcript.find((t) => t.toolId === selectedToolId);
+      if (toolEntry) {
+        const toolName = toolEntry.content.split('(')[0] || 'tool';
+        const isCollapsed = collapsedTools.has(selectedToolId);
+        const toolStatus = `${fg(c.yellow)}▸ ${toolName} ${isCollapsed ? 'collapsed' : 'expanded'}${reset}`;
+        process.stdout.write(`${toolStatus}${reset}\n`);
+        process.stdout.write(
+          `${renderDivider({ width: cols, color: c.overlay0 ?? c.subtext })}${reset}\n`
+        );
+      }
+    }
+
+    // 7. 底栏（面板式输入框 + 键位提示）
     const statusText =
       liveStatus === 'streaming'
         ? 'streaming'
@@ -189,7 +217,7 @@ export async function startTui(config: VynthConfig, pluginPaths: string[] = []):
   }
 
   function renderTopBar(cols: number): string[] {
-    // Line 1: 品牌 + 模式徽章 + 模型 + 主题
+    // Line 1: 品牌 + 模式徽章 + 模型 + 主题 + 连接状态
     const brand = `${fg(c.mauve)}VYNT${reset}`;
     const modeBadge = renderBadge(
       ` ${config.mode === 'plan' ? 'PLAN' : 'VIBE'} `,
@@ -198,7 +226,18 @@ export async function startTui(config: VynthConfig, pluginPaths: string[] = []):
     );
     const modelBadge = renderBadge(` ${config.model} `, c.crust ?? c.base, c.teal);
     const themeBadge = renderBadge(` ${config.theme} `, c.crust ?? c.base, c.blue);
-    const left = [brand, modeBadge, modelBadge, themeBadge].join('  ');
+
+    const connColor =
+      connectionStatus === 'connected' ? c.green : connectionStatus === 'error' ? c.yellow : c.red;
+    const connIcon =
+      connectionStatus === 'connected' ? '●' : connectionStatus === 'error' ? '◐' : '○';
+    const connBadge = renderBadge(
+      ` ${connIcon} ${connectionStatus} `,
+      c.crust ?? c.base,
+      connColor
+    );
+
+    const left = [brand, modeBadge, modelBadge, themeBadge, connBadge].join('  ');
 
     // Line 2: 状态 + 回合数
     const statusBadge =
@@ -238,17 +277,69 @@ export async function startTui(config: VynthConfig, pluginPaths: string[] = []):
     scrollback.push(multiLine);
   }
 
-  function appendMessage(role: 'user' | 'assistant' | 'system' | 'tool', content: string): void {
-    transcript.push({ role, content });
+  function renderTranscriptToLines(width: number): string[] {
+    const lines: string[] = [];
+    for (const entry of transcript) {
+      if (entry.role === 'tool' && entry.toolId) {
+        const isCollapsed = collapsedTools.has(entry.toolId);
+        const isSelected = selectedToolId === entry.toolId;
+        const block = renderToolBlock({
+          name: entry.content.split('(')[0] || 'tool',
+          args: entry.content.includes('(')
+            ? entry.content.slice(entry.content.indexOf('('))
+            : '{}',
+          status: 'ok',
+          palette: c,
+          width,
+          collapsed: isCollapsed,
+          selected: isSelected
+        });
+        for (const line of block.split('\n')) {
+          lines.push(line);
+        }
+      } else {
+        const block = renderMessage({
+          role: entry.role,
+          content: entry.content,
+          palette: c,
+          width,
+          background: entry.role !== 'system'
+        });
+        for (const line of block.split('\n')) {
+          lines.push(line);
+        }
+      }
+      lines.push(''); // empty line between messages
+    }
+    return lines;
+  }
+
+  function appendMessage(
+    role: 'user' | 'assistant' | 'system' | 'tool',
+    content: string,
+    options?: { toolId?: string; background?: boolean }
+  ): void {
+    transcript.push({
+      role,
+      content,
+      toolId: options?.toolId,
+      collapsed: role === 'tool' ? collapsedTools.has(options?.toolId ?? '') : undefined
+    });
     const cols = Math.max(60, Math.min(140, (process.stdout.columns ?? 100) - 1));
     const innerW = cols - 4;
-    const block = renderMessage({ role, content, palette: c, width: innerW });
+    const block = renderMessage({
+      role,
+      content,
+      palette: c,
+      width: innerW,
+      background: options?.background ?? role !== 'system'
+    });
     appendToMid(`${block}\n`);
     userScrollOffset = 0;
   }
 
   function appendSystemMessage(content: string): void {
-    appendMessage('system', content);
+    appendMessage('system', content, { background: false });
   }
 
   // ─── 输入事件 ───
@@ -261,7 +352,9 @@ export async function startTui(config: VynthConfig, pluginPaths: string[] = []):
     }
 
     if (key.shift && key.name === 'up') {
-      userScrollOffset = Math.min(userScrollOffset + 3, scrollback.size());
+      const allLines = renderTranscriptToLines(innerW);
+      const maxScroll = Math.max(0, allLines.length - midH);
+      userScrollOffset = Math.min(userScrollOffset + 3, maxScroll);
       draw();
       return;
     }
@@ -271,21 +364,39 @@ export async function startTui(config: VynthConfig, pluginPaths: string[] = []):
       return;
     }
     if (key.name === 'pageup') {
-      const rows = Math.max(20, process.stdout.rows ?? 32);
-      const midH = Math.max(5, rows - 5);
-      userScrollOffset = Math.min(userScrollOffset + midH, scrollback.size());
+      const allLines = renderTranscriptToLines(innerW);
+      const maxScroll = Math.max(0, allLines.length - midH);
+      userScrollOffset = Math.min(userScrollOffset + midH, maxScroll);
       draw();
       return;
     }
     if (key.name === 'pagedown') {
-      const rows = Math.max(20, process.stdout.rows ?? 32);
-      const midH = Math.max(5, rows - 5);
       userScrollOffset = Math.max(userScrollOffset - midH, 0);
       draw();
       return;
     }
 
+    if (key.name === 'tab') {
+      const currentIdx = selectedToolId
+        ? transcript.findIndex((t) => t.toolId === selectedToolId)
+        : -1;
+      const nextIdx = currentIdx === -1 ? 0 : currentIdx + 1;
+      const nextTool = findNextToolId(nextIdx, 1);
+      selectedToolId = nextTool;
+      draw();
+      return;
+    }
+    if (key.name === 'escape') {
+      selectedToolId = null;
+      draw();
+      return;
+    }
     if (key.name === 'return') {
+      if (selectedToolId) {
+        toggleToolCollapse(selectedToolId);
+        draw();
+        return;
+      }
       void submit();
       return;
     }
@@ -304,13 +415,21 @@ export async function startTui(config: VynthConfig, pluginPaths: string[] = []):
   process.stdin.on('data', (chunk) => {
     const text = chunk.toString('utf8');
     let rest = text;
+    const cols = Math.max(60, Math.min(140, (process.stdout.columns ?? 100) - 1));
+    const rows = Math.max(20, process.stdout.rows ?? 32);
+    const innerW = cols - 4;
+    const TOP_H = 2;
+    const BOT_H = 8;
+    const midH = Math.max(5, rows - TOP_H - BOT_H);
     while (true) {
       const parsed = parseSGRMouse(rest);
       if (!parsed) break;
       rest = parsed.rest;
       const ev = parsed.event;
       if (ev.button === 64) {
-        userScrollOffset = Math.min(userScrollOffset + 3, scrollback.size());
+        const allLines = renderTranscriptToLines(innerW);
+        const maxScroll = Math.max(0, allLines.length - midH);
+        userScrollOffset = Math.min(userScrollOffset + 3, maxScroll);
         draw();
       } else if (ev.button === 65) {
         userScrollOffset = Math.max(userScrollOffset - 3, 0);
@@ -337,18 +456,22 @@ export async function startTui(config: VynthConfig, pluginPaths: string[] = []):
       } else if (ev.type === 'tool') {
         const cols = Math.max(60, Math.min(140, (process.stdout.columns ?? 100) - 1));
         const innerW = cols - 4;
+        const toolId = `tool-${++toolIdCounter}`;
+        const isCollapsed = collapsedTools.has(toolId);
         const block = renderToolBlock({
           name: ev.call.name,
           args: JSON.stringify(ev.call.args),
           status: 'ok',
           output: '',
           palette: c,
-          width: innerW
+          width: innerW,
+          collapsed: isCollapsed
         });
         appendToMid(`${block}\n`);
         transcript.push({
           role: 'tool',
-          content: `${ev.call.name}(${JSON.stringify(ev.call.args)})`
+          content: `${ev.call.name}(${JSON.stringify(ev.call.args)})`,
+          toolId
         });
         lastToolName = ev.call.name;
         liveStatus = 'tool';
