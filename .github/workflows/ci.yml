@@ -188,36 +188,15 @@ jobs:
         run: |
           echo "Downloading macOS artifact..."
           gh run download ${{ github.run_id }} -n vynth-macos-latest-${{ github.ref_name }} -D /tmp/macos-build/ || true
-          
-          if gh release view "${{ github.ref_name }}" >/dev/null 2>&1; then
-            echo "Release already exists; uploading assets only..."
-          else
-            gh release create "${{ github.ref_name }}" \
-              --title "v${{ github.ref_name }}" \
-              --notes-file /dev/stdin \
-              --target "${{ github.sha }}" \
-              <<'EOF'
-            ## v${{ github.ref_name }}
-            
-            ### Download
-            
-            - **Linux**: `dist/vynth` (built on Ubuntu)
-            - **macOS**: `dist/vynth` (built on macOS)
-            - **Checksums**: SHA256 for each binary
-            
-            ### Verification
-            
-            - `bun test packages`: 277 pass / 0 fail
-            - `bun run lint`: 0 error
-            - `bun run compile`: PASS
-            
-            **Full diff**: https://github.com/Agions/vynth/compare/v${{ github.ref_name }}...HEAD
-            EOF
-          fi
+
+          # Create release (ignore conflict if already exists)
+          printf '## v%s\n\n### Download\n\n- **Linux**: `dist/vynth` (Ubuntu)\n- **macOS**: `dist/vynth` (macOS)\n- **Checksums**: SHA256 for each binary\n\n### Verification\n\n- `bun test packages`: 277 pass / 0 fail\n- `bun run lint`: 0 error\n- `bun run compile`: PASS\n\n**Full diff**: https://github.com/Agions/vynth/compare/v%s...HEAD\n' \
+            "${{ github.ref_name }}" "${{ github.ref_name }}" > /tmp/release-notes.md
+          gh release create "${{ github.ref_name }}" --title "v${{ github.ref_name }}" --notes-file /tmp/release-notes.md --target "${{ github.sha }}" || echo "Release already exists; uploading assets..."
 
           gh release upload "${{ github.ref_name }}" dist/vynth --clobber
           gh release upload "${{ github.ref_name }}" dist/vynth.sha256 --clobber
-          
+
           if [ -f /tmp/macos-build/vynth ]; then
             gh release upload "${{ github.ref_name }}" /tmp/macos-build/vynth --clobber
             gh release upload "${{ github.ref_name }}" /tmp/macos-build/vynth.sha256 --clobber
