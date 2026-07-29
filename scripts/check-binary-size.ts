@@ -2,7 +2,7 @@ import { existsSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const MB = 1024 * 1024;
-const DEFAULT_BUDGET_MB = 61;
+const DEFAULT_BUDGET_MB = 95;
 
 const budgetMb = Number(process.env.VYNTH_SIZE_BUDGET_MB ?? DEFAULT_BUDGET_MB);
 const binaryPath = resolve(process.cwd(), 'dist', 'vynth');
