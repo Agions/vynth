@@ -23,19 +23,19 @@ importers:
 
   apps/cli:
     dependencies:
-      '@covyx/core':
+      '@zeno/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@covyx/engine':
+      '@zeno/engine':
         specifier: workspace:*
         version: link:../../packages/engine
-      '@covyx/mcp':
+      '@zeno/mcp':
         specifier: workspace:*
         version: link:../../packages/mcp
-      '@covyx/plugins':
+      '@zeno/plugins':
         specifier: workspace:*
         version: link:../../packages/plugins
-      '@covyx/tui':
+      '@zeno/tui':
         specifier: workspace:*
         version: link:../../packages/tui
 
@@ -43,63 +43,63 @@ importers:
 
   packages/engine:
     dependencies:
-      '@covyx/core':
+      '@zeno/core':
         specifier: workspace:*
         version: link:../core
-      '@covyx/sandbox':
+      '@zeno/sandbox':
         specifier: workspace:*
         version: link:../sandbox
 
   packages/harness:
     dependencies:
-      '@covyx/core':
+      '@zeno/core':
         specifier: workspace:*
         version: link:../core
-      '@covyx/engine':
+      '@zeno/engine':
         specifier: workspace:*
         version: link:../engine
-      '@covyx/mcp':
+      '@zeno/mcp':
         specifier: workspace:*
         version: link:../mcp
-      '@covyx/plugins':
+      '@zeno/plugins':
         specifier: workspace:*
         version: link:../plugins
 
   packages/mcp:
     dependencies:
-      '@covyx/core':
+      '@zeno/core':
         specifier: workspace:*
         version: link:../core
 
   packages/plugins:
     dependencies:
-      '@covyx/core':
+      '@zeno/core':
         specifier: workspace:*
         version: link:../core
-      '@covyx/engine':
+      '@zeno/engine':
         specifier: workspace:*
         version: link:../engine
 
   packages/sandbox:
     dependencies:
-      '@covyx/core':
+      '@zeno/core':
         specifier: workspace:*
         version: link:../core
 
   packages/tui:
     dependencies:
-      '@covyx/core':
+      '@zeno/core':
         specifier: workspace:*
         version: link:../core
-      '@covyx/engine':
+      '@zeno/engine':
         specifier: workspace:*
         version: link:../engine
-      '@covyx/plugins':
+      '@zeno/plugins':
         specifier: workspace:*
         version: link:../plugins
-      ansi-escapes:
-        specifier: ^6.2.0
-        version: 6.2.1
+      '@zeno/sandbox':
+        specifier: workspace:*
+        version: link:../sandbox
 
 packages:
 
@@ -166,10 +166,6 @@ packages:
   '@types/node@22.20.1':
     resolution: {integrity: sha512-EANqOCF9QFyra+4pfxUcX9STKJpCLjMbObVzljIJomAWSnuSIEAvyzEU53GaajbXJEgdh0iEcPL+DGvpUd4k1Q==}
 
-  ansi-escapes@6.2.1:
-    resolution: {integrity: sha512-4nJ3yixlEthEJ9Rk4vPcdBRkZvQZlYyu8j4/Mqz5sgIkddmEnH2Yj2ZrnP9S3tQOvSNRUIgVNF/1yPpRAGNRig==}
-    engines: {node: '>=14.16'}
-
   bun-types@1.3.14:
     resolution: {integrity: sha512-4N0ig0fEomHt5R0KCFWjovxow98rIoRwKolrYdCcknNwMekCXRnWEUvgu5soYV8QXtVsrUD8B95MBOZGPvr6KQ==}
 
@@ -225,8 +221,6 @@ snapshots:
   '@types/node@22.20.1':
     dependencies:
       undici-types: 6.21.0
-
-  ansi-escapes@6.2.1: {}
 
   bun-types@1.3.14:
     dependencies:
