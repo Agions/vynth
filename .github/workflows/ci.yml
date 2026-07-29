@@ -189,27 +189,31 @@ jobs:
           echo "Downloading macOS artifact..."
           gh run download ${{ github.run_id }} -n vynth-macos-latest-${{ github.ref_name }} -D /tmp/macos-build/ || true
           
-          gh release create "${{ github.ref_name }}" \
-            --title "v${{ github.ref_name }}" \
-            --notes-file /dev/stdin \
-            --target "${{ github.sha }}" \
-            <<'EOF'
-          ## v${{ github.ref_name }}
-          
-          ### Download
-          
-          - **Linux**: `dist/vynth` (built on Ubuntu)
-          - **macOS**: `dist/vynth` (built on macOS, signed + notarized)
-          - **Checksums**: SHA256 for each binary
-          
-          ### Verification
-          
-          - `bun test packages`: 277 pass / 0 fail
-          - `bun run lint`: 0 error
-          - `bun run compile`: 61 MB <= 61 MB PASS
-          
-          **Full diff**: https://github.com/Agions/vynth/compare/v${{ github.ref_name }}...HEAD
-          EOF
+          if gh release view "${{ github.ref_name }}" >/dev/null 2>&1; then
+            echo "Release already exists; uploading assets only..."
+          else
+            gh release create "${{ github.ref_name }}" \
+              --title "v${{ github.ref_name }}" \
+              --notes-file /dev/stdin \
+              --target "${{ github.sha }}" \
+              <<'EOF'
+            ## v${{ github.ref_name }}
+            
+            ### Download
+            
+            - **Linux**: `dist/vynth` (built on Ubuntu)
+            - **macOS**: `dist/vynth` (built on macOS)
+            - **Checksums**: SHA256 for each binary
+            
+            ### Verification
+            
+            - `bun test packages`: 277 pass / 0 fail
+            - `bun run lint`: 0 error
+            - `bun run compile`: PASS
+            
+            **Full diff**: https://github.com/Agions/vynth/compare/v${{ github.ref_name }}...HEAD
+            EOF
+          fi
 
           gh release upload "${{ github.ref_name }}" dist/vynth --clobber
           gh release upload "${{ github.ref_name }}" dist/vynth.sha256 --clobber
