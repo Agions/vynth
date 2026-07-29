@@ -1,4 +1,3 @@
-
 import type { ViewportLayout } from '../state/TuiState';
 
 const ESC = '\x1b';

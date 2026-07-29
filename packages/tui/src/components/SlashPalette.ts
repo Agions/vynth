@@ -1,4 +1,3 @@
-
 import { SLASH_COMMANDS, type SlashCommand } from '../slash-commands';
 import type { TuiState } from '../state/TuiState';
 import { fg, reset } from '../theme';
@@ -39,15 +38,15 @@ export function SlashPalette(props: SlashPaletteProps): string {
   } else {
     const categories: Array<SlashCommand['category']> = ['config', 'workflow', 'system'];
     const categoryMeta: Record<SlashCommand['category'], { label: string; color: string }> = {
-      config:   { label: '─ 配置管理 (Config) ', color: c.blue },
+      config: { label: '─ 配置管理 (Config) ', color: c.blue },
       workflow: { label: '─ 工作流 (Workflow) ', color: c.green },
-      system:   { label: '─ 系统与统计 (System) ', color: c.yellow },
+      system: { label: '─ 系统与统计 (System) ', color: c.yellow }
     };
 
     const groups = new Map<SlashCommand['category'], SlashCommand[]>();
     for (const cmd of filtered) {
       if (!groups.has(cmd.category)) groups.set(cmd.category, []);
-      groups.get(cmd.category)!.push(cmd);
+      groups.get(cmd.category)?.push(cmd);
     }
 
     const safeIdx = Math.max(0, Math.min(selectedIndex, filtered.length - 1));
@@ -80,7 +79,10 @@ export function SlashPalette(props: SlashPaletteProps): string {
     }
   }
 
-  const pageIndicator = filtered.length > 0 ? ` [${Math.min(selectedIndex + 1, filtered.length)}/${filtered.length}]` : '';
+  const pageIndicator =
+    filtered.length > 0
+      ? ` [${Math.min(selectedIndex + 1, filtered.length)}/${filtered.length}]`
+      : '';
   const footerStr = `  ${fg(c.yellow)}↑↓${fg(c.subtext)} 选择   ${fg(c.yellow)}⏎${fg(c.subtext)} 确认执行   ${fg(c.yellow)}esc${fg(c.subtext)} 关闭${fg(c.mauve)}${pageIndicator}${reset}`;
   lines.push(footerStr);
 

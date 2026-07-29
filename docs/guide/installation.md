@@ -7,7 +7,7 @@
 ### macOS / Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Agions/zeno/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Agions/vynth/main/scripts/install.sh | bash
 ```
 
 脚本会自动完成：
@@ -28,7 +28,7 @@ curl -fsSL https://raw.githubusercontent.com/Agions/zeno/main/scripts/install.sh
 ### Windows（PowerShell）
 
 ```powershell
-irm https://raw.githubusercontent.com/Agions/zeno/main/scripts/install.ps1 | iex
+irm https://raw.githubusercontent.com/Agions/vynth/main/scripts/install.ps1 | iex
 ```
 
 安装到 `%USERPROFILE%\.zeno\bin\zeno.exe` 并自动写入用户级 PATH（重开终端生效）。支持 `-Prefix`、`-NoBuild`、`-Uninstall` 参数。
@@ -36,7 +36,7 @@ irm https://raw.githubusercontent.com/Agions/zeno/main/scripts/install.ps1 | iex
 ## 方式二：源码手动构建
 
 ```bash
-git clone https://github.com/Agions/zeno.git && cd zeno
+git clone https://github.com/Agions/vynth.git && cd zeno
 bun install
 bun run compile          # → dist/zeno
 ./dist/zeno --version

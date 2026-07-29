@@ -1,4 +1,3 @@
-
 export interface TokenRate {
   input: number;
   output: number;

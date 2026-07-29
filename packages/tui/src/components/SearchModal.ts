@@ -19,7 +19,7 @@ export function SearchModal(props: SearchModalProps): string {
   const selIdx = state.searchModalIndex || 0;
   const borderCol = fg(c.blue);
 
-  const title = ` 🔍 全局正则搜索 `;
+  const title = ' 🔍 全局正则搜索 ';
   const leftW = visibleWidth(title);
   const dashesW = Math.max(2, panelW - 3 - leftW);
   const topBorder = `${borderCol}╭─${fg(c.blue)}\x1b[1m${title}${borderCol}${'─'.repeat(dashesW)}╮${reset}`;

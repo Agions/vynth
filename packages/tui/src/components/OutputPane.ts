@@ -1,4 +1,3 @@
-
 import type { TuiState } from '../state/TuiState';
 import { fg, reset } from '../theme';
 import { truncateVisible } from '../utils/unicode';
@@ -17,9 +16,9 @@ export function collectOutputLines(state: TuiState): string[] {
     const name = entry.content.split('(')[0] || 'tool';
     const status = entry.status ?? 'ok';
     const mark =
-      status === 'error' || status === 'blocked'
+      status === 'error'
         ? `${fg(c.red)}✖${reset}`
-        : status === 'running' || status === 'queued'
+        : status === 'running'
           ? `${fg(c.yellow)}⠋${reset}`
           : `${fg(c.green)}✔${reset}`;
     lines.push(`${mark} ${fg(c.mauve)}${name}${reset}`);

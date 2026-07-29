@@ -1,4 +1,3 @@
-
 export function stripAnsi(str: string): string {
   const ESC = '\x1b';
   const CSI_RE = new RegExp(`${ESC}\\[[0-9;?]*[a-zA-Z]`, 'g');
@@ -58,10 +57,9 @@ export function wrapLine(input: string, width: number): string[] {
         }
         i += seq.length;
         continue;
-      } else {
-        i++;
-        continue;
       }
+      i++;
+      continue;
     }
     const ch = input[i];
     const cw = charWidth(ch);
@@ -91,10 +89,9 @@ export function truncateVisible(input: string, maxCols: number): string {
         out += seq;
         i += seq.length;
         continue;
-      } else {
-        i++;
-        continue;
       }
+      i++;
+      continue;
     }
     const cp = input.codePointAt(i) ?? 0;
     const w = isWideChar(cp) ? 2 : 1;

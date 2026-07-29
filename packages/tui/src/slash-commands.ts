@@ -1,4 +1,3 @@
-
 export interface SlashCommand {
   name: string;
   desc: string;
@@ -8,13 +7,28 @@ export interface SlashCommand {
 
 export const SLASH_COMMANDS: SlashCommand[] = [
   { name: 'config', desc: '可视化配置 AI 模型、端点与 API 密钥', category: 'config', icon: '⚙' },
-  { name: 'model', desc: '一站式配置模型、Base URL 与 Key (/model <name> [url] [key])', category: 'config', icon: '🤖' },
-  { name: 'theme', desc: '循环切换界面主题 (mocha/latte/midnight/forest)', category: 'config', icon: '🎨' },
+  {
+    name: 'model',
+    desc: '一站式配置模型、Base URL 与 Key (/model <name> [url] [key])',
+    category: 'config',
+    icon: '🤖'
+  },
+  {
+    name: 'theme',
+    desc: '循环切换界面主题 (mocha/latte/midnight/forest)',
+    category: 'config',
+    icon: '🎨'
+  },
 
   { name: 'init', desc: '初始化项目的 AGENTS.md AI 规则文件', category: 'workflow', icon: '🚀' },
   { name: 'files', desc: '开关工作区文件树抽屉', category: 'workflow', icon: '📁' },
   { name: 'search', desc: '全局内容与代码正则搜索', category: 'workflow', icon: '🔍' },
-  { name: 'compact', desc: '压缩与化简上下文历史 (Context Compaction)', category: 'workflow', icon: '🗜' },
+  {
+    name: 'compact',
+    desc: '压缩与化简上下文历史 (Context Compaction)',
+    category: 'workflow',
+    icon: '🗜'
+  },
   { name: 'undo', desc: '回撤/恢复到上一步 AI 代码修改', category: 'workflow', icon: '↺' },
 
   { name: 'tokens', desc: 'Token 详细消耗与费用面板 (Ctrl+U)', category: 'system', icon: '📊' },

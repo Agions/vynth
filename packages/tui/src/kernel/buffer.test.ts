@@ -1,4 +1,3 @@
-
 import { describe, expect, it } from 'bun:test';
 import {
   applyDiff,
@@ -59,7 +58,9 @@ describe('setCell / getCell', () => {
   it('sets and retrieves a cell', () => {
     const buf = createBuffer(10, 10);
     setCell(buf, 3, 2, 'A', 5, 6, { bold: true });
-    const cell = getCell(buf, 3, 2)!;
+    const cell = getCell(buf, 3, 2);
+    expect(cell).not.toBeNull();
+    if (!cell) return;
     expect(cell.char).toBe('A');
     expect(cell.fg).toBe(5);
     expect(cell.bg).toBe(6);
@@ -128,9 +129,13 @@ describe('computeDiff / applyDiff', () => {
     setCell(back, 1, 1, 'C', 5, 6); // back has char where front is empty
     const diff = computeDiff(front, back);
     expect(diff.ops.length).toBe(2);
-    const opAt22 = diff.ops.find((o) => o.x === 2 && o.y === 2)!;
+    const opAt22 = diff.ops.find((o) => o.x === 2 && o.y === 2);
+    expect(opAt22).toBeDefined();
+    if (!opAt22) return;
     expect(opAt22.char).toBe('B');
-    const opAt11 = diff.ops.find((o) => o.x === 1 && o.y === 1)!;
+    const opAt11 = diff.ops.find((o) => o.x === 1 && o.y === 1);
+    expect(opAt11).toBeDefined();
+    if (!opAt11) return;
     expect(opAt11.char).toBe(' ');
   });
 

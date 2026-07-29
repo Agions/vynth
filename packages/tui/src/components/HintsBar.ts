@@ -1,6 +1,5 @@
-
-import { fg, reset } from '../theme';
 import type { TuiState } from '../state/TuiState';
+import { fg, reset } from '../theme';
 import { ansiBackground, hexToRgb } from '../utils/color';
 
 export interface HintsBarProps {
@@ -21,14 +20,14 @@ export function renderHintsBar(opts: HintsBarProps): string {
     pairs = [
       ['Esc×2', 'interrupt'],
       ['/', 'slash'],
-      ['?', 'help'],
+      ['?', 'help']
     ];
   } else if (opts.liveStatus === 'tool') {
     pairs = [
       ['↵', 'toggle'],
       ['Tab', 'next'],
       ['Esc', 'deselect'],
-      ['?', 'help'],
+      ['?', 'help']
     ];
   } else {
     pairs = [
@@ -37,12 +36,13 @@ export function renderHintsBar(opts: HintsBarProps): string {
       ['/', 'slash'],
       ['@', 'file'],
       ['↑↓', 'hist'],
-      ['?', 'help'],
+      ['?', 'help']
     ];
   }
 
-  const parts = pairs.map(([key, label]) =>
-    `${ansiBackground(c.surface0 ?? c.mantle)}${fg(c.text)} ${key} ${reset}${fg(c.subtext)} ${label}${reset}`
+  const parts = pairs.map(
+    ([key, label]) =>
+      `${ansiBackground(c.surface0 ?? c.mantle)}${fg(c.text)} ${key} ${reset}${fg(c.subtext)} ${label}${reset}`
   );
   const hintStr = `  ${parts.join('   ')}`;
   const len = hintStr.replace(/\x1b\[[^m]*m/g, '').length;

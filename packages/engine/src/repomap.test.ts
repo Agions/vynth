@@ -103,7 +103,9 @@ describe('repo-map 提取器', () => {
     const run = res.symbols.find((s) => s.name === 'run');
     expect(run?.kind).toBe('method');
     expect(run?.parent).toBe('Engine');
-    expect(res.symbols.find((s) => s.file === 'mod.py' && s.name === 'helper')?.kind).toBe('function');
+    expect(res.symbols.find((s) => s.file === 'mod.py' && s.name === 'helper')?.kind).toBe(
+      'function'
+    );
     expect(res.symbols.find((s) => s.name === 'Engine')?.kind).toBe('class');
   });
 

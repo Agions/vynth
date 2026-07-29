@@ -62,7 +62,7 @@ export interface ZenoConfig {
   llmBaseUrl: string;
   apiKey: string;
   model: string;
-  theme: 'mocha' | 'latte' | 'neon';
+  theme: 'mocha' | 'latte' | 'neon' | 'midnight' | 'forest' | 'light';
   sandbox: { networkAllowed: boolean; cwd: string; harden: boolean };
   dataDir: string;
   audit: boolean;

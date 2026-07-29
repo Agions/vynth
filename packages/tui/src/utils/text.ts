@@ -1,10 +1,9 @@
-
+import { highlightCode } from '../render/syntax';
 import { fg, reset } from '../theme';
 import type { Palette } from '../theme';
 import { ansiBackground, hexToRgb } from './color';
+import { errorHintFor, parseVcCode } from './error-hints';
 import { padToWidth, visibleWidth, wrapLine } from './unicode';
-import { highlightCode } from '../render/syntax';
-import { parseVcCode, errorHintFor } from './error-hints';
 
 // ─── Spinner ──────────────────────────────────────────────────────────────────
 
@@ -95,7 +94,9 @@ export function renderStatusBar(opts: {
   const rightW = visibleWidth(opts.right);
   const pad = Math.max(1, w - leftW - rightW);
   const styled = (s: string) => fg(opts.textColor ?? opts.color) + s + reset;
-  return ansiBackground(opts.bgHex) + styled(opts.left) + ' '.repeat(pad) + styled(opts.right) + reset;
+  return (
+    ansiBackground(opts.bgHex) + styled(opts.left) + ' '.repeat(pad) + styled(opts.right) + reset
+  );
 }
 
 export function renderSection(title: string, color: string, width = 60): string {
@@ -110,7 +111,10 @@ export function renderSection(title: string, color: string, width = 60): string 
 
 export function renderMarkdownInline(text: string, p: Palette): string {
   return text
-    .replace(/`([^`]+)`/g, `${ansiBackground(p.surface0 ?? p.mantle)}${fg(p.teal)}\x1b[1m $1 ${reset}`)
+    .replace(
+      /`([^`]+)`/g,
+      `${ansiBackground(p.surface0 ?? p.mantle)}${fg(p.teal)}\x1b[1m $1 ${reset}`
+    )
     .replace(/\*\*([^*]+)\*\*/g, `\x1b[1m${fg(p.text)}$1${reset}`)
     .replace(/\*([^*]+)\*/g, `\x1b[3m${fg(p.subtext)}$1${reset}`)
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, `${fg(p.blue)}\x1b[4m$1${reset}`);
@@ -142,7 +146,10 @@ export function renderInline(text: string, palette: Palette): string {
       if (end !== -1) {
         flush();
         const code = text.slice(i + 1, end);
-        out.push(`${ansiBackground(palette.mantle)}${fg(palette.teal)} ${code} ${reset}`, fg(palette.subtext));
+        out.push(
+          `${ansiBackground(palette.mantle)}${fg(palette.teal)} ${code} ${reset}`,
+          fg(palette.subtext)
+        );
         i = end + 1;
         continue;
       }
@@ -205,7 +212,9 @@ export function renderMarkdownContent(content: string, p: Palette, width = 80): 
     // Blockquote
     const quoteMatch = line.match(/^>\s+(.*)$/);
     if (quoteMatch) {
-      result.push(`${fg(p.overlay0 ?? p.subtext)}▎${reset}${fg(p.subtext)} ${renderMarkdownInline(quoteMatch[1], p)}${reset}`);
+      result.push(
+        `${fg(p.overlay0 ?? p.subtext)}▎${reset}${fg(p.subtext)} ${renderMarkdownInline(quoteMatch[1], p)}${reset}`
+      );
       continue;
     }
 
@@ -219,7 +228,9 @@ export function renderMarkdownContent(content: string, p: Palette, width = 80): 
     // Ordered list
     const orderMatch = line.match(/^(\d+)\.\s+(.*)$/);
     if (orderMatch) {
-      result.push(`  ${fg(p.mauve)}${orderMatch[1]}.${reset} ${renderMarkdownInline(orderMatch[2], p)}`);
+      result.push(
+        `  ${fg(p.mauve)}${orderMatch[1]}.${reset} ${renderMarkdownInline(orderMatch[2], p)}`
+      );
       continue;
     }
 
@@ -254,7 +265,9 @@ function renderCodeBlock(
   const lineNumW = lines.length >= 100 ? 4 : 3;
   const innerContentW = Math.max(10, width - lineNumW - 4);
 
-  const langBadge = lang ? `${ansiBackground(p.mauve)}${fg(p.crust ?? p.base)}\x1b[1m ${lang} ${reset}` : '';
+  const langBadge = lang
+    ? `${ansiBackground(p.mauve)}${fg(p.crust ?? p.base)}\x1b[1m ${lang} ${reset}`
+    : '';
   const fileBadge = filename ? `${fg(p.subtext)} ${filename}${reset}` : '';
   const badgeStr = [langBadge, fileBadge].filter(Boolean).join('');
   const badgeVW = visibleWidth(badgeStr);
@@ -318,7 +331,6 @@ export function renderMessage(opts: {
       }
     }
     result.push('');
-
   } else if (opts.role === 'assistant') {
     const formatted = renderMarkdownContent(opts.content, p, innerW);
     for (const rawLine of formatted.split('\n')) {
@@ -328,7 +340,6 @@ export function renderMessage(opts: {
       }
     }
     result.push('');
-
   } else {
     // tool role
     const formatted = renderInline(opts.content, p);
@@ -382,9 +393,10 @@ export function renderToolBlock(opts: {
   const nameStr = `${fg(opts.selected ? p.yellow : p.lavender)}\x1b[1m${opts.name}${reset}`;
   const foldIcon = opts.collapsed ? `${fg(p.subtext)}▸${reset}` : `${fg(p.subtext)}▾${reset}`;
   const selectMark = opts.selected ? ` ${fg(p.yellow)}◀ selected${reset}` : '';
-  const durationStr = opts.durationMs !== undefined && opts.status !== 'running'
-    ? ` ${fg(p.subtext)}${opts.durationMs < 1000 ? `${opts.durationMs}ms` : `${(opts.durationMs / 1000).toFixed(1)}s`}${reset}`
-    : '';
+  const durationStr =
+    opts.durationMs !== undefined && opts.status !== 'running'
+      ? ` ${fg(p.subtext)}${opts.durationMs < 1000 ? `${opts.durationMs}ms` : `${(opts.durationMs / 1000).toFixed(1)}s`}${reset}`
+      : '';
 
   const titleContent = ` ${statusIcon} ${nameStr} ${foldIcon}${durationStr}${selectMark} `;
   const titleVW = visibleWidth(titleContent);
@@ -483,7 +495,7 @@ export function renderInputPanel(opts: {
   if (opts.multiline && opts.input.includes('\n')) {
     const rawLines = opts.input.split('\n');
     for (let idx = 0; idx < rawLines.length; idx++) {
-      const lineNum = `${fg(p.subtext)}${String(idx + 1).padStart(3)}${fg(p.overlay0)}│${reset}`;
+      const lineNum = `${fg(p.subtext)}${String(idx + 1).padStart(3)}${fg(p.overlay0 ?? p.subtext)}│${reset}`;
       const lineText = `${fg(p.text)}${rawLines[idx]}${reset}`;
       lines.push(`  ${lineNum} ${lineText}`);
     }
@@ -495,9 +507,8 @@ export function renderInputPanel(opts: {
       content = `  ${promptIcon} ${placeholder}`;
     } else {
       const inputText = `${fg(p.text)}${opts.input}${reset}`;
-      const cursor = opts.liveStatus === 'idle' || !opts.liveStatus
-        ? `${fg(p.mauve)}${cursorChar}${reset}`
-        : '';
+      const cursor =
+        opts.liveStatus === 'idle' || !opts.liveStatus ? `${fg(p.mauve)}${cursorChar}${reset}` : '';
       content = `  ${promptIcon} ${inputText}${cursor}`;
     }
     lines.push(content);
@@ -521,11 +532,23 @@ export function renderHintsBar(opts: {
   } else if (opts.liveStatus === 'tool') {
     hints.push(['↵', 'toggle-fold'], ['Tab', 'next-tool'], ['Esc', 'deselect']);
   } else {
-    hints.push(['⏎', 'send'], ['⇧↵', 'newline'], ['/', 'slash'], ['@', 'file'], ['^B', '侧栏'], ['^T', '切换'], ['^O', 'split'], ['?', 'help'], ['↑↓', 'scroll'], ['^P^N', 'history']);
+    hints.push(
+      ['⏎', 'send'],
+      ['⇧↵', 'newline'],
+      ['/', 'slash'],
+      ['@', 'file'],
+      ['^B', '侧栏'],
+      ['^T', '切换'],
+      ['^O', 'split'],
+      ['?', 'help'],
+      ['↑↓', 'scroll'],
+      ['^P^N', 'history']
+    );
   }
 
-  const parts = hints.map(([key, label]) =>
-    `${ansiBackground(c.surface0 ?? c.mantle)}${fg(c.text)} ${key} ${reset}${fg(c.subtext)} ${label}${reset}`
+  const parts = hints.map(
+    ([key, label]) =>
+      `${ansiBackground(c.surface0 ?? c.mantle)}${fg(c.text)} ${key} ${reset}${fg(c.subtext)} ${label}${reset}`
   );
   const hintStr = `  ${parts.join('   ')}  `;
   const hintVW = visibleWidth(hintStr);

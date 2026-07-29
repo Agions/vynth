@@ -17,7 +17,7 @@
 ### 1. Fork 与克隆
 
 ```bash
-git clone git@github.com:Agions/zeno.git
+git clone git@github.com:Agions/vynth.git
 cd zeno
 ```
 
@@ -181,8 +181,8 @@ PR 合并前需通过以下检查：
 
 ## 获取帮助
 
-- [GitHub Issues](https://github.com/Agions/zeno/issues)
-- [GitHub Discussions](https://github.com/Agions/zeno/discussions)
+- [GitHub Issues](https://github.com/Agions/vynth/issues)
+- [GitHub Discussions](https://github.com/Agions/vynth/discussions)
 
 ---
 

@@ -1,4 +1,3 @@
-
 export type CellModifiers = {
   bold?: boolean;
   italic?: boolean;
@@ -11,7 +10,7 @@ export interface ScreenCell {
   char: string;
   fg: number; // palette index
   bg: number; // palette index
-  modifiers: number;
+  modifiers: CellModifiers;
 }
 
 export interface ScreenBuffer {

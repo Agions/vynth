@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
-import { highlightCode } from './syntax';
 import { palette } from '../theme';
+import { highlightCode } from './syntax';
 
 describe('syntax highlighting', () => {
   const p = palette('mocha');

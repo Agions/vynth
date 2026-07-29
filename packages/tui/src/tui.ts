@@ -1,9 +1,9 @@
 import { resolve } from 'node:path';
 import * as readline from 'node:readline';
-import { type ZenoConfig, saveConfigFile } from '@zeno/core';
-import { builtinTools, buildRepoMap, createProvider, runAgent } from '@zeno/engine';
-import * as sandbox from '@zeno/sandbox';
+import { type Mode, type ZenoConfig, saveConfigFile } from '@zeno/core';
+import { buildRepoMap, builtinTools, createProvider, runAgent } from '@zeno/engine';
 import { type TrustConfirm, loadPluginsWithTrust } from '@zeno/plugins';
+import * as sandbox from '@zeno/sandbox';
 import {
   AtPalette,
   BottomArea,
@@ -12,17 +12,19 @@ import {
   ConfigModal,
   FileTreePanel,
   InputPanel,
-  SearchModal,
   OutputPane,
+  SearchModal,
   SidePanel,
   SlashPalette,
   TasksPanel,
   TopBar,
+  UndoModal,
   UsagePanel,
   filterAtFiles,
   renderWelcome
 } from './components';
 import { COMMANDS } from './components/CommandPalette';
+import { collectOutputLines } from './components/OutputPane';
 import { filterSlashCommands } from './components/SlashPalette';
 import { computeLayoutStrategy } from './layout/Layout';
 import {
@@ -37,16 +39,18 @@ import {
 import { DoubleBufferedRenderer } from './render/double-buffer';
 import { FrameCache } from './render/frame-cache';
 import { composeOverlay, overlayPanelWidth, stripPanelBorders } from './render/overlay';
-import { collectOutputLines } from './components/OutputPane';
-import { matchSlashCommands, SLASH_COMMANDS } from './slash-commands';
 import { Scrollback } from './scrollback';
+import { SLASH_COMMANDS, matchSlashCommands } from './slash-commands';
 import { Store } from './state/Store';
 import type { MessageEntry, TuiState } from './state/TuiState';
-import { bg, fg, palette, reset } from './theme';
-import { loadHistory, saveHistory } from './utils/history';
-import { parseVcCode, errorHintFor } from './utils/error-hints';
-import { estimateCost } from './utils/pricing';
-import { getTaskManager } from './utils/tasks';
+import { type ThemeName, bg, fg, palette, reset } from './theme';
+import {
+  executeDirectCommand,
+  isMouseOrEscapeGarbage,
+  isPhysicalEscapeKey,
+  parseSGRMouse,
+  scanProjectFiles
+} from './tui-controller';
 import {
   cursorTo,
   enterAltScreen,
@@ -55,8 +59,11 @@ import {
   leaveAltScreen,
   showCursor
 } from './utils/ansi';
+import { errorHintFor, parseVcCode } from './utils/error-hints';
+import { loadHistory, saveHistory } from './utils/history';
+import { estimateCost } from './utils/pricing';
+import { type TaskStatus, getTaskManager } from './utils/tasks';
 import { padToWidth, stripAnsi, truncateVisible, visibleWidth } from './utils/unicode';
-import { executeDirectCommand, isMouseOrEscapeGarbage, isPhysicalEscapeKey, parseSGRMouse, scanProjectFiles } from './tui-controller';
 
 const ESC = '\x1b';
 
@@ -118,14 +125,48 @@ export async function startTui(
     atPaletteOpen: false,
     atPaletteFilter: '',
     atPaletteIndex: 0,
-    atPaletteFiles: ['package.json', 'README.md', 'apps/cli/src/main.ts', 'packages/tui/src/tui.ts', 'packages/core/src/config.ts', 'packages/engine/src/llm.ts', 'packages/sandbox/src/fsops.ts'],
+    atPaletteFiles: [
+      'package.json',
+      'README.md',
+      'apps/cli/src/main.ts',
+      'packages/tui/src/tui.ts',
+      'packages/core/src/config.ts',
+      'packages/engine/src/llm.ts',
+      'packages/sandbox/src/fsops.ts'
+    ],
     spinnerFrame: 0,
     undoModalOpen: false,
     sidebarOpen: true,
     sidebarTab: 'files',
     splitOpen: false,
     splitFocus: 'chat',
-    outputScrollOffset: 0
+    outputScrollOffset: 0,
+
+    mode: config.mode,
+
+    fileTreeOpen: false,
+    fileTreeData: [],
+    fileTreeIndex: 0,
+
+    configModalOpen: false,
+    configDraft: {
+      model: config.model,
+      llmBaseUrl: config.llmBaseUrl,
+      apiKey: config.apiKey,
+      theme: config.theme,
+      networkAllowed: config.sandbox.networkAllowed,
+      mode: config.mode
+    },
+    configFieldIndex: 0,
+
+    searchModalOpen: false,
+    searchModalQuery: '',
+    searchModalResults: [],
+    searchModalIndex: 0,
+
+    toasts: [],
+    activeFilePath: '',
+    cursorPos: { line: 0, col: 0 }
   };
 
   const store = new Store(initialState);
@@ -149,10 +190,10 @@ export async function startTui(
     }
   });
 
-  const useNewRenderer = process.env.ZENO_NEW_RENDERER === '1';
+  const useNewRenderer = process.env.VYNTH_NEW_RENDERER === '1';
   let renderer: DoubleBufferedRenderer | null = null;
   if (useNewRenderer) {
-    renderer = new DoubleBufferedRenderer(cols, rows);
+    renderer = new DoubleBufferedRenderer(store.getState().cols, store.getState().rows);
   }
 
   const frameCache = new FrameCache();
@@ -216,9 +257,7 @@ export async function startTui(
           draw();
         }
       })
-      .catch(() => {
-        
-      });
+      .catch(() => {});
   }
 
   draw();
@@ -348,7 +387,11 @@ export async function startTui(
       const bottomStart = chatStart + midH + 1;
       const inputLine = `❯ ${state.input || ''}`;
       r.renderLine(bottomStart, inputLine, ci.text);
-      r.renderLine(bottomStart + 1, '⏎ send · ⇧↵ newline · ^B 侧栏 · ^T 切换 · ? help · ↑↓ scroll · ^P^N history', ci.subtext);
+      r.renderLine(
+        bottomStart + 1,
+        '⏎ send · ⇧↵ newline · ^B 侧栏 · ^T 切换 · ? help · ↑↓ scroll · ^P^N history',
+        ci.subtext
+      );
 
       const output = r.flush();
       process.stdout.write(output);
@@ -438,7 +481,6 @@ export async function startTui(
       }
     }
 
-
     const bottomStart = frame.length;
     const bottomLines = BottomArea({ state });
     for (const line of bottomLines) {
@@ -503,17 +545,13 @@ export async function startTui(
     if (frameOut) process.stdout.write(frameOut);
 
     const cursorRow = rows - 2;
-    const cursorCol = state.input.includes('\n')
-      ? 6
-      : visibleWidth(`  ❯ ${state.input}`) + 1;
+    const cursorCol = state.input.includes('\n') ? 6 : visibleWidth(`  ❯ ${state.input}`) + 1;
     process.stdout.write(cursorTo(cursorRow, cursorCol));
   }
 
   function appendToMid(multiLine: string): void {
     scrollback.push(multiLine);
   }
-
-
 
   function renderTranscriptToLines(width: number): string[] {
     const lines: string[] = [];
@@ -603,21 +641,46 @@ export async function startTui(
       const state = store.getState();
       let closedModal = false;
 
-      if (state.configModalOpen) { store.setState({ configModalOpen: false }); closedModal = true; }
-      if (state.undoModalOpen) { store.setState({ undoModalOpen: false }); closedModal = true; }
-      if (state.fileTreeOpen) { store.setState({ fileTreeOpen: false }); closedModal = true; }
-      if (state.searchModalOpen) { store.setState({ searchModalOpen: false }); closedModal = true; }
-      if (state.usagePanelOpen) { store.setState({ usagePanelOpen: false }); closedModal = true; }
-      if (state.tasksPanelOpen) { store.setState({ tasksPanelOpen: false }); closedModal = true; }
+      if (state.configModalOpen) {
+        store.setState({ configModalOpen: false });
+        closedModal = true;
+      }
+      if (state.undoModalOpen) {
+        store.setState({ undoModalOpen: false });
+        closedModal = true;
+      }
+      if (state.fileTreeOpen) {
+        store.setState({ fileTreeOpen: false });
+        closedModal = true;
+      }
+      if (state.searchModalOpen) {
+        store.setState({ searchModalOpen: false });
+        closedModal = true;
+      }
+      if (state.usagePanelOpen) {
+        store.setState({ usagePanelOpen: false });
+        closedModal = true;
+      }
+      if (state.tasksPanelOpen) {
+        store.setState({ tasksPanelOpen: false });
+        closedModal = true;
+      }
       if (state.commandPaletteOpen) {
-        store.setState({ commandPaletteOpen: false, commandPaletteFilter: '', commandPaletteIndex: 0 });
+        store.setState({
+          commandPaletteOpen: false,
+          commandPaletteFilter: '',
+          commandPaletteIndex: 0
+        });
         closedModal = true;
       }
       if (state.slashPaletteOpen) {
         store.setState({ slashPaletteOpen: false, slashPaletteFilter: '', slashPaletteIndex: 0 });
         closedModal = true;
       }
-      if (state.selectedToolId) { store.setState({ selectedToolId: null }); closedModal = true; }
+      if (state.selectedToolId) {
+        store.setState({ selectedToolId: null });
+        closedModal = true;
+      }
 
       if (closedModal) {
         draw();
@@ -626,7 +689,9 @@ export async function startTui(
     }
 
     const currInput = store.getState().input;
-    const isSlashActive = store.getState().slashPaletteOpen || (currInput.startsWith('/') && !currInput.includes(' ') && !currInput.includes('\n'));
+    const isSlashActive =
+      store.getState().slashPaletteOpen ||
+      (currInput.startsWith('/') && !currInput.includes(' ') && !currInput.includes('\n'));
     if (isSlashActive) {
       const state = store.getState();
       const filter = state.slashPaletteOpen ? state.slashPaletteFilter : currInput.slice(1);
@@ -773,14 +838,17 @@ export async function startTui(
 
       if (frag.trim() === '' && !key.shift) {
         const currentMode = state.mode || 'vibe';
-        const nextMode: Mode = currentMode === 'vibe' ? 'plan' : currentMode === 'plan' ? 'auto' : 'vibe';
+        const nextMode: Mode =
+          currentMode === 'vibe' ? 'plan' : currentMode === 'plan' ? 'auto' : 'vibe';
 
         store.setState({
           mode: nextMode,
           configDraft: { ...(state.configDraft || {}), mode: nextMode }
         });
         config.mode = nextMode;
-        try { saveConfigFile(config.dataDir, { mode: nextMode }); } catch {}
+        try {
+          saveConfigFile(config.dataDir, { mode: nextMode });
+        } catch {}
 
         draw();
         return;
@@ -857,7 +925,8 @@ export async function startTui(
         llmBaseUrl: state.configDraft?.llmBaseUrl || config.llmBaseUrl,
         apiKey: state.configDraft?.apiKey || config.apiKey,
         theme: state.configDraft?.theme || config.theme,
-        networkAllowed: state.configDraft?.networkAllowed ?? config.sandbox.networkAllowed
+        networkAllowed: state.configDraft?.networkAllowed ?? config.sandbox.networkAllowed,
+        mode: state.configDraft?.mode || config.mode
       };
       let fieldIdx = state.configFieldIndex || 0;
 
@@ -875,42 +944,57 @@ export async function startTui(
       }
       if (str && str.toLowerCase() === 'c') {
         if (fieldIdx === 0) {
-          askCustomInput('请输入自定义 LLM 模型名称 (例如: qwen3-coder:30b, gpt-5.6-terra)').then((customVal) => {
-            if (customVal) {
-              draft.model = customVal;
-              config.model = customVal;
-              store.setState({ configDraft: draft });
-              try { saveConfigFile(config.dataDir, { model: customVal }); } catch {}
-              appendSystemMessage(`✓ 模型已自定义设为: ${customVal}`);
-              draw();
+          askCustomInput('请输入自定义 LLM 模型名称 (例如: qwen3-coder:30b, gpt-5.6-terra)').then(
+            (customVal) => {
+              if (customVal) {
+                draft.model = customVal;
+                config.model = customVal;
+                store.setState({ configDraft: draft });
+                try {
+                  saveConfigFile(config.dataDir, { model: customVal });
+                } catch {}
+                appendSystemMessage(`✓ 模型已自定义设为: ${customVal}`);
+                draw();
+              }
             }
-          });
+          );
         } else if (fieldIdx === 1) {
-          askCustomInput('请输入自定义 Base URL 端点 (例如: http://localhost:11434/v1)').then((customVal) => {
-            if (customVal) {
-              draft.llmBaseUrl = customVal;
-              config.llmBaseUrl = customVal;
-              store.setState({ configDraft: draft });
-              try { saveConfigFile(config.dataDir, { llmBaseUrl: customVal }); } catch {}
-              appendSystemMessage(`✓ 端点已自定义设为: ${customVal}`);
-              draw();
+          askCustomInput('请输入自定义 Base URL 端点 (例如: http://localhost:11434/v1)').then(
+            (customVal) => {
+              if (customVal) {
+                draft.llmBaseUrl = customVal;
+                config.llmBaseUrl = customVal;
+                store.setState({ configDraft: draft });
+                try {
+                  saveConfigFile(config.dataDir, { llmBaseUrl: customVal });
+                } catch {}
+                appendSystemMessage(`✓ 端点已自定义设为: ${customVal}`);
+                draw();
+              }
             }
-          });
+          );
         } else if (fieldIdx === 2) {
-          askCustomInput('请输入自定义 ZENO_API_KEY').then((customVal) => {
+          askCustomInput('请输入自定义 VYNTH_API_KEY').then((customVal) => {
             if (customVal) {
               draft.apiKey = customVal;
               config.apiKey = customVal;
               store.setState({ configDraft: draft });
-              try { saveConfigFile(config.dataDir, { apiKey: customVal }); } catch {}
-              appendSystemMessage(`✓ API Key 已更新`);
+              try {
+                saveConfigFile(config.dataDir, { apiKey: customVal });
+              } catch {}
+              appendSystemMessage('✓ API Key 已更新');
               draw();
             }
           });
         }
         return;
       }
-      if (key.name === 'return' || key.name === 'space' || key.name === 'left' || key.name === 'right') {
+      if (
+        key.name === 'return' ||
+        key.name === 'space' ||
+        key.name === 'left' ||
+        key.name === 'right'
+      ) {
         const reverse = key.name === 'left';
         if (fieldIdx === 0) {
           const models = [
@@ -958,15 +1042,8 @@ export async function startTui(
           config.llmBaseUrl = draft.llmBaseUrl;
           appendSystemMessage(`✓ 端点已切换为: ${draft.llmBaseUrl}`);
         } else if (fieldIdx === 3) {
-          const themesList: Array<'mocha' | 'latte' | 'midnight' | 'forest' | 'light' | 'neon'> = [
-            'mocha',
-            'latte',
-            'midnight',
-            'forest',
-            'light',
-            'neon'
-          ];
-          const curIdx = themesList.indexOf(draft.theme as any);
+          const themesList: ThemeName[] = ['mocha', 'latte', 'midnight', 'forest', 'light', 'neon'];
+          const curIdx = themesList.indexOf(draft.theme);
           const nextIdx = reverse
             ? (curIdx - 1 + themesList.length) % themesList.length
             : (curIdx + 1) % themesList.length;
@@ -1174,10 +1251,10 @@ export async function startTui(
             appendSystemMessage(`Brief mode: ${newBrief ? 'ON (tools auto-collapsed)' : 'OFF'}`);
           } else if (selected.key === '/theme') {
             // Cycle theme
-            const themes = ['mocha', 'latte', 'midnight', 'forest', 'neon'];
+            const themes: ThemeName[] = ['mocha', 'latte', 'midnight', 'forest', 'light', 'neon'];
             const currentIdx = themes.indexOf(state.theme);
             const nextTheme = themes[(currentIdx + 1) % themes.length];
-            store.setState({ theme: nextTheme });
+            store.setState({ theme: nextTheme, palette: palette(nextTheme) });
             appendSystemMessage(`Theme: ${nextTheme}`);
           } else if (selected.key === '/usage') {
             store.setState({ usagePanelOpen: !state.usagePanelOpen });
@@ -1231,7 +1308,7 @@ export async function startTui(
 
     if (key.name === 'return' && (key.shift || key.ctrl || key.meta)) {
       const state = store.getState();
-      store.setInput(state.input + '\n');
+      store.setInput(`${state.input}\n`);
       draw();
       return;
     }
@@ -1269,7 +1346,13 @@ export async function startTui(
       return;
     }
 
-    if (key.name === 'up' && !key.ctrl && !key.meta && !key.shift && !store.getState().commandPaletteOpen) {
+    if (
+      key.name === 'up' &&
+      !key.ctrl &&
+      !key.meta &&
+      !key.shift &&
+      !store.getState().commandPaletteOpen
+    ) {
       const state = store.getState();
       const allLines = renderTranscriptToLines(state.cols - 4);
       const midH = Math.max(5, state.rows - 10);
@@ -1278,7 +1361,13 @@ export async function startTui(
       draw();
       return;
     }
-    if (key.name === 'down' && !key.ctrl && !key.meta && !key.shift && !store.getState().commandPaletteOpen) {
+    if (
+      key.name === 'down' &&
+      !key.ctrl &&
+      !key.meta &&
+      !key.shift &&
+      !store.getState().commandPaletteOpen
+    ) {
       const state = store.getState();
       store.setScrollOffset(Math.max(state.scrollOffset - 3, 0));
       draw();
@@ -1288,10 +1377,13 @@ export async function startTui(
     if (key.name === 'tab' && store.getState().input.trim() === '') {
       const state = store.getState();
       const currentMode = state.mode || 'vibe';
-      const nextMode: Mode = currentMode === 'vibe' ? 'plan' : currentMode === 'plan' ? 'auto' : 'vibe';
+      const nextMode: Mode =
+        currentMode === 'vibe' ? 'plan' : currentMode === 'plan' ? 'auto' : 'vibe';
       store.setState({ mode: nextMode });
       config.mode = nextMode;
-      try { saveConfigFile(config.dataDir, { mode: nextMode }); } catch {}
+      try {
+        saveConfigFile(config.dataDir, { mode: nextMode });
+      } catch {}
       draw();
       return;
     }
@@ -1339,16 +1431,23 @@ export async function startTui(
 
       if (ev.button === 64) {
         const lastAtIdx = store.getState().input.lastIndexOf('@');
-        const isAtActive = lastAtIdx !== -1 && !store.getState().input.slice(lastAtIdx).includes(' ');
+        const isAtActive =
+          lastAtIdx !== -1 && !store.getState().input.slice(lastAtIdx).includes(' ');
         if (isAtActive) {
-          store.setState({ atPaletteIndex: Math.max(0, (store.getState().atPaletteIndex || 0) - 1) });
+          store.setState({
+            atPaletteIndex: Math.max(0, (store.getState().atPaletteIndex || 0) - 1)
+          });
           draw();
           continue;
         }
 
-        const isSlashActive = store.getState().slashPaletteOpen || (store.getState().input.startsWith('/') && !store.getState().input.includes(' '));
+        const isSlashActive =
+          store.getState().slashPaletteOpen ||
+          (store.getState().input.startsWith('/') && !store.getState().input.includes(' '));
         if (isSlashActive) {
-          store.setState({ slashPaletteIndex: Math.max(0, (store.getState().slashPaletteIndex || 0) - 1) });
+          store.setState({
+            slashPaletteIndex: Math.max(0, (store.getState().slashPaletteIndex || 0) - 1)
+          });
           draw();
           continue;
         }
@@ -1359,22 +1458,31 @@ export async function startTui(
         draw();
       } else if (ev.button === 65) {
         const lastAtIdx = store.getState().input.lastIndexOf('@');
-        const isAtActive = lastAtIdx !== -1 && !store.getState().input.slice(lastAtIdx).includes(' ');
+        const isAtActive =
+          lastAtIdx !== -1 && !store.getState().input.slice(lastAtIdx).includes(' ');
         if (isAtActive) {
           const filter = store.getState().input.slice(lastAtIdx + 1);
           const filtered = filterAtFiles(store.getState().atPaletteFiles || [], filter);
           const maxIdx = Math.max(0, filtered.length - 1);
-          store.setState({ atPaletteIndex: Math.min(maxIdx, (store.getState().atPaletteIndex || 0) + 1) });
+          store.setState({
+            atPaletteIndex: Math.min(maxIdx, (store.getState().atPaletteIndex || 0) + 1)
+          });
           draw();
           continue;
         }
 
-        const isSlashActive = store.getState().slashPaletteOpen || (store.getState().input.startsWith('/') && !store.getState().input.includes(' '));
+        const isSlashActive =
+          store.getState().slashPaletteOpen ||
+          (store.getState().input.startsWith('/') && !store.getState().input.includes(' '));
         if (isSlashActive) {
-          const filter = store.getState().slashPaletteOpen ? store.getState().slashPaletteFilter : store.getState().input.slice(1);
+          const filter = store.getState().slashPaletteOpen
+            ? store.getState().slashPaletteFilter
+            : store.getState().input.slice(1);
           const filtered = filterSlashCommands(filter);
           const maxIdx = Math.max(0, filtered.length - 1);
-          store.setState({ slashPaletteIndex: Math.min(maxIdx, (store.getState().slashPaletteIndex || 0) + 1) });
+          store.setState({
+            slashPaletteIndex: Math.min(maxIdx, (store.getState().slashPaletteIndex || 0) + 1)
+          });
           draw();
           continue;
         }
@@ -1430,7 +1538,7 @@ export async function startTui(
           if (customKey) {
             config.apiKey = customKey;
             draft.apiKey = customKey;
-            msg += ` | Key: 已设置`;
+            msg += ' | Key: 已设置';
           }
 
           store.setState({ configDraft: draft });
@@ -1492,10 +1600,11 @@ export async function startTui(
           if (existsSync(agentsPath)) {
             appendSystemMessage(`ℹ 项目根目录已存在 AGENTS.md 文件 (${agentsPath})`);
           } else {
-            const template = `# AGENTS.md — 项目 AI 辅助开发与架构规则\n\n## 1. 项目简介与架构\n- **项目名称**: Zeno 终端 AI 编程系统\n- **开发模式**: 推荐在 Vibe 模式下快速迭代，Plan 模式下重构规划\n\n## 2. 代码规范与指令\n- 统一使用 TypeScript 严格模式\n- 运行单元测试: \`bun test packages\`\n- 编译可执行程序: \`bun run compile\`\n\n## 3. 注意事项\n- 保持 UI 组件无外框极简规范\n- 所有命令错误统一输出 VC-XXXXXX 规范 6 位错误码\n`;
+            const template =
+              '# AGENTS.md — 项目 AI 辅助开发与架构规则\n\n## 1. 项目简介与架构\n- **项目名称**: Zeno 终端 AI 编程系统\n- **开发模式**: 推荐在 Vibe 模式下快速迭代，Plan 模式下重构规划\n\n## 2. 代码规范与指令\n- 统一使用 TypeScript 严格模式\n- 运行单元测试: `bun test packages`\n- 编译可执行程序: `bun run compile`\n\n## 3. 注意事项\n- 保持 UI 组件无外框极简规范\n- 所有命令错误统一输出 VC-XXXXXX 规范 6 位错误码\n';
             try {
               writeFileSync(agentsPath, template, 'utf8');
-              appendSystemMessage(`🚀 已成功初始化项目的 AGENTS.md 规则文件！`);
+              appendSystemMessage('🚀 已成功初始化项目的 AGENTS.md 规则文件！');
             } catch (err) {
               appendSystemMessage(`✖ 生成 AGENTS.md 失败: ${String(err)}`);
             }
@@ -1506,7 +1615,10 @@ export async function startTui(
           const currentTr = store.getState().transcript;
           const compactedTr = currentTr.map((t) => {
             if (t.role === 'tool' && t.content && t.content.length > 200) {
-              return { ...t, content: `${t.content.slice(0, 100)}... [已化简 ${t.content.length - 200} 字符]` };
+              return {
+                ...t,
+                content: `${t.content.slice(0, 100)}... [已化简 ${t.content.length - 200} 字符]`
+              };
             }
             return t;
           });
@@ -1519,7 +1631,7 @@ export async function startTui(
           store.setState({ usagePanelOpen: !store.getState().usagePanelOpen });
           break;
         case 'lsp':
-          appendSystemMessage(`✓ LSP Status: active (stdio analyzer)`);
+          appendSystemMessage('✓ LSP Status: active (stdio analyzer)');
           break;
         case 'undo':
         case 'rewind':
@@ -1531,60 +1643,60 @@ export async function startTui(
           appendSystemMessage('✓ Conversation cleared');
           break;
         case 'theme': {
-          const themes = ['mocha', 'latte', 'midnight', 'forest', 'neon'];
+          const themes: ThemeName[] = ['mocha', 'latte', 'midnight', 'forest', 'light', 'neon'];
           const currentIdx = themes.indexOf(state.theme);
           const nextTheme = themes[(currentIdx + 1) % themes.length];
           store.setState({ theme: nextTheme, palette: palette(nextTheme) });
           config.theme = nextTheme;
-          try { saveConfigFile(config.dataDir, { theme: nextTheme }); } catch {}
+          try {
+            saveConfigFile(config.dataDir, { theme: nextTheme });
+          } catch {}
           break;
         }
-        case 'brief':
+        case 'brief': {
           const newBrief = !state.briefMode;
           store.setState({ briefMode: newBrief });
           appendSystemMessage(`✓ Brief mode: ${newBrief ? 'ON' : 'OFF'}`);
           break;
-        case 'usage':
-          store.setState({ usagePanelOpen: !store.getState().usagePanelOpen });
-          break;
+        }
         case 'tasks':
           store.setState({ tasksPanelOpen: !store.getState().tasksPanelOpen });
           break;
         case 'help': {
           const helpLines = [
-            `◈ Zeno 终端 AI 编程助手帮助手册`,
-            ``,
-            `【 ⌨ 核心快捷按键 】`,
-            `  Tab          · 快捷切换 编码/开发 模式 (VIBE ⇄ PLAN) [Prompt为空时]`,
-            `  /            · 唤起斜杠指令弹窗选择器`,
-            `  @            · 引用项目文件并注入上下文`,
-            `  ! <cmd>      · 直接运行 Shell 命令 (末尾加 & 后台运行)`,
-            `  ?            · 打开全局命令面板 (Command Palette)`,
-            `  F2           · 开关工作区文件树 (File Tree)`,
-            `  Ctrl+U       · 查看 Token 消耗与费用面板`,
-            ``,
-            `【 ⚡ 模式切换 (Mode) 】`,
-            `  /vibe        · 切换到 Vibe 极速编程模式 (Vibe Coding)`,
-            `  /plan        · 切换到 Plan 架构规划模式 (Architecture Planning)`,
-            ``,
-            `【 ⚙ 配置管理 (Config) 】`,
-            `  /config      · 打开 AI 配置中心弹窗 (模型/端点/密钥/主题)`,
-            `  /model       · 一站式配置模型、端点与密钥 (/model <name> [url] [key])`,
-            `  /theme       · 循环切换界面主题 (mocha/latte/midnight/forest)`,
-            ``,
-            `【 🗂 工作流 (Workflow) 】`,
-            `  /files       · 开关工作区文件树抽屉 (F2)`,
-            `  /search      · 全局内容与代码正则搜索 (Ctrl+F)`,
-            `  /undo        · 回撤/恢复上一步 AI 代码修改`,
-            ``,
-            `【 📊 系统与统计 (System) 】`,
-            `  /tokens      · Token 详细消耗与费用面板 (Ctrl+U)`,
-            `  /usage       · Token 用量与统计面板`,
-            `  /tasks       · 查看后台异步任务面板`,
-            `  /lsp         · 查看 LSP 语言服务器与诊断状态`,
-            `  /brief       · 开关折叠工具输出模式`,
-            `  /clear       · 清空当前对话与上下文历史`,
-            `  /help        · 显示此帮助手册`
+            '◈ Zeno 终端 AI 编程助手帮助手册',
+            '',
+            '【 ⌨ 核心快捷按键 】',
+            '  Tab          · 快捷切换 编码/开发 模式 (VIBE ⇄ PLAN) [Prompt为空时]',
+            '  /            · 唤起斜杠指令弹窗选择器',
+            '  @            · 引用项目文件并注入上下文',
+            '  ! <cmd>      · 直接运行 Shell 命令 (末尾加 & 后台运行)',
+            '  ?            · 打开全局命令面板 (Command Palette)',
+            '  F2           · 开关工作区文件树 (File Tree)',
+            '  Ctrl+U       · 查看 Token 消耗与费用面板',
+            '',
+            '【 ⚡ 模式切换 (Mode) 】',
+            '  /vibe        · 切换到 Vibe 极速编程模式 (Vibe Coding)',
+            '  /plan        · 切换到 Plan 架构规划模式 (Architecture Planning)',
+            '',
+            '【 ⚙ 配置管理 (Config) 】',
+            '  /config      · 打开 AI 配置中心弹窗 (模型/端点/密钥/主题)',
+            '  /model       · 一站式配置模型、端点与密钥 (/model <name> [url] [key])',
+            '  /theme       · 循环切换界面主题 (mocha/latte/midnight/forest)',
+            '',
+            '【 🗂 工作流 (Workflow) 】',
+            '  /files       · 开关工作区文件树抽屉 (F2)',
+            '  /search      · 全局内容与代码正则搜索 (Ctrl+F)',
+            '  /undo        · 回撤/恢复上一步 AI 代码修改',
+            '',
+            '【 📊 系统与统计 (System) 】',
+            '  /tokens      · Token 详细消耗与费用面板 (Ctrl+U)',
+            '  /usage       · Token 用量与统计面板',
+            '  /tasks       · 查看后台异步任务面板',
+            '  /lsp         · 查看 LSP 语言服务器与诊断状态',
+            '  /brief       · 开关折叠工具输出模式',
+            '  /clear       · 清空当前对话与上下文历史',
+            '  /help        · 显示此帮助手册'
           ].join('\n');
           appendSystemMessage(helpLines);
           break;
@@ -1703,7 +1815,7 @@ export async function startTui(
   function appendCommandResult(r: {
     id: string;
     command: string;
-    status: 'done' | 'failed';
+    status: TaskStatus;
     output: string;
     exitCode: number | null;
   }): void {
@@ -1716,9 +1828,7 @@ export async function startTui(
       timestamp: Date.now(),
       toolId: `task-${r.id}`,
       status: ok ? 'ok' : 'error',
-      output:
-        body ||
-        (ok ? '(命令成功，无输出)' : `[exit ${r.exitCode ?? '?'}](no output)`)
+      output: body || (ok ? '(命令成功，无输出)' : `[exit ${r.exitCode ?? '?'}](no output)`)
     });
     draw();
   }
@@ -1744,7 +1854,7 @@ function findNextToolId(startIdx: number, step: number, store: Store): string | 
   const state = store.getState();
   const ids = state.transcript
     .filter((t: MessageEntry) => t.role === 'tool' && t.toolId)
-    .map((t: MessageEntry) => t.toolId!);
+    .map((t: MessageEntry) => t.toolId as string);
   if (ids.length === 0) return null;
   const idx = state.selectedToolId ? ids.indexOf(state.selectedToolId) : -1;
   const next = (((idx + step) % ids.length) + ids.length) % ids.length;

@@ -1,4 +1,3 @@
-
 export type ZenoErrorCode =
   | 'VC-010001' // CONFIG_MISSING_KEY
   | 'VC-010002' // CONFIG_INVALID_MODE

@@ -28,7 +28,7 @@ interface OpenAiDelta {
 }
 
 export function createProvider(config: ZenoConfig): LLMProvider {
-  if (!config.apiKey) throw new LlmError('missing ZENO_API_KEY; set it to use a real LLM');
+  if (!config.apiKey) throw new LlmError('missing VYNTH_API_KEY; set it to use a real LLM');
   return new OpenAiProvider(config);
 }
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { parseVcCode, errorHintFor } from './error-hints';
+import { errorHintFor, parseVcCode } from './error-hints';
 
 describe('error-hints', () => {
   it('parses VC code from arbitrary text', () => {
@@ -9,7 +9,7 @@ describe('error-hints', () => {
 
   it('returns actionable hint for known code', () => {
     expect(errorHintFor('VC-030006')).toContain('bubblewrap');
-    expect(errorHintFor('VC-030003')).toContain('ZENO_NET');
+    expect(errorHintFor('VC-030003')).toContain('VYNTH_NET');
   });
 
   it('falls back for unknown code', () => {

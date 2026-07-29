@@ -1,4 +1,3 @@
-
 import type { TuiState } from '../state/TuiState';
 import { fg, reset } from '../theme';
 import { renderStatusBar } from '../utils/text';
@@ -44,10 +43,12 @@ function buildRight(state: TuiState): string {
   const c = state.palette;
   const parts: string[] = [];
 
-  const inTok = state.tokenUsage?.inputTokens ?? (state.turnCount * 450);
-  const outTok = state.tokenUsage?.outputTokens ?? (state.turnCount * 820);
-  const cost = state.tokenUsage?.estimatedCost ?? ( (inTok * 0.000002) + (outTok * 0.000008) );
-  parts.push(`${fg(c.yellow)}Token: ${formatTokens(inTok)} in / ${formatTokens(outTok)} out ($${cost.toFixed(4)})${reset}`);
+  const inTok = state.tokenUsage?.inputTokens ?? state.turnCount * 450;
+  const outTok = state.tokenUsage?.outputTokens ?? state.turnCount * 820;
+  const cost = state.tokenUsage?.estimatedCost ?? inTok * 0.000002 + outTok * 0.000008;
+  parts.push(
+    `${fg(c.yellow)}Token: ${formatTokens(inTok)} in / ${formatTokens(outTok)} out ($${cost.toFixed(4)})${reset}`
+  );
 
   const connColor = state.connectionStatus === 'connected' ? c.green : c.red;
   parts.push(`${fg(connColor)}● connected${reset}`);
@@ -64,4 +65,3 @@ function formatTokens(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
   return String(n);
 }
-

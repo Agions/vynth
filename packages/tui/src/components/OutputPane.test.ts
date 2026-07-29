@@ -1,4 +1,3 @@
-
 import { describe, expect, it } from 'bun:test';
 import type { TuiState } from '../state/TuiState';
 import { themes } from '../theme';
@@ -77,9 +76,7 @@ describe('OutputPane', () => {
   });
 
   it('windows content from the bottom and respects scroll offset', () => {
-    const many = Array.from({ length: 30 }, (_, i) =>
-      toolEntry(`t${i}`, `tool_${i}`, 'ok')
-    );
+    const many = Array.from({ length: 30 }, (_, i) => toolEntry(`t${i}`, `tool_${i}`, 'ok'));
     const state = makeState({ transcript: many as TuiState['transcript'] });
     const bottom = OutputPane({ state, width: 80, height: 6 }).map(stripAnsi);
     expect(bottom.join('\n')).toContain('tool_29');

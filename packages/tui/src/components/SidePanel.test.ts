@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'bun:test';
-import { SidePanel } from './SidePanel';
-import { palette } from '../theme';
 import type { TuiState } from '../state/TuiState';
+import { palette } from '../theme';
 import type { BackgroundTask } from '../utils/tasks';
 import { stripAnsi, visibleWidth } from '../utils/unicode';
+import { SidePanel } from './SidePanel';
 
 function fakeState(tab: 'files' | 'tasks' | 'tools'): TuiState {
   return {
@@ -75,9 +75,33 @@ describe('SidePanel', () => {
 
   it('tasks tab 渲染 running/done/failed 状态', () => {
     const tasks: BackgroundTask[] = [
-      { id: '1', command: 'bun test', status: 'running', output: '', exitCode: null, startedAt: 1, finishedAt: null },
-      { id: '2', command: 'ls', status: 'done', output: '', exitCode: 0, startedAt: 2, finishedAt: 3 },
-      { id: '3', command: 'bad', status: 'failed', output: '', exitCode: 1, startedAt: 4, finishedAt: 5 }
+      {
+        id: '1',
+        command: 'bun test',
+        status: 'running',
+        output: '',
+        exitCode: null,
+        startedAt: 1,
+        finishedAt: null
+      },
+      {
+        id: '2',
+        command: 'ls',
+        status: 'done',
+        output: '',
+        exitCode: 0,
+        startedAt: 2,
+        finishedAt: 3
+      },
+      {
+        id: '3',
+        command: 'bad',
+        status: 'failed',
+        output: '',
+        exitCode: 1,
+        startedAt: 4,
+        finishedAt: 5
+      }
     ];
     const lines = SidePanel({
       state: fakeState('tasks'),

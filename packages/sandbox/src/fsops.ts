@@ -1,5 +1,4 @@
-
-import { existsSync, statSync } from 'node:fs';
+import { type Dirent, existsSync, statSync } from 'node:fs';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { join, relative, sep } from 'node:path';
 import { type ToolResult, audit, formatZenoError } from '@zeno/core';
@@ -72,7 +71,7 @@ export async function listFiles(dir: string, cwd: string, maxDepth = 4): Promise
 
   async function walk(abs: string, depth: number, prefix: string): Promise<void> {
     if (depth > maxDepth || truncated) return;
-    let entries: Awaited<ReturnType<typeof readdir>>;
+    let entries: Dirent<string>[];
     try {
       entries = await readdir(abs, { withFileTypes: true });
     } catch {
@@ -145,7 +144,7 @@ export async function grepSearch(
 
   async function walk(abs: string): Promise<void> {
     if (done) return;
-    let entries: Awaited<ReturnType<typeof readdir>>;
+    let entries: Dirent<string>[];
     try {
       entries = await readdir(abs, { withFileTypes: true });
     } catch {
@@ -177,8 +176,7 @@ export async function grepSearch(
               }
             }
           }
-        } catch {
-        }
+        } catch {}
       }
     }
   }
@@ -220,4 +218,3 @@ export async function createFile(path: string, content: string, cwd: string): Pr
     return { ok: false, output: '', error: formatZenoError(err) };
   }
 }
-

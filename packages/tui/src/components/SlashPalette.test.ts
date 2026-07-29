@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'bun:test';
-import { filterSlashCommands, SlashPalette } from './SlashPalette';
 import { SLASH_COMMANDS } from '../slash-commands';
-import { palette } from '../theme';
 import type { TuiState } from '../state/TuiState';
+import { palette } from '../theme';
+import { SlashPalette, filterSlashCommands } from './SlashPalette';
 
 describe('SlashPalette', () => {
   it('filterSlashCommands returns all commands on empty filter', () => {

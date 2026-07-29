@@ -1,4 +1,3 @@
-
 import type { DiffOp, DiffResult, ScreenBuffer } from '../kernel/buffer';
 import { computeDiff, unpackStyle } from '../kernel/buffer';
 import { reset } from '../theme';
@@ -38,7 +37,7 @@ export function renderDiff(
       ops.sort((a, b) => a.x - b.x);
       const runs: { x: number; char: string; style: number; len: number }[] = [];
       for (const op of ops) {
-        if (op.type !== 'set' || op.char === undefined) continue;
+        if (op.type !== 'set' || op.char === undefined || op.style === undefined) continue;
         const prev = runs[runs.length - 1];
         if (prev && prev.x + prev.len === op.x && prev.style === op.style) {
           prev.len++;
@@ -57,7 +56,7 @@ export function renderDiff(
       }
     } else {
       for (const op of ops) {
-        if (op.type !== 'set' || op.char === undefined) continue;
+        if (op.type !== 'set' || op.char === undefined || op.style === undefined) continue;
         const { fg: fgIdx, bg: bgIdx, modifiers } = unpackStyle(op.style);
         const styleStr = buildStyleString(fgIdx, bgIdx, modifiers, colors);
         parts.push(`\x1b[${op.y + 1};${op.x + 1}H`, styleStr, op.char);

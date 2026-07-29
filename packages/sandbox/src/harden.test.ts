@@ -14,7 +14,7 @@ afterEach(() => {
     rmSync(dir, { recursive: true, force: true });
     dir = null;
   }
-  process.env.ZENO_HARDEN = '';
+  process.env.VYNTH_HARDEN = '';
 });
 
 const EMPTY_CMD = { command: '' } as const;
@@ -86,13 +86,13 @@ describe('spawnHardened 平台分流', () => {
   });
 });
 
-describe('runCommand + ZENO_HARDEN=1 端到端', () => {
+describe('runCommand + VYNTH_HARDEN=1 端到端', () => {
   test('硬化开启 + 后端可用 + 简单命令成功', async () => {
     if ((await backendAvailable()) === false) {
       console.log('skip: 后端不可用，平台=', process.platform);
       return;
     }
-    process.env.ZENO_HARDEN = '1';
+    process.env.VYNTH_HARDEN = '1';
     const d = fresh();
     const r = await runCommand('echo hardened-ok', {
       cwd: d,
@@ -109,7 +109,7 @@ describe('runCommand + ZENO_HARDEN=1 端到端', () => {
       console.log('skip: 后端不可用');
       return;
     }
-    process.env.ZENO_HARDEN = '1';
+    process.env.VYNTH_HARDEN = '1';
     const d = fresh();
     const r = await runCommand('exit 7', { cwd: d, networkAllowed: true, timeoutMs: 5000 });
     expect(r.ok).toBe(false);
@@ -123,7 +123,7 @@ describe('runCommand + ZENO_HARDEN=1 端到端', () => {
       console.log('skip: 后端不可用');
       return;
     }
-    process.env.ZENO_HARDEN = '1';
+    process.env.VYNTH_HARDEN = '1';
     const d = fresh();
     writeFileSync(join(d, 'inner.txt'), 'inner');
     const r1 = await runCommand('cat inner.txt', { cwd: d, networkAllowed: true, timeoutMs: 5000 });
@@ -138,15 +138,15 @@ describe('runCommand + ZENO_HARDEN=1 端到端', () => {
     expect(r2.error).toBeDefined();
   });
 
-  test('硬化关闭 + ZENO_HARDEN 未设 → 走原路径，不带 (hardened) 后缀', async () => {
-    process.env.ZENO_HARDEN = '';
+  test('硬化关闭 + VYNTH_HARDEN 未设 → 走原路径，不带 (hardened) 后缀', async () => {
+    process.env.VYNTH_HARDEN = '';
     const d = fresh();
     const r = await runCommand('exit 0', { cwd: d, networkAllowed: true, timeoutMs: 5000 });
     expect(r.ok).toBe(true);
   });
 });
 
-describe('ZENO_HARDEN=1 + 后端不可用（App Sandbox 阻断场景）', () => {
+describe('VYNTH_HARDEN=1 + 后端不可用（App Sandbox 阻断场景）', () => {
   test('sandbox-exec 拒绝 apply 时 → 启动时即报 VC-030006（不静默降级）', async () => {
     if (process.platform !== 'darwin') {
       console.log('skip: macOS 专属场景');
@@ -156,7 +156,7 @@ describe('ZENO_HARDEN=1 + 后端不可用（App Sandbox 阻断场景）', () => 
       console.log('skip: 后端可 apply，本机可以跑通硬化');
       return;
     }
-    process.env.ZENO_HARDEN = '1';
+    process.env.VYNTH_HARDEN = '1';
     const d = fresh();
     const r = await runCommand('echo x', { cwd: d, networkAllowed: true, timeoutMs: 5000 });
     expect(r.ok).toBe(false);
@@ -173,7 +173,7 @@ describe('runCommand 硬化失败兜底', () => {
       console.log('skip: 当前平台会进入真实 spawn 路径');
       return;
     }
-    process.env.ZENO_HARDEN = '1';
+    process.env.VYNTH_HARDEN = '1';
     const d = fresh();
     const r = await runCommand('echo x', { cwd: d, networkAllowed: true, timeoutMs: 5000 });
     expect(r.ok).toBe(false);

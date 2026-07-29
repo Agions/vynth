@@ -33,7 +33,10 @@ export function AtPalette(props: AtPaletteProps): string {
   } else {
     const PAGE_SIZE = 10;
     const safeIdx = Math.max(0, Math.min(selectedIndex, filtered.length - 1));
-    const startIdx = Math.max(0, Math.min(safeIdx - Math.floor(PAGE_SIZE / 2), Math.max(0, filtered.length - PAGE_SIZE)));
+    const startIdx = Math.max(
+      0,
+      Math.min(safeIdx - Math.floor(PAGE_SIZE / 2), Math.max(0, filtered.length - PAGE_SIZE))
+    );
     const visibleSlice = filtered.slice(startIdx, startIdx + PAGE_SIZE);
 
     visibleSlice.forEach((file, relativeIdx) => {

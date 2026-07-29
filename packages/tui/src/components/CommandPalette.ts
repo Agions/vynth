@@ -1,4 +1,3 @@
-
 import type { TuiState } from '../state/TuiState';
 import { fg, reset } from '../theme';
 import { hexToRgb } from '../utils/color';
@@ -16,13 +15,23 @@ export const COMMANDS: Command[] = [
   { key: '?', label: 'Command Palette', description: '显示命令面板', category: 'navigation' },
   { key: 'Ctrl+F', label: 'Search', description: '搜索对话内容', category: 'navigation' },
   { key: 'Ctrl+N', label: 'Next Message', description: '跳转到下一条消息', category: 'navigation' },
-  { key: 'Ctrl+P', label: 'Previous Message', description: '跳转到上一条消息', category: 'navigation' },
+  {
+    key: 'Ctrl+P',
+    label: 'Previous Message',
+    description: '跳转到上一条消息',
+    category: 'navigation'
+  },
   { key: 'Home', label: 'Scroll Top', description: '滚动到顶部', category: 'navigation' },
   { key: 'End', label: 'Scroll Bottom', description: '滚动到底部', category: 'navigation' },
 
   // Editing
   { key: 'Tab', label: 'Next Tool', description: '选中下一个工具块', category: 'editing' },
-  { key: 'Shift+Tab', label: 'Previous Tool', description: '选中上一个工具块', category: 'editing' },
+  {
+    key: 'Shift+Tab',
+    label: 'Previous Tool',
+    description: '选中上一个工具块',
+    category: 'editing'
+  },
   { key: 'Enter', label: 'Toggle Tool', description: '展开/折叠工具块', category: 'editing' },
   { key: 'Esc', label: 'Deselect', description: '取消工具选中', category: 'editing' },
 
@@ -36,7 +45,7 @@ export const COMMANDS: Command[] = [
 
   // System
   { key: 'Ctrl+C', label: 'Quit', description: '退出 Zeno', category: 'system' },
-  { key: 'Ctrl+L', label: 'Clear Screen', description: '清空终端屏幕', category: 'system' },
+  { key: 'Ctrl+L', label: 'Clear Screen', description: '清空终端屏幕', category: 'system' }
 ];
 
 export interface CommandPaletteProps {
@@ -75,15 +84,15 @@ export function CommandPalette(props: CommandPaletteProps): string {
   const categories: Array<Command['category']> = ['navigation', 'editing', 'view', 'system'];
   const categoryMeta: Record<string, { label: string; color: string }> = {
     navigation: { label: '─ 导航 ', color: c.blue },
-    editing:    { label: '─ 编辑 ', color: c.green },
-    view:       { label: '─ 视图 ', color: c.yellow },
-    system:     { label: '─ 系统 ', color: c.red },
+    editing: { label: '─ 编辑 ', color: c.green },
+    view: { label: '─ 视图 ', color: c.yellow },
+    system: { label: '─ 系统 ', color: c.red }
   };
 
   const groups = new Map<string, Command[]>();
   for (const cmd of filtered) {
     if (!groups.has(cmd.category)) groups.set(cmd.category, []);
-    groups.get(cmd.category)!.push(cmd);
+    groups.get(cmd.category)?.push(cmd);
   }
 
   for (const cat of categories) {

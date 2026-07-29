@@ -6,10 +6,10 @@
 
 ```bash
 # macOS / Linux
-curl -fsSL https://raw.githubusercontent.com/Agions/zeno/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Agions/vynth/main/scripts/install.sh | bash
 
 # Windows PowerShell
-irm https://raw.githubusercontent.com/Agions/zeno/main/scripts/install.ps1 | iex
+irm https://raw.githubusercontent.com/Agions/vynth/main/scripts/install.ps1 | iex
 ```
 
 ## 架构速览
@@ -82,4 +82,4 @@ flowchart TD
 
 ## 贡献
 
-发现文档问题？欢迎提交 [Issue](https://github.com/Agions/zeno/issues) 或 [PR](https://github.com/Agions/zeno/pulls)。
+发现文档问题？欢迎提交 [Issue](https://github.com/Agions/vynth/issues) 或 [PR](https://github.com/Agions/vynth/pulls)。

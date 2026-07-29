@@ -1,4 +1,3 @@
-
 // Main entry
 export { startTui } from './tui';
 

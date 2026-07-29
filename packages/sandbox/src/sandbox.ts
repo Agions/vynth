@@ -52,10 +52,10 @@ function hardenUnavailableMessage(): string {
     if (isRoot) {
       return 'OS 级硬隔离后端不可用（platform=darwin）：即便以 root 运行，当前 macOS 版本仍可能拒绝 sandbox-exec apply，请改用 Linux（bwrap）获得真正的 OS 级隔离';
     }
-    return 'OS 级硬隔离后端不可用（platform=darwin）：macOS 15+ 已禁止非 root 进程 apply 任意 seatbelt 策略（连纯允许策略也报 Operation not permitted）。要启用 OS 级隔离请以 root 运行 Zeno（不推荐——AI 代理以 root 运行风险更高），或改用 Linux（bubblewrap）；若不需要 OS 级隔离，移除 ZENO_HARDEN=1 / sandbox.harden 即可';
+    return 'OS 级硬隔离后端不可用（platform=darwin）：macOS 15+ 已禁止非 root 进程 apply 任意 seatbelt 策略（连纯允许策略也报 Operation not permitted）。要启用 OS 级隔离请以 root 运行 Zeno（不推荐——AI 代理以 root 运行风险更高），或改用 Linux（bubblewrap）；若不需要 OS 级隔离，移除 VYNTH_HARDEN=1 / sandbox.harden 即可';
   }
   if (platform === 'linux') {
-    return 'OS 级硬隔离后端不可用（platform=linux）：未检测到 bubblewrap（bwrap）。请先 `apt install bubblewrap`（或等价命令）再试；若不需要 OS 级隔离，移除 ZENO_HARDEN=1 / sandbox.harden';
+    return 'OS 级硬隔离后端不可用（platform=linux）：未检测到 bubblewrap（bwrap）。请先 `apt install bubblewrap`（或等价命令）再试；若不需要 OS 级隔离，移除 VYNTH_HARDEN=1 / sandbox.harden';
   }
   return `OS 级硬隔离后端不可用（platform=${platform}）：sandbox-exec / bwrap 均不支持该平台，开启时拒绝执行（Fail-Closed）`;
 }
@@ -98,7 +98,7 @@ export async function runCommand(command: string, opts: RunOpts): Promise<ToolRe
     return { ok: false, output: '', error: '[VC-030003] network blocked by sandbox policy' };
   }
   audit().record('network_egress', { command, allowed: true, ok: true }, true);
-  const harden = opts.harden ?? (process.env.ZENO_HARDEN === '1');
+  const harden = opts.harden ?? process.env.VYNTH_HARDEN === '1';
   if (harden) {
     const ok = await detectHardenBackend();
     if (!ok) {

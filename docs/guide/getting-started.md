@@ -6,10 +6,10 @@
 
 ```bash
 # macOS / Linux 一行命令
-curl -fsSL https://raw.githubusercontent.com/Agions/zeno/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Agions/vynth/main/scripts/install.sh | bash
 
 # Windows PowerShell
-irm https://raw.githubusercontent.com/Agions/zeno/main/scripts/install.ps1 | iex
+irm https://raw.githubusercontent.com/Agions/vynth/main/scripts/install.ps1 | iex
 ```
 
 脚本自动处理 Bun 环境、编译与 PATH。其他方式（源码构建 / 二进制分发）见 [安装指南](installation.md)。

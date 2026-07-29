@@ -1,5 +1,4 @@
-
-import { lstatSync, readdirSync, readFileSync } from 'node:fs';
+import { type Dirent, lstatSync, readFileSync, readdirSync } from 'node:fs';
 import { basename, extname, join, relative } from 'node:path';
 
 export type SymbolKind =
@@ -54,17 +53,7 @@ const SKIP_DIRS = new Set([
 ]);
 
 const TEST_RE = /(\.test|\.spec|__tests__|\/tests?\/|_test)\.(ts|tsx|js|jsx|go|py|rs)$/;
-const SUPPORTED_EXT = new Set([
-  '.ts',
-  '.tsx',
-  '.js',
-  '.jsx',
-  '.mts',
-  '.cts',
-  '.go',
-  '.py',
-  '.rs'
-]);
+const SUPPORTED_EXT = new Set(['.ts', '.tsx', '.js', '.jsx', '.mts', '.cts', '.go', '.py', '.rs']);
 
 const METHOD_KEYWORDS = new Set([
   'if',
@@ -106,7 +95,7 @@ function scanFiles(root: string, opts: RepoMapOptions): ScanResult {
   const wordRe = /[A-Za-z_$][\w$]*/g;
 
   const walk = (dir: string): void => {
-    let entries: ReturnType<typeof readdirSync> = [];
+    let entries: Dirent<string>[] = [];
     try {
       entries = readdirSync(dir, { withFileTypes: true });
     } catch {
@@ -137,9 +126,11 @@ function scanFiles(root: string, opts: RepoMapOptions): ScanResult {
       contents.set(rel, content);
       let m: RegExpExecArray | null;
       wordRe.lastIndex = 0;
-      while ((m = wordRe.exec(content)) !== null) {
+      m = wordRe.exec(content);
+      while (m !== null) {
         const w = m[0];
         globalCounts.set(w, (globalCounts.get(w) ?? 0) + 1);
+        m = wordRe.exec(content);
       }
     }
   };
@@ -147,7 +138,6 @@ function scanFiles(root: string, opts: RepoMapOptions): ScanResult {
   walk(root);
   return { paths, contents, globalCounts };
 }
-
 
 function extractTsLike(content: string): SymbolDef[] {
   const out: SymbolDef[] = [];
@@ -204,8 +194,9 @@ function extractTsLike(content: string): SymbolDef[] {
       const top = classScopes[classScopes.length - 1];
       const inClass = brace > top.depth;
       if (inClass) {
-        m =
-          /^\s*(?:static\s+)?(?:async\s+)?([A-Za-z_$][\w$]*)\s*\([^)]*\)\s*(?::\s*[^{]+)?\{/.exec(line);
+        m = /^\s*(?:static\s+)?(?:async\s+)?([A-Za-z_$][\w$]*)\s*\([^)]*\)\s*(?::\s*[^{]+)?\{/.exec(
+          line
+        );
         if (m && !METHOD_KEYWORDS.has(m[1])) {
           out.push({
             file: '',
@@ -248,8 +239,12 @@ function extractGo(content: string): SymbolDef[] {
     }
     m = /^\s*type\s+([A-Za-z_]\w*)\s+(struct|interface)/.exec(line);
     if (m) {
-      out.push({ file: '', name: m[1], kind: m[2] === 'struct' ? 'struct' : 'interface', line: i + 1 });
-      continue;
+      out.push({
+        file: '',
+        name: m[1],
+        kind: m[2] === 'struct' ? 'struct' : 'interface',
+        line: i + 1
+      });
     }
   }
   return out;
@@ -284,7 +279,6 @@ function extractPy(content: string): SymbolDef[] {
       out.push({ file: '', name: m[1], kind: 'class', line: i + 1 });
       currentClass = m[1];
       currentClassIndent = ind;
-      continue;
     }
   }
   return out;
@@ -323,7 +317,9 @@ function extractRs(content: string): SymbolDef[] {
       continue;
     }
     // impl Block<T> { / impl Trait for Type {
-    m = /^\s*(?:pub\s+)?impl(?:\s*<[^>]*>)?\s+(?:([A-Za-z_]\w*)\s+for\s+)?([A-Za-z_]\w*)/.exec(line);
+    m = /^\s*(?:pub\s+)?impl(?:\s*<[^>]*>)?\s+(?:([A-Za-z_]\w*)\s+for\s+)?([A-Za-z_]\w*)/.exec(
+      line
+    );
     if (m && line.includes('{')) {
       const typeName = m[2];
       implScopes.push({ name: typeName, depth: brace - 1 < 0 ? 0 : brace - 1 });
@@ -355,7 +351,7 @@ function formatMap(result: RepoMapResult): string {
   const byFile = new Map<string, SymbolDef[]>();
   for (const s of result.ranked) {
     if (!byFile.has(s.file)) byFile.set(s.file, []);
-    byFile.get(s.file)!.push(s);
+    byFile.get(s.file)?.push(s);
   }
   const lines: string[] = [header];
   for (const [file, syms] of byFile) {

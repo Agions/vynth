@@ -1,4 +1,3 @@
-
 const ESC = '\x1b';
 
 export function setScrollRegion(

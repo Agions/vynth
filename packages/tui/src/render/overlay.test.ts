@@ -17,7 +17,7 @@ describe('withBackground', () => {
   });
 
   test('行内 reset 之后重新注入背景（背景连续不断）', () => {
-    const line = `a\x1b[0mb`;
+    const line = 'a\x1b[0mb';
     const out = withBackground(line, BG);
     expect(out).toContain(`\x1b[0m${BG}b`);
   });

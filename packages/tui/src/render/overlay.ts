@@ -1,4 +1,3 @@
-
 import { padToWidth, stripAnsi, truncateVisible, visibleWidth } from '../utils/unicode';
 
 const RESET = '\x1b[0m';

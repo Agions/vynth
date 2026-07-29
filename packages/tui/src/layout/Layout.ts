@@ -1,4 +1,3 @@
-
 import type { ViewportLayout } from '../state/TuiState';
 import { type Breakpoint, computeLayout, getBreakpoint, getBreakpointConfig } from './Viewport';
 

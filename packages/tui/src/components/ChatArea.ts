@@ -1,4 +1,3 @@
-
 import type { TuiState } from '../state/TuiState';
 import { renderMessage, renderToolBlock } from '../utils/text';
 import { renderWelcome } from './Welcome';

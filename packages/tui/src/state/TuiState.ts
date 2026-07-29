@@ -1,3 +1,5 @@
+import type { Mode } from '@zeno/core';
+import type { ThemeName } from '../theme';
 
 export interface MessageEntry {
   id: string;
@@ -46,13 +48,15 @@ export interface TuiState {
 
   inputPinned: boolean;
 
+  mode: Mode;
+
   liveStatus: LiveStatus;
   currentTool: string | null;
   liveToolId: string | null;
   turnCount: number;
   connectionStatus: ConnectionStatus;
 
-  theme: string;
+  theme: ThemeName;
   palette: ReturnType<typeof import('../theme').palette>;
 
   searchQuery: string;
@@ -87,8 +91,9 @@ export interface TuiState {
     model: string;
     llmBaseUrl: string;
     apiKey: string;
-    theme: string;
+    theme: ThemeName;
     networkAllowed: boolean;
+    mode: Mode;
   };
   configFieldIndex: number;
 
@@ -97,7 +102,12 @@ export interface TuiState {
   searchModalResults: string[];
   searchModalIndex: number;
 
-  toasts: Array<{ id: string; type: 'info' | 'warning' | 'error' | 'success'; text: string; expiresAt: number }>;
+  toasts: Array<{
+    id: string;
+    type: 'info' | 'warning' | 'error' | 'success';
+    text: string;
+    expiresAt: number;
+  }>;
 
   activeFilePath: string;
   cursorPos: { line: number; col: number };
@@ -115,5 +125,3 @@ export interface TuiState {
   splitFocus: 'chat' | 'output';
   outputScrollOffset: number;
 }
-
-

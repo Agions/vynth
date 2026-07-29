@@ -1,4 +1,3 @@
-
 export interface ColorEnv {
   COLORTERM?: string;
   TERM?: string;

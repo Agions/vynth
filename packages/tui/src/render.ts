@@ -1,4 +1,3 @@
-
 // Re-export from new locations for backward compatibility
 export { visibleWidth, wrapLine, truncateVisible, padToWidth } from './utils/unicode';
 export {

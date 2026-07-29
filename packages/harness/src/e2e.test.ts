@@ -134,7 +134,7 @@ test('sandbox rejects symlink escape', async () => {
   }
 });
 
-test('ZENO_NET=off blocks run_shell networking', async () => {
+test('VYNTH_NET=off blocks run_shell networking', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'zeno-net-'));
   try {
     const reg = builtinTools(dir, { networkAllowed: false });
@@ -157,7 +157,7 @@ const CLI = resolve(REPO, 'apps/cli/src/main.ts');
 
 function runCli(
   args: string[],
-  env: Record<string, string> = { ...process.env, ZENO_API_KEY: 'test-key-for-cli-tests' }
+  env: Record<string, string> = { ...process.env, VYNTH_API_KEY: 'test-key-for-cli-tests' }
 ): { code: number; out: string; err: string } {
   try {
     const out = execFileSync(process.execPath, [CLI, ...args], {
@@ -211,10 +211,10 @@ describe('CLI 退出码契约（F11）', () => {
     expect(r.err).toMatch(/VC-\d{6}/);
   });
 
-  test('空 ZENO_API_KEY 跑 headless → 退出 1 + LLM 6 位码', () => {
-    const r = runCli(['-g', 'echo run'], { ...process.env, ZENO_API_KEY: '' });
+  test('空 VYNTH_API_KEY 跑 headless → 退出 1 + LLM 6 位码', () => {
+    const r = runCli(['-g', 'echo run'], { ...process.env, VYNTH_API_KEY: '' });
     expect(r.code).toBe(1);
-    expect(r.err).toMatch(/\[VC-\d{6}\]\s+missing ZENO_API_KEY/);
+    expect(r.err).toMatch(/\[VC-\d{6}\]\s+missing VYNTH_API_KEY/);
   });
 });
 

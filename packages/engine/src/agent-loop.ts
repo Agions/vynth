@@ -11,8 +11,8 @@ export interface AgentOpts {
   repoMap?: string;
 }
 
-import { loadProjectSkills } from './skills';
 import { loadProjectAgents } from './agents';
+import { loadProjectSkills } from './skills';
 
 const DEFAULT_SYSTEM =
   '你是 Zeno，一个终端内的 AI 编程助手。请用简洁中文回复，必要时调用工具完成任务。';
@@ -39,12 +39,17 @@ function pruneContext(messages: ChatMessage[], maxMessages = 24): void {
 export async function* runAgent(goal: string, opts: AgentOpts): AsyncGenerator<StreamEvent> {
   const messages: ChatMessage[] = [];
   let systemContent: string =
-    opts.system ?? (opts.mode === 'plan' ? PLAN_SYSTEM : opts.mode === 'auto' ? AUTO_SYSTEM : DEFAULT_SYSTEM);
+    opts.system ??
+    (opts.mode === 'plan' ? PLAN_SYSTEM : opts.mode === 'auto' ? AUTO_SYSTEM : DEFAULT_SYSTEM);
   try {
     const { readFileSync, existsSync } = await import('node:fs');
     const { join } = await import('node:path');
-    const cwd = (opts.tools as any).cwd || process.cwd();
-    const candidates = [join(cwd, 'AGENTS.md'), join(cwd, '.zeno', 'AGENTS.md'), join(cwd, 'PROJECT.md')];
+    const cwd = (opts.tools as unknown as { cwd?: string } | undefined)?.cwd || process.cwd();
+    const candidates = [
+      join(cwd, 'AGENTS.md'),
+      join(cwd, '.vynth', 'AGENTS.md'),
+      join(cwd, 'PROJECT.md')
+    ];
     for (const candidate of candidates) {
       if (existsSync(candidate)) {
         const content = readFileSync(candidate, 'utf8').trim();
@@ -57,12 +62,12 @@ export async function* runAgent(goal: string, opts: AgentOpts): AsyncGenerator<S
     const skills = loadProjectSkills(cwd);
     if (skills.length > 0) {
       const skillText = skills.map((s) => `- ${s.name}: ${s.description}`).join('\n');
-      systemContent += `\n\n=== 可用 Skills 技能库 (.zeno/skills) ===\n${skillText}`;
+      systemContent += `\n\n=== 可用 Skills 技能库 (.vynth/skills) ===\n${skillText}`;
     }
     const agents = loadProjectAgents(cwd);
     if (agents.length > 0) {
       const agentText = agents.map((a) => `- ${a.name} (${a.role}): ${a.systemPrompt}`).join('\n');
-      systemContent += `\n\n=== 可用 Subagents 专家库 (.zeno/agents) ===\n${agentText}`;
+      systemContent += `\n\n=== 可用 Subagents 专家库 (.vynth/agents) ===\n${agentText}`;
     }
   } catch {}
 

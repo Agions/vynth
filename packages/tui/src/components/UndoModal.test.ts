@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
-import { UndoModal } from './UndoModal';
-import { palette } from '../theme';
 import type { TuiState } from '../state/TuiState';
+import { palette } from '../theme';
+import { UndoModal } from './UndoModal';
 
 describe('UndoModal', () => {
   it('UndoModal renders confirmation prompt', () => {

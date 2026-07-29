@@ -67,10 +67,16 @@ test('runAgent 工具执行后 yield tool_result（ok 路径带 output）', asyn
     run: () => ({ ok: true, output: 'fine result' })
   });
   const events: StreamEvent[] = [];
-  for await (const ev of runAgent('run ok', { provider: new OneToolProvider('ok_tool'), tools: reg })) {
+  for await (const ev of runAgent('run ok', {
+    provider: new OneToolProvider('ok_tool'),
+    tools: reg
+  })) {
     events.push(ev);
   }
-  const r = events.find((e) => e.type === 'tool_result') as Extract<StreamEvent, { type: 'tool_result' }>;
+  const r = events.find((e) => e.type === 'tool_result') as Extract<
+    StreamEvent,
+    { type: 'tool_result' }
+  >;
   expect(r).toBeDefined();
   expect(r.ok).toBe(true);
   expect(r.output).toBe('fine result');
@@ -86,10 +92,16 @@ test('runAgent 工具失败 yield tool_result（error 带诊断码）', async ()
     run: () => ({ ok: false, output: '', error: '[VC-030006] sandbox backend unavailable' })
   });
   const events: StreamEvent[] = [];
-  for await (const ev of runAgent('run fail', { provider: new OneToolProvider('fail_tool'), tools: reg })) {
+  for await (const ev of runAgent('run fail', {
+    provider: new OneToolProvider('fail_tool'),
+    tools: reg
+  })) {
     events.push(ev);
   }
-  const r = events.find((e) => e.type === 'tool_result') as Extract<StreamEvent, { type: 'tool_result' }>;
+  const r = events.find((e) => e.type === 'tool_result') as Extract<
+    StreamEvent,
+    { type: 'tool_result' }
+  >;
   expect(r).toBeDefined();
   expect(r.ok).toBe(false);
   expect(r.error).toContain('VC-030006');

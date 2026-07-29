@@ -1,18 +1,15 @@
 {
-  "name": "zeno",
+  "name": "vynth",
   "version": "0.1.1",
   "private": true,
   "type": "module",
   "description": "AI-Native Coding Terminal — 你 terminal 里的代码合成器",
   "bin": {
-    "zeno": "./dist/zeno"
+    "vynth": "./dist/vynth"
   },
-  "workspaces": [
-    "packages/*",
-    "apps/*"
-  ],
+  "workspaces": ["packages/*", "apps/*"],
   "scripts": {
-    "compile": "bun build --compile --target=bun --minify apps/cli/src/main.ts --outfile dist/zeno",
+    "compile": "bun build --compile --target=bun --minify apps/cli/src/main.ts --outfile dist/vynth",
     "build": "bun run compile",
     "dev": "bun run apps/cli/src/main.ts",
     "test": "bun test packages",

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
-import { AtPalette, filterAtFiles } from './AtPalette';
-import { palette } from '../theme';
 import type { TuiState } from '../state/TuiState';
+import { palette } from '../theme';
+import { AtPalette, filterAtFiles } from './AtPalette';
 
 describe('AtPalette', () => {
   const sampleFiles = ['src/main.ts', 'src/config.ts', 'package.json', 'README.md'];

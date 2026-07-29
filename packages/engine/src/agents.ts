@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 export interface AgentDef {
@@ -42,7 +42,7 @@ const BUILTIN_AGENTS: AgentDef[] = [
 
 export function loadProjectAgents(cwd: string): AgentDef[] {
   const agents: AgentDef[] = [...BUILTIN_AGENTS];
-  const agentsDir = join(cwd, '.zeno', 'agents');
+  const agentsDir = join(cwd, '.vynth', 'agents');
   if (!existsSync(agentsDir)) return agents;
 
   try {
@@ -52,7 +52,7 @@ export function loadProjectAgents(cwd: string): AgentDef[] {
       if (file.endsWith('.json')) {
         try {
           const raw = JSON.parse(readFileSync(full, 'utf8'));
-          if (raw && raw.name && raw.systemPrompt) {
+          if (raw?.name && raw.systemPrompt) {
             agents.push({
               name: raw.name,
               role: raw.role || raw.name,

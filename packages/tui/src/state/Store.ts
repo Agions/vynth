@@ -1,4 +1,3 @@
-
 import type { ConnectionStatus, LiveStatus, TuiState } from './TuiState';
 
 export interface DirtyFlags {
@@ -50,9 +49,9 @@ export class Store {
   }
 
   markAllDirty(): void {
-    Object.keys(this.dirtyFlags).forEach((k) => {
+    for (const k of Object.keys(this.dirtyFlags)) {
       this.dirtyFlags[k as keyof DirtyFlags] = true;
-    });
+    }
   }
 
   // Convenience actions

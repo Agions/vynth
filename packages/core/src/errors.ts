@@ -83,4 +83,3 @@ export function formatZenoError(err: unknown): string {
   }
   return toErrorMessage(err);
 }
-

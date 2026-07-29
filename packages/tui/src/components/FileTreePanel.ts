@@ -20,7 +20,7 @@ export function FileTreePanel(props: FileTreePanelProps): string {
   const selIdx = state.fileTreeIndex || 0;
   const borderCol = fg(c.teal);
 
-  const title = ` 📁 工作区文件树 `;
+  const title = ' 📁 工作区文件树 ';
   const leftW = visibleWidth(title);
   const dashesW = Math.max(2, panelW - 3 - leftW);
   const topBorder = `${borderCol}╭─${fg(c.teal)}\x1b[1m${title}${borderCol}${'─'.repeat(dashesW)}╮${reset}`;

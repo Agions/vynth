@@ -1,4 +1,3 @@
-
 export function hexToRgb(hex: string): string {
   const n = Number.parseInt((hex || '#ffffff').replace('#', ''), 16);
   return `${(n >> 16) & 255};${(n >> 8) & 255};${n & 255}`;

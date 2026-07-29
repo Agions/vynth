@@ -24,7 +24,8 @@ export class LspManager {
     if (!serverCmd) return null;
 
     if (this.clients.has(serverCmd)) {
-      return this.clients.get(serverCmd)!;
+      const existing = this.clients.get(serverCmd);
+      if (existing) return existing;
     }
 
     const client = new LspClient(serverCmd, serverArgs);

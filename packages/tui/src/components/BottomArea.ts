@@ -1,4 +1,3 @@
-
 import type { TuiState } from '../state/TuiState';
 import type { Palette } from '../theme';
 import { fg, reset } from '../theme';
@@ -54,7 +53,8 @@ function buildStatusLeft(state: TuiState): string {
   const parts: string[] = [];
 
   const modeUpper = (state.mode || 'vibe').toUpperCase();
-  const modeBg = modeUpper === 'VIBE' ? c.teal : modeUpper === 'PLAN' ? c.mauve : c.peach || c.yellow;
+  const modeBg =
+    modeUpper === 'VIBE' ? c.teal : modeUpper === 'PLAN' ? c.mauve : c.peach || c.yellow;
   parts.push(`${fg(c.crust || c.base)}\x1b[48;2;${hexToRgb(modeBg)}m\x1b[1m ${modeUpper} ${reset}`);
 
   const filePath = state.activeFilePath || 'no file';
@@ -89,18 +89,26 @@ function formatTokens(n: number): string {
 
 function getStatusText(state: TuiState): string {
   switch (state.liveStatus) {
-    case 'streaming': return 'streaming';
-    case 'tool': return `tool: ${state.currentTool ?? '…'}`;
-    case 'thinking': return 'thinking';
-    default: return 'ready';
+    case 'streaming':
+      return 'streaming';
+    case 'tool':
+      return `tool: ${state.currentTool ?? '…'}`;
+    case 'thinking':
+      return 'thinking';
+    default:
+      return 'ready';
   }
 }
 
 function getStatusColor(state: TuiState): string {
   switch (state.liveStatus) {
-    case 'streaming': return state.palette.yellow;
-    case 'tool': return state.palette.lavender;
-    case 'thinking': return state.palette.blue;
-    default: return state.palette.green;
+    case 'streaming':
+      return state.palette.yellow;
+    case 'tool':
+      return state.palette.lavender;
+    case 'thinking':
+      return state.palette.blue;
+    default:
+      return state.palette.green;
   }
 }

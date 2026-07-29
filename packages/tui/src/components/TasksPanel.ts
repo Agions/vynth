@@ -1,5 +1,4 @@
-
-import { fg, reset, type Palette } from '../theme';
+import { type Palette, fg, reset } from '../theme';
 import { type BackgroundTask, getTaskManager } from '../utils/tasks';
 import { padToWidth, visibleWidth } from '../utils/unicode';
 
@@ -27,7 +26,7 @@ export function TasksPanel(props: TasksPanelProps): string {
   const done = tasks.filter((t) => t.status === 'done').length;
   const failed = tasks.filter((t) => t.status === 'failed').length;
 
-  const title = ` ⚡ 后台任务 `;
+  const title = ' ⚡ 后台任务 ';
   const leftW = visibleWidth(title);
   const dashesW = Math.max(2, panelW - 3 - leftW);
   const topBorder = `${borderCol}╭─${fg(c.yellow)}\x1b[1m${title}${borderCol}${'─'.repeat(dashesW)}╮${reset}`;
@@ -55,7 +54,12 @@ export function TasksPanel(props: TasksPanelProps): string {
       lines.push(`${borderCol}│${reset}${padToWidth(metaStr, innerW)}${borderCol}│${reset}`);
       lines.push(`${borderCol}│${reset}${padToWidth(`  ${cmdStr}`, innerW)}${borderCol}│${reset}`);
 
-      const preview = t.output.trim().split('\n').slice(-2).join(' ⏎ ').slice(0, innerW - 6);
+      const preview = t.output
+        .trim()
+        .split('\n')
+        .slice(-2)
+        .join(' ⏎ ')
+        .slice(0, innerW - 6);
       if (preview) {
         const prevStr = `  ${fg(c.subtext)}${preview}${reset}`;
         lines.push(`${borderCol}│${reset}${padToWidth(prevStr, innerW)}${borderCol}│${reset}`);

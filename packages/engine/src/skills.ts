@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 export interface SkillDef {
@@ -37,7 +37,7 @@ const BUILTIN_SKILLS: SkillDef[] = [
 
 export function loadProjectSkills(cwd: string): SkillDef[] {
   const skills: SkillDef[] = [...BUILTIN_SKILLS];
-  const skillsDir = join(cwd, '.zeno', 'skills');
+  const skillsDir = join(cwd, '.vynth', 'skills');
   if (!existsSync(skillsDir)) return skills;
 
   try {

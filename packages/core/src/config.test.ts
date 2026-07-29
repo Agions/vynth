@@ -16,14 +16,14 @@ function setEnv(key: string, value: string | undefined): void {
 
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), 'zeno-cfg-'));
-  setEnv('ZENO_API_KEY', undefined);
-  setEnv('ZENO_MODEL', undefined);
-  setEnv('ZENO_THEME', undefined);
-  setEnv('ZENO_NET', undefined);
-  setEnv('ZENO_AUDIT', undefined);
-  setEnv('ZENO_HARDEN', undefined);
-  setEnv('ZENO_CONFIG_FILE', undefined);
-  setEnv('ZENO_DATA_DIR', dir);
+  setEnv('VYNTH_API_KEY', undefined);
+  setEnv('VYNTH_MODEL', undefined);
+  setEnv('VYNTH_THEME', undefined);
+  setEnv('VYNTH_NET', undefined);
+  setEnv('VYNTH_AUDIT', undefined);
+  setEnv('VYNTH_HARDEN', undefined);
+  setEnv('VYNTH_CONFIG_FILE', undefined);
+  setEnv('VYNTH_DATA_DIR', dir);
 });
 afterEach(() => {
   rmSync(dir, { recursive: true, force: true });
@@ -39,7 +39,7 @@ describe('loadConfig 可选配置文件（F14）', () => {
 
   test('配置文件与 env 合并：env 始终优先于文件', () => {
     writeFileSync(join(dir, 'config.json'), JSON.stringify({ model: 'from-file', theme: 'latte' }));
-    setEnv('ZENO_MODEL', 'from-env');
+    setEnv('VYNTH_MODEL', 'from-env');
     const c = loadConfig();
     expect(c.model).toBe('from-env');
     expect(c.theme).toBe('latte');
@@ -50,9 +50,9 @@ describe('loadConfig 可选配置文件（F14）', () => {
     expect(loadConfig().audit).toBe(true);
   });
 
-  test('ZENO_AUDIT=1 优先于文件 audit:false', () => {
+  test('VYNTH_AUDIT=1 优先于文件 audit:false', () => {
     writeFileSync(join(dir, 'config.json'), JSON.stringify({ audit: false }));
-    setEnv('ZENO_AUDIT', '1');
+    setEnv('VYNTH_AUDIT', '1');
     expect(loadConfig().audit).toBe(true);
   });
 
@@ -86,10 +86,10 @@ describe('loadConfig 可选配置文件（F14）', () => {
     }
   });
 
-  test('ZENO_CONFIG_FILE 指向显式路径', () => {
+  test('VYNTH_CONFIG_FILE 指向显式路径', () => {
     const p = join(dir, 'explicit.json');
     writeFileSync(p, JSON.stringify({ model: 'explicit-model' }));
-    setEnv('ZENO_CONFIG_FILE', p);
+    setEnv('VYNTH_CONFIG_FILE', p);
     expect(loadConfig().model).toBe('explicit-model');
   });
 
@@ -103,15 +103,15 @@ describe('loadConfig 可选配置文件（F14）', () => {
       expect(loadConfig().sandbox.harden).toBe(true);
     });
 
-    test('ZENO_HARDEN=1 优先于文件 harden:false（安全闸门）', () => {
+    test('VYNTH_HARDEN=1 优先于文件 harden:false（安全闸门）', () => {
       writeFileSync(join(dir, 'config.json'), JSON.stringify({ sandbox: { harden: false } }));
-      setEnv('ZENO_HARDEN', '1');
+      setEnv('VYNTH_HARDEN', '1');
       expect(loadConfig().sandbox.harden).toBe(true);
     });
 
-    test('ZENO_HARDEN=0 优先于文件 harden:true（安全闸门，可强制关闭）', () => {
+    test('VYNTH_HARDEN=0 优先于文件 harden:true（安全闸门，可强制关闭）', () => {
       writeFileSync(join(dir, 'config.json'), JSON.stringify({ sandbox: { harden: true } }));
-      setEnv('ZENO_HARDEN', '0');
+      setEnv('VYNTH_HARDEN', '0');
       expect(loadConfig().sandbox.harden).toBe(false);
     });
 

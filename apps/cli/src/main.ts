@@ -60,11 +60,11 @@ function printHelp(): void {
   zeno -s "<命令>"   接入 MCP server（stdio JSON-RPC 2024-11-05，可重复指定多个）
 
 环境变量:
-  ZENO_API_KEY       LLM API key（必填）
-  ZENO_MODEL         模型名（默认 deepseek-v4-pro）
-  ZENO_LLM_BASE_URL  OpenAI 兼容端点
-  ZENO_MODE          plan | vibe
-  ZENO_THEME         mocha | latte
+  VYNTH_API_KEY       LLM API key（必填）
+  VYNTH_MODEL         模型名（默认 deepseek-v4-pro）
+  VYNTH_LLM_BASE_URL  OpenAI 兼容端点
+  VYNTH_MODE          plan | vibe
+  VYNTH_THEME         mocha | latte
 `);
 }
 
@@ -77,7 +77,7 @@ async function runHeadless(
   initAudit(config);
   audit().record(
     'config_change',
-    { source: process.env.ZENO_CONFIG_FILE ? 'file' : 'env', auditEnabled: config.audit },
+    { source: process.env.VYNTH_CONFIG_FILE ? 'file' : 'env', auditEnabled: config.audit },
     true
   );
   const provider = createProvider(config);
@@ -104,8 +104,7 @@ async function runHeadless(
     for (const d of defs) {
       try {
         tools.register(d);
-      } catch {
-      }
+      } catch {}
     }
     console.log(`› 已连接 MCP server: ${spec}（${defs.length} 个工具）`);
   }
@@ -143,7 +142,7 @@ async function main(): Promise<void> {
     initAudit(config);
     audit().record(
       'config_change',
-      { source: process.env.ZENO_CONFIG_FILE ? 'file' : 'env', auditEnabled: config.audit },
+      { source: process.env.VYNTH_CONFIG_FILE ? 'file' : 'env', auditEnabled: config.audit },
       true
     );
     if (parsed.goal) {

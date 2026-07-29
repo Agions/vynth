@@ -1,10 +1,7 @@
-
 import type { TuiState } from '../state/TuiState';
 import { fg, reset } from '../theme';
 import { hexToRgb } from '../utils/color';
 import { visibleWidth } from '../utils/unicode';
-
-
 
 function pill(text: string, fgHex: string, bgHex: string): string {
   return `\x1b[48;2;${hexToRgb(bgHex)}m${fg(fgHex)} ${text} ${reset}`;
@@ -23,17 +20,18 @@ export function TopBar(state: TuiState): string[] {
 
   // ─── Line 1: Brand + Mode + Model + Theme + Connection ───
   const modeUpper = (state.mode || 'vibe').toUpperCase();
-  const modeColor = modeUpper === 'PLAN' ? c.mauve : modeUpper === 'AUTO' ? (c.peach || c.yellow) : c.teal;
+  const modeColor =
+    modeUpper === 'PLAN' ? c.mauve : modeUpper === 'AUTO' ? c.peach || c.yellow : c.teal;
   const activeModel = state.configDraft?.model || 'deepseek-v4-pro';
 
   const connColor =
-    state.connectionStatus === 'connected' ? c.green
-    : state.connectionStatus === 'error' ? c.yellow
-    : c.red;
+    state.connectionStatus === 'connected'
+      ? c.green
+      : state.connectionStatus === 'error'
+        ? c.yellow
+        : c.red;
   const connIcon =
-    state.connectionStatus === 'connected' ? '●'
-    : state.connectionStatus === 'error' ? '◐'
-    : '○';
+    state.connectionStatus === 'connected' ? '●' : state.connectionStatus === 'error' ? '◐' : '○';
 
   const brand = `${fg(c.mauve)}\x1b[1mZeno${reset}`;
   const modePill = pill(modeUpper, c.crust ?? c.base, modeColor);
@@ -49,28 +47,37 @@ export function TopBar(state: TuiState): string[] {
 
   // ─── Line 2: Live status + Token quick stats + Turn count ───
   const liveColor =
-    state.liveStatus === 'streaming' ? c.yellow
-    : state.liveStatus === 'tool' ? c.lavender
-    : state.liveStatus === 'thinking' ? c.blue
-    : c.green;
+    state.liveStatus === 'streaming'
+      ? c.yellow
+      : state.liveStatus === 'tool'
+        ? c.lavender
+        : state.liveStatus === 'thinking'
+          ? c.blue
+          : c.green;
   const liveIcon =
-    state.liveStatus === 'streaming' ? '⠿'
-    : state.liveStatus === 'tool' ? '⚙'
-    : state.liveStatus === 'thinking' ? '◈'
-    : '✔';
+    state.liveStatus === 'streaming'
+      ? '⠿'
+      : state.liveStatus === 'tool'
+        ? '⚙'
+        : state.liveStatus === 'thinking'
+          ? '◈'
+          : '✔';
   const liveText =
-    state.liveStatus === 'streaming' ? 'streaming'
-    : state.liveStatus === 'tool' ? `tool: ${state.currentTool ?? '…'}`
-    : state.liveStatus === 'thinking' ? 'thinking'
-    : 'ready';
+    state.liveStatus === 'streaming'
+      ? 'streaming'
+      : state.liveStatus === 'tool'
+        ? `tool: ${state.currentTool ?? '…'}`
+        : state.liveStatus === 'thinking'
+          ? 'thinking'
+          : 'ready';
   const statusPill = pill(`${liveIcon} ${liveText}`, c.crust ?? c.base, liveColor);
 
   // Token quick stats
   const u = state.tokenUsage;
-  const tokenStr = u && (u.inputTokens + u.outputTokens > 0)
-    ? `${fg(c.teal)}↑${fmtTokens(u.inputTokens)}${reset}  ${fg(c.mauve)}↓${fmtTokens(u.outputTokens)}${reset}` +
-      (u.estimatedCost > 0 ? `  ${fg(c.yellow)}$${u.estimatedCost.toFixed(4)}${reset}` : '')
-    : `${fg(c.subtext)}no tokens${reset}`;
+  const tokenStr =
+    u && u.inputTokens + u.outputTokens > 0
+      ? `${fg(c.teal)}↑${fmtTokens(u.inputTokens)}${reset}  ${fg(c.mauve)}↓${fmtTokens(u.outputTokens)}${reset}${u.estimatedCost > 0 ? `  ${fg(c.yellow)}$${u.estimatedCost.toFixed(4)}${reset}` : ''}`
+      : `${fg(c.subtext)}no tokens${reset}`;
 
   const turnPill = pill(`T${state.turnCount}`, c.crust ?? c.base, c.overlay0 || c.subtext);
 

@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 export interface McpServerConfig {
@@ -7,6 +7,13 @@ export interface McpServerConfig {
   args?: string[];
   env?: Record<string, string>;
   source: 'builtin' | 'project';
+}
+
+interface RawMcpConfig {
+  command?: string;
+  args?: string[];
+  env?: Record<string, string>;
+  [key: string]: unknown;
 }
 
 const BUILTIN_MCP_SERVERS: McpServerConfig[] = [
@@ -38,22 +45,21 @@ const BUILTIN_MCP_SERVERS: McpServerConfig[] = [
 
 export function loadProjectMcpServers(cwd: string): McpServerConfig[] {
   const servers: McpServerConfig[] = [...BUILTIN_MCP_SERVERS];
-  const mcpJson = join(cwd, '.zeno', 'mcp.json');
-  const mcpDir = join(cwd, '.zeno', 'mcp');
+  const mcpJson = join(cwd, '.vynth', 'mcp.json');
+  const mcpDir = join(cwd, '.vynth', 'mcp');
 
   if (existsSync(mcpJson)) {
     try {
       const raw = JSON.parse(readFileSync(mcpJson, 'utf8'));
       if (raw && typeof raw === 'object') {
-        const mcpServers = raw.mcpServers || raw;
+        const mcpServers = (raw.mcpServers || raw) as Record<string, RawMcpConfig>;
         for (const [name, config] of Object.entries(mcpServers)) {
-          const cfg = config as any;
-          if (cfg && cfg.command) {
+          if (config?.command) {
             servers.push({
               name,
-              command: cfg.command,
-              args: cfg.args || [],
-              env: cfg.env || {},
+              command: config.command,
+              args: config.args ?? [],
+              env: config.env ?? {},
               source: 'project'
             });
           }
@@ -69,7 +75,7 @@ export function loadProjectMcpServers(cwd: string): McpServerConfig[] {
         if (file.endsWith('.json')) {
           try {
             const raw = JSON.parse(readFileSync(join(mcpDir, file), 'utf8'));
-            if (raw && raw.command) {
+            if (raw?.command) {
               const name = file.replace(/\.json$/, '');
               servers.push({
                 name,

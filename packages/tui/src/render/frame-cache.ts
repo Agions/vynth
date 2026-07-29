@@ -1,4 +1,3 @@
-
 const ESC = '\x1b';
 const CLEAR_SCREEN = `${ESC}[2J${ESC}[H`;
 const ERASE_LINE_REST = `${ESC}[K`;

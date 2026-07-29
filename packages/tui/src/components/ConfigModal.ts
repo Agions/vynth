@@ -24,7 +24,7 @@ export function ConfigModal(props: ConfigModalProps): string {
   const idx = state.configFieldIndex || 0;
   const borderCol = fg(c.mauve);
 
-  const title = ` ⚙ AI 配置中心 (模型与自定义 API) `;
+  const title = ' ⚙ AI 配置中心 (模型与自定义 API) ';
   const leftW = visibleWidth(title);
   const dashesW = Math.max(2, panelW - 3 - leftW);
   const topBorder = `${borderCol}╭─${fg(c.mauve)}\x1b[1m${title}${borderCol}${'─'.repeat(dashesW)}╮${reset}`;
@@ -32,9 +32,15 @@ export function ConfigModal(props: ConfigModalProps): string {
   const fields = [
     { label: '模型 (Model)', val: `${fg(c.teal)}\x1b[1m${draft.model}${reset}` },
     { label: '端点 (Base URL)', val: `${fg(c.blue)}${draft.llmBaseUrl}${reset}` },
-    { label: '密钥 (API Key)', val: `${fg(c.subtext)}${draft.apiKey ? '•••••••• (已配置)' : '未设置'}${reset}` },
+    {
+      label: '密钥 (API Key)',
+      val: `${fg(c.subtext)}${draft.apiKey ? '•••••••• (已配置)' : '未设置'}${reset}`
+    },
     { label: '主题 (Theme)', val: `${fg(c.mauve)}${draft.theme}${reset}` },
-    { label: '联网沙箱 (Network)', val: draft.networkAllowed ? `${fg(c.green)}✔ 已开启${reset}` : `${fg(c.red)}✖ 已关闭${reset}` }
+    {
+      label: '联网沙箱 (Network)',
+      val: draft.networkAllowed ? `${fg(c.green)}✔ 已开启${reset}` : `${fg(c.red)}✖ 已关闭${reset}`
+    }
   ];
 
   const lines: string[] = [topBorder];
@@ -43,7 +49,9 @@ export function ConfigModal(props: ConfigModalProps): string {
   fields.forEach((f, i) => {
     const isSelected = i === idx;
     const cursor = isSelected ? `${fg(c.mauve)}❯${reset}` : ' ';
-    const labelStr = isSelected ? `${fg(c.mauve)}\x1b[1m${f.label.padEnd(18)}${reset}` : `${fg(c.text)}${f.label.padEnd(18)}${reset}`;
+    const labelStr = isSelected
+      ? `${fg(c.mauve)}\x1b[1m${f.label.padEnd(18)}${reset}`
+      : `${fg(c.text)}${f.label.padEnd(18)}${reset}`;
     const rowContent = `  ${cursor} ${labelStr} ${f.val}`;
 
     let formattedRow = padToWidth(rowContent, innerW);

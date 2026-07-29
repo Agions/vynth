@@ -35,8 +35,7 @@ export class AuditLog {
       if (dir && !existsSync(dir)) mkdirSync(dir, { recursive: true });
       const rec: AuditRecord = { ts: new Date().toISOString(), kind, ok, detail };
       appendFileSync(this.file, `${JSON.stringify(rec)}\n`, 'utf8');
-    } catch {
-    }
+    } catch {}
   }
 
   readAllSync(): AuditRecord[] {
@@ -48,7 +47,6 @@ export class AuditLog {
       .map((l) => JSON.parse(l) as AuditRecord);
   }
 }
-
 
 const NOOP = new AuditLog(process.cwd(), false);
 let active: AuditLog = NOOP;

@@ -26,4 +26,3 @@ export { OutputPane } from './OutputPane';
 export { renderWelcome } from './Welcome';
 export { renderHintsBar } from './HintsBar';
 export type { Command } from './CommandPalette';
-

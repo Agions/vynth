@@ -1,9 +1,9 @@
 import type { ZenoConfig } from '@zeno/core';
-import type { Store } from './state/Store';
+import * as sandbox from '@zeno/sandbox';
 import { SLASH_COMMANDS, matchSlashCommands } from './slash-commands';
+import type { Store } from './state/Store';
 import { saveHistory } from './utils/history';
 import { getTaskManager } from './utils/tasks';
-import * as sandbox from '@zeno/sandbox';
 
 export async function scanProjectFiles(cwd: string): Promise<string[]> {
   const { readdir } = await import('node:fs/promises');

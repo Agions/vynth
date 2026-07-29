@@ -36,9 +36,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `bun run lint`: 0 error
 - `bun run compile` + 体积门禁: **61 MB ≤ 61 MB PASS**
 
-[Unreleased]: https://github.com/Agions/zeno/compare/v0.1.1...HEAD
-[0.1.1]: https://github.com/Agions/zeno/releases/tag/v0.1.1
-[0.1.0]: https://github.com/Agions/zeno/releases/tag/v0.1.0
+[Unreleased]: https://github.com/Agions/vynth/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/Agions/vynth/releases/tag/v0.1.1
+[0.1.0]: https://github.com/Agions/vynth/releases/tag/v0.1.0
 
 > **统一发布**：本次发布合并 v0.1.0（初版骨架）/ v0.2.0（MVP 闭环）/
 > v0.2.1（错误码 6 位化 + demo 移除 + 模型回滚 + DeepSeek V4 thinking）三段
@@ -156,5 +156,5 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `bun run compile` + 体积门禁: **60.51 MB < 61 MB PASS**
 - `bun scripts/bench-cold-start.ts`: P95 ≤ 150 ms PASS
 
-[Unreleased]: https://github.com/Agions/zeno/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/Agions/zeno/releases/tag/v0.1.0
+[Unreleased]: https://github.com/Agions/vynth/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Agions/vynth/releases/tag/v0.1.0

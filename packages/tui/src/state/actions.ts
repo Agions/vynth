@@ -1,4 +1,3 @@
-
 import type { Store } from './Store';
 import type { MessageEntry, TuiState } from './TuiState';
 

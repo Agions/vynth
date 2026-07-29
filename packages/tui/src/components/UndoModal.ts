@@ -14,7 +14,7 @@ export function UndoModal(props: UndoModalProps): string {
   const innerW = panelW - 2;
 
   const borderCol = fg(c.red);
-  const title = ` ↺ 确认回撤上一步修改？ `;
+  const title = ' ↺ 确认回撤上一步修改？ ';
   const leftW = visibleWidth(title);
   const dashesW = Math.max(2, panelW - 3 - leftW);
   const topBorder = `${borderCol}╭─${fg(c.red)}\x1b[1m${title}${borderCol}${'─'.repeat(dashesW)}╮${reset}`;
@@ -24,7 +24,7 @@ export function UndoModal(props: UndoModalProps): string {
 
   const bodyLines = [
     `  ${fg(c.yellow)}⚠  即将回撤上一次 AI 对话与代码修改回合${reset}`,
-    `  ${fg(c.subtext)}对话历史将退回上一节点，便于重新尝试或更正指令。${reset}`,
+    `  ${fg(c.subtext)}对话历史将退回上一节点，便于重新尝试或更正指令。${reset}`
   ];
   for (const line of bodyLines) {
     lines.push(`${borderCol}│${reset}${padToWidth(line, innerW)}${borderCol}│${reset}`);

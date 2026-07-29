@@ -26,6 +26,7 @@
       },
       "suspicious": {
         "noExplicitAny": "error",
+        "noControlCharactersInRegex": "off",
         "noConsoleLog": "off"
       }
     }

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'bun:test';
-import { loadProjectSkills } from './skills';
 import { loadProjectAgents } from './agents';
 import { loadProjectMcpServers } from './mcp';
+import { loadProjectSkills } from './skills';
 
-describe('.zeno Custom & Builtin Extensions (Skills, Agents, MCP)', () => {
+describe('.vynth Custom & Builtin Extensions (Skills, Agents, MCP)', () => {
   it('loads builtin and project skills cleanly', () => {
     const skills = loadProjectSkills(process.cwd());
     expect(skills.length).toBeGreaterThanOrEqual(4);

@@ -1,4 +1,4 @@
-# Zeno
+# Vynth
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Bun](https://img.shields.io/badge/Bun-%E2%89%A51.1-orange)
@@ -7,16 +7,16 @@
 
 > **Terminal-first AI coding agent.** 多智能体协作 · 安全沙箱 · 单二进制 · 插件可扩展。
 
-Zeno 把你 terminal 变成 AI 编程工作台。**Plan**（先规划再动手）或 **Vibe**（边聊边写），自然语言直接「合成」为代码改动。纯 TypeScript + `bun build --compile` → 一个 `dist/zeno` 二进制，零依赖开箱即用。
+Vynth 把你 terminal 变成 AI 编程工作台。**Plan**（先规划再动手）或 **Vibe**（边聊边写），自然语言直接「合成」为代码改动。纯 TypeScript + `bun build --compile` → 一个 `dist/vynth` 二进制，零依赖开箱即用。
 
 ```bash
 # 一行命令搞定
-export ZENO_API_KEY="sk-..." && ./dist/zeno -g '给 src/core 写单元测试'
+export VYNTH_API_KEY="sk-..." && vynth -g '给 src/core 写单元测试'
 ```
 
 ---
 
-## 为什么选 Zeno？
+## 为什么选 Vynth？
 
 | 特性 | 说明 |
 | --- | --- |
@@ -35,24 +35,24 @@ export ZENO_API_KEY="sk-..." && ./dist/zeno -g '给 src/core 写单元测试'
 
 ```bash
 # macOS / Linux — 自动装 Bun、编译、装到 ~/.local/bin
-curl -fsSL https://raw.githubusercontent.com/Agions/zeno/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Agions/vynth/main/scripts/install.sh | bash
 
 # Windows PowerShell
-irm https://raw.githubusercontent.com/Agions/zeno/main/scripts/install.ps1 | iex
+irm https://raw.githubusercontent.com/Agions/vynth/main/scripts/install.ps1 | iex
 ```
 
 ```bash
 # 装完三步开跑
-export ZENO_API_KEY="sk-..."
-zeno                                # 交互 TUI — 全屏终端体验
-zeno -g '给当前目录写一份 README.md'  # 无头模式 — 直接干活
+export VYNTH_API_KEY="sk-..."
+vynth                                # 交互 TUI — 全屏终端体验
+vynth -g '给当前目录写一份 README.md'  # 无头模式 — 直接干活
 ```
 
 ### 源码构建
 
 ```bash
-git clone git@github.com:Agions/zeno.git && cd zeno
-bun install && bun run compile      # → dist/zeno
+git clone git@github.com:Agions/vynth.git && cd vynth
+bun install && bun run compile      # → dist/vynth
 ```
 
 > **前置要求**：Bun >= 1.1、Git。Node.js >= 18 仅用于 `biome`/`turbo` 等辅助工具，非运行时依赖。更多方式（二进制分发 / 自定义目录 / 卸载）见 [安装指南](docs/guide/installation.md)。
@@ -61,29 +61,29 @@ bun install && bun run compile      # → dist/zeno
 
 ## 配置
 
-Zeno 采用**三级优先级**：命令行参数 > 环境变量 > 配置文件。
+Vynth 采用**三级优先级**：命令行参数 > 环境变量 > 配置文件。
 
 ### 环境变量（主要方式）
 
 | 变量 | 作用 | 默认值 | 必填 |
 | --- | --- | --- | --- |
-| `ZENO_API_KEY` | LLM API Key | — | **是** |
-| `ZENO_MODEL` | 模型名 | `deepseek-v4-pro` | 否 |
-| `ZENO_LLM_BASE_URL` | OpenAI 兼容端点 | `https://api.deepseek.com/v1` | 否 |
-| `ZENO_MODE` | `plan` / `vibe` / `auto` | `vibe` | 否 |
-| `ZENO_THEME` | `mocha`(默认) / `latte` / `neon` / `midnight` / `forest` / `light` | `mocha` | 否 |
-| `ZENO_HARDEN` | OS 级硬隔离开关（`1`=开启 sandbox-exec/bwrap） | 关闭 | 否 |
-| `ZENO_NET` | 联网开关（`0`=关闭） | 开启 | 否 |
-| `ZENO_DATA_DIR` | 数据目录 | `~/.zeno` | 否 |
-| `ZENO_AUDIT` | 审计日志（`1`=开启） | 关闭 | 否 |
-| `ZENO_REPOMAP` | 仓库地图（`0`=关闭） | 开启 | 否 |
+| `VYNTH_API_KEY` | LLM API Key | — | **是** |
+| `VYNTH_MODEL` | 模型名 | `deepseek-v4-pro` | 否 |
+| `VYNTH_LLM_BASE_URL` | OpenAI 兼容端点 | `https://api.deepseek.com/v1` | 否 |
+| `VYNTH_MODE` | `plan` / `vibe` / `auto` | `vibe` | 否 |
+| `VYNTH_THEME` | `mocha`(默认) / `latte` / `neon` / `midnight` / `forest` / `light` | `mocha` | 否 |
+| `VYNTH_HARDEN` | OS 级硬隔离开关（`1`=开启 sandbox-exec/bwrap） | 关闭 | 否 |
+| `VYNTH_NET` | 联网开关（`0`=关闭） | 开启 | 否 |
+| `VYNTH_DATA_DIR` | 数据目录 | `~/.vynth` | 否 |
+| `VYNTH_AUDIT` | 审计日志（`1`=开启） | 关闭 | 否 |
+| `VYNTH_REPOMAP` | 仓库地图（`0`=关闭） | 开启 | 否 |
 
 ### 配置文件（可选便利层）
 
-支持 `~/.zeno/config.json`（全局）和项目根 `zeno.json` / `.zenorc`（项目级），可配置 mode、model、theme 等非敏感项。**API Key 必须走环境变量，配置文件禁止写入。**
+支持 `~/.vynth/config.json`（全局）和项目根 `vynth.json` / `.vynthrc`（项目级），可配置 mode、model、theme 等非敏感项。**API Key 必须走环境变量，配置文件禁止写入。**
 
 ```json
-// zeno.json（项目根）
+// vynth.json（项目根）
 {
   "mode": "plan",
   "model": "deepseek-v4-pro",
@@ -99,7 +99,7 @@ Zeno 采用**三级优先级**：命令行参数 > 环境变量 > 配置文件�
 ### Plan 模式 — 先规划，再动手
 
 ```bash
-./dist/zeno -m plan '实现用户认证模块：注册、登录、JWT 刷新'
+vynth -m plan '实现用户认证模块：注册、登录、JWT 刷新'
 ```
 
 Agent 先输出结构化执行计划，你确认后逐步实施，每步可审查回滚。
@@ -107,7 +107,7 @@ Agent 先输出结构化执行计划，你确认后逐步实施，每步可审�
 ### Vibe 模式 — 边聊边写（默认）
 
 ```bash
-./dist/zeno -g '把 utils 目录下所有函数加上 JSDoc 注释'
+vynth -g '把 utils 目录下所有函数加上 JSDoc 注释'
 ```
 
 流式输出 + tool_calls，改动即时生效，适合探索式编程。
@@ -120,22 +120,22 @@ Agent 先输出结构化执行计划，你确认后逐步实施，每步可审�
 
 ```bash
 # 无头模式（-p 即授权，适合 CI/脚本）
-./dist/zeno -g '用自定义工具处理数据' -p packages/plugins/examples/hello-plugin.ts
+vynth -g '用自定义工具处理数据' -p packages/plugins/examples/hello-plugin.ts
 
 # TUI 模式（启动后弹出信任确认）
-./dist/zeno -p packages/plugins/examples/hello-plugin.ts
+vynth -p packages/plugins/examples/hello-plugin.ts
 ```
 
-> ⚠️ 插件在 Zeno 进程内执行，拥有同等权限。仅加载你完全信任的插件。
+> ⚠️ 插件在 Vynth 进程内执行，拥有同等权限。仅加载你完全信任的插件。
 
 ### 接入 MCP Server
 
 ```bash
 # 接入 stdio MCP server（可重复 -s 接入多个）
-./dist/zeno -g '查询天气' -s "npx -y @modelcontextprotocol/server-xxx"
+vynth -g '查询天气' -s "npx -y @modelcontextprotocol/server-xxx"
 
 # 自建 MCP server
-./dist/zeno -g '用自定义工具' -s "bun run packages/mcp/examples/echo-server.ts"
+vynth -g '用自定义工具' -s "bun run packages/mcp/examples/echo-server.ts"
 ```
 
 > MCP server 以子进程启动（stdio JSON-RPC，协议版本 2024-11-05），工具自动并入 agent 工具集，走同一套沙箱/审计链路。
@@ -155,9 +155,9 @@ Agent 先输出结构化执行计划，你确认后逐步实施，每步可审�
 | 沙箱守卫 | safeResolve 越界拦截 + 网络开关 | ✅ MVP |
 | MCP 接入 | `-s/--mcp` 接入 stdio JSON-RPC server | ✅ v0.1.0 |
 | TUI 内插件 | 交互界面加载 + 信任确认门禁 | ✅ v0.1.0 |
-| 配置体系 | 环境变量 + config.json + zeno.json 三级优先级 | ✅ v0.1.0 |
+| 配置体系 | 环境变量 + config.json + vynth.json 三级优先级 | ✅ v0.1.0 |
 | 5 维审计 | 工具调用 / 文件 / 网络 / 配置 / 插件全链路 | ✅ v0.1.0 |
-| OS 硬隔离 | bubblewrap(Linux 推荐) / seatbelt(macOS 15+ 需 root)；`ZENO_HARDEN=1` 或 `sandbox.harden`，不可用时 Fail-Closed | ✅ v0.1.0 |
+| OS 硬隔离 | bubblewrap(Linux 推荐) / seatbelt(macOS 15+ 需 root)；`VYNTH_HARDEN=1` 或 `sandbox.harden`，不可用时 Fail-Closed | ✅ v0.1.0 |
 
 ---
 
@@ -165,7 +165,7 @@ Agent 先输出结构化执行计划，你确认后逐步实施，每步可审�
 
 自然语言目标（goal）→ `engine` 的 agent 循环 → LLM 流式补全 → 工具调用 → `sandbox` 执行 → TUI / 无头渲染。整条链由 `bun build --compile` 打包为单二进制。
 
-![Zeno 架构与数据流](docs/architecture/zeno-architecture.svg)
+![Vynth 架构与数据流](docs/architecture/zeno-architecture.svg)
 
 > 更完整的模块职责、数据流与不变量见 [架构总览](docs/architecture/index.md)（含 mermaid 版与交互说明）。
 
@@ -174,9 +174,9 @@ Agent 先输出结构化执行计划，你确认后逐步实施，每步可审�
 ## 目录结构
 
 ```
-zeno/
+vynth/
 ├── apps/
-│   └── cli/                      # CLI 入口（bin: zeno）
+│   └── cli/                      # CLI 入口（bin: vynth）
 ├── packages/
 │   ├── core/                     # 共享类型 · 配置 · 错误 · 事件总线 · 日志
 │   ├── engine/                   # LLM 客户端 · 工具系统 · agent 循环
@@ -186,7 +186,7 @@ zeno/
 │   ├── plugins/                  # 插件加载 · 生命周期 · 信任模型
 │   └── harness/                  # 集成测试 / e2e 驱动
 ├── docs/                         # 项目文档
-├── scripts/                      # 开发脚本 · 基准测试
+├── scripts/                      # 开发脚本 · 基��测试
 ├── dist/                         # 编译输出
 ├── package.json
 ├── pnpm-workspace.yaml
@@ -220,7 +220,7 @@ zeno/
 
 ### 🟢 入门（15 分钟）
 
-1. [为什么选 Zeno？](#为什么选-zeno)
+1. [为什么选 Vynth？](#为什么选-vynth)
 2. [快速上手](#快速上手)
 3. [使用示例](#使用示例)
 

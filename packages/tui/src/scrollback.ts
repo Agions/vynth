@@ -1,4 +1,3 @@
-
 export class Scrollback {
   private lines: string[] = [];
   constructor(private readonly capacity: number) {}

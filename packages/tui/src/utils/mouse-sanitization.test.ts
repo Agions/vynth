@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
-import { isMouseOrEscapeGarbage, isPhysicalEscapeKey } from '../tui-controller';
 import { Store } from '../state/Store';
 import { palette } from '../theme';
+import { isMouseOrEscapeGarbage, isPhysicalEscapeKey } from '../tui-controller';
 
 describe('Mouse & Escape Sanitization', () => {
   it('identifies and blocks mouse SGR coordinate strings', () => {
@@ -29,7 +29,11 @@ describe('Mouse & Escape Sanitization', () => {
   });
 
   it('Store.setInput automatically strips mouse garbage like 65;35;29M64;35;29M', () => {
-    const store = new Store({ input: '', palette: palette('mocha'), cols: 80 } as any);
+    const store = new Store({
+      input: '',
+      palette: palette('mocha'),
+      cols: 80
+    } as unknown as ConstructorParameters<typeof Store>[0]);
     store.setInput('65;35;29M64;35;29M64;35;29M');
     expect(store.getState().input).toBe('');
 

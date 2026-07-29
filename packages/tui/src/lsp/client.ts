@@ -1,4 +1,4 @@
-import { spawn, type ChildProcess } from 'node:child_process';
+import { type ChildProcess, spawn } from 'node:child_process';
 
 export interface LspDiagnostic {
   range: {
@@ -13,10 +13,14 @@ export class LspClient {
   private process: ChildProcess | null = null;
   private buffer = '';
   private nextId = 1;
+  // biome-ignore lint/suspicious/noExplicitAny: LSP JSON-RPC payloads are dynamically typed
   private pendingRequests = new Map<number, (res: any) => void>();
   private diagnosticsListeners: Array<(uri: string, diagnostics: LspDiagnostic[]) => void> = [];
 
-  constructor(private command: string, private args: string[] = []) {}
+  constructor(
+    private command: string,
+    private args: string[] = []
+  ) {}
 
   public async start(rootUri: string): Promise<boolean> {
     try {
@@ -60,7 +64,7 @@ export class LspClient {
         textDocument: { uri },
         position: { line, character }
       });
-      if (res && res.contents) {
+      if (res?.contents) {
         if (typeof res.contents === 'string') return res.contents;
         if (res.contents.value) return res.contents.value;
       }
@@ -83,6 +87,7 @@ export class LspClient {
     }
   }
 
+  // biome-ignore lint/suspicious/noExplicitAny: LSP JSON-RPC payloads are dynamically typed
   private sendRequest(method: string, params: any): Promise<any> {
     return new Promise((resolve) => {
       if (!this.process || !this.process.stdin) return resolve(null);
@@ -94,6 +99,7 @@ export class LspClient {
     });
   }
 
+  // biome-ignore lint/suspicious/noExplicitAny: LSP JSON-RPC payloads are dynamically typed
   private sendNotification(method: string, params: any): void {
     if (!this.process || !this.process.stdin) return;
     const msg = JSON.stringify({ jsonrpc: '2.0', method, params });
@@ -105,7 +111,7 @@ export class LspClient {
     while (true) {
       const match = this.buffer.match(/Content-Length: (\d+)\r\n\r\n/);
       if (!match) break;
-      const contentLength = parseInt(match[1], 10);
+      const contentLength = Number.parseInt(match[1], 10);
       const headerLength = match[0].length;
       if (this.buffer.length < headerLength + contentLength) break;
 
@@ -115,9 +121,11 @@ export class LspClient {
       try {
         const body = JSON.parse(bodyStr);
         if (body.id !== undefined && this.pendingRequests.has(body.id)) {
-          const resolver = this.pendingRequests.get(body.id)!;
-          this.pendingRequests.delete(body.id);
-          resolver(body.result);
+          const resolver = this.pendingRequests.get(body.id);
+          if (resolver) {
+            this.pendingRequests.delete(body.id);
+            resolver(body.result);
+          }
         } else if (body.method === 'textDocument/publishDiagnostics') {
           for (const l of this.diagnosticsListeners) {
             l(body.params.uri, body.params.diagnostics || []);

@@ -74,7 +74,6 @@ process.stdin.on('data', (chunk: string) => {
     if (!line) continue;
     try {
       handle(JSON.parse(line) as JsonRpcReq);
-    } catch {
-    }
+    } catch {}
   }
 });

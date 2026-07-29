@@ -1,6 +1,6 @@
+import { highlightCode } from '../render/syntax';
 import type { TuiState } from '../state/TuiState';
 import { fg, reset } from '../theme';
-import { highlightCode } from '../render/syntax';
 
 export interface CodeEditorProps {
   filename: string;

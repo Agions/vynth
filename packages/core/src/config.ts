@@ -10,7 +10,8 @@ interface ConfigFile {
   mode?: Mode;
   model?: string;
   llmBaseUrl?: string;
-  theme?: 'mocha' | 'latte' | 'neon';
+  apiKey?: string;
+  theme?: 'mocha' | 'latte' | 'neon' | 'midnight' | 'forest' | 'light';
   sandbox?: { networkAllowed?: boolean; cwd?: string; harden?: boolean };
   dataDir?: string;
   audit?: boolean;
@@ -29,8 +30,9 @@ const ALLOWED_KEYS = new Set([
 ]);
 
 function loadConfigFile(dataDir: string): ConfigFile | null {
-  const explicit = process.env.ZENO_CONFIG_FILE;
-  if (process.env.NODE_ENV === 'test' && !explicit && dataDir === join(homedir(), '.zeno')) return null;
+  const explicit = process.env.VYNTH_CONFIG_FILE;
+  if (process.env.NODE_ENV === 'test' && !explicit && dataDir === join(homedir(), 'vynth'))
+    return null;
   const path = explicit && explicit.trim().length > 0 ? explicit : join(dataDir, 'config.json');
   if (!existsSync(path)) return null;
 
@@ -49,7 +51,7 @@ function loadConfigFile(dataDir: string): ConfigFile | null {
   const obj = raw as Record<string, unknown>;
 
   if ('apiKey' in obj) {
-    throw new ConfigError('配置文件中不得包含 apiKey，请改用 ZENO_API_KEY 环境变量', 'VC-010005');
+    throw new ConfigError('配置文件中不得包含 apiKey，请改用 VYNTH_API_KEY 环境变量', 'VC-010005');
   }
   for (const key of Object.keys(obj)) {
     if (!ALLOWED_KEYS.has(key)) {
@@ -63,7 +65,7 @@ function loadConfigFile(dataDir: string): ConfigFile | null {
 }
 
 function loadProjectConfigFile(cwd: string): ConfigFile | null {
-  const candidates = [join(cwd, 'zeno.json'), join(cwd, '.zenorc')];
+  const candidates = [join(cwd, 'vynth.json'), join(cwd, '.vynthrc')];
   for (const path of candidates) {
     if (existsSync(path)) {
       try {
@@ -78,24 +80,24 @@ function loadProjectConfigFile(cwd: string): ConfigFile | null {
 }
 
 export function loadConfig(overrides: Partial<ZenoConfig> = {}): ZenoConfig {
-  const modeRaw = overrides.mode ?? (process.env.ZENO_MODE as Mode | undefined);
+  const modeRaw = overrides.mode ?? (process.env.VYNTH_MODE as Mode | undefined);
   const mode: Mode = modeRaw && MODES.includes(modeRaw) ? modeRaw : 'vibe';
 
-  const netRaw = process.env.ZENO_NET;
+  const netRaw = process.env.VYNTH_NET;
   const envNetAllowed =
     netRaw === undefined
       ? undefined
       : netRaw === '' || !['0', 'off', 'false', 'no'].includes(netRaw.toLowerCase());
 
   const envHarden =
-    process.env.ZENO_HARDEN === undefined ? undefined : process.env.ZENO_HARDEN === '1';
+    process.env.VYNTH_HARDEN === undefined ? undefined : process.env.VYNTH_HARDEN === '1';
 
-  const dataDir = overrides.dataDir ?? process.env.ZENO_DATA_DIR ?? join(homedir(), '.zeno');
+  const dataDir = overrides.dataDir ?? process.env.VYNTH_DATA_DIR ?? join(homedir(), 'vynth');
   const file = loadConfigFile(dataDir);
   const cwd = overrides.sandbox?.cwd ?? file?.sandbox?.cwd ?? process.cwd();
   const projectFile = loadProjectConfigFile(cwd);
 
-  const envThemeRaw = process.env.ZENO_THEME;
+  const envThemeRaw = process.env.VYNTH_THEME;
   const envTheme =
     envThemeRaw === undefined
       ? undefined
@@ -105,13 +107,13 @@ export function loadConfig(overrides: Partial<ZenoConfig> = {}): ZenoConfig {
           ? 'neon'
           : 'mocha';
   const envAudit =
-    process.env.ZENO_AUDIT === undefined ? undefined : process.env.ZENO_AUDIT === '1';
+    process.env.VYNTH_AUDIT === undefined ? undefined : process.env.VYNTH_AUDIT === '1';
 
   const envRepoMap =
-    process.env.ZENO_REPOMAP === undefined
+    process.env.VYNTH_REPOMAP === undefined
       ? undefined
-      : !['0', 'off', 'false', 'no'].includes(process.env.ZENO_REPOMAP.toLowerCase());
-  const envRepoMapMaxRaw = process.env.ZENO_REPOMAP_MAX;
+      : !['0', 'off', 'false', 'no'].includes(process.env.VYNTH_REPOMAP.toLowerCase());
+  const envRepoMapMaxRaw = process.env.VYNTH_REPOMAP_MAX;
   const envRepoMapMax =
     envRepoMapMaxRaw && !Number.isNaN(Number(envRepoMapMaxRaw))
       ? Number(envRepoMapMaxRaw)
@@ -121,18 +123,31 @@ export function loadConfig(overrides: Partial<ZenoConfig> = {}): ZenoConfig {
     mode,
     llmBaseUrl:
       overrides.llmBaseUrl ??
-      process.env.ZENO_LLM_BASE_URL ??
+      process.env.VYNTH_LLM_BASE_URL ??
       projectFile?.llmBaseUrl ??
       file?.llmBaseUrl ??
       'https://api.deepseek.com/v1',
-    apiKey: overrides.apiKey ?? process.env.ZENO_API_KEY ?? '',
-    model: overrides.model ?? process.env.ZENO_MODEL ?? projectFile?.model ?? file?.model ?? 'deepseek-v4-pro',
+    apiKey: overrides.apiKey ?? process.env.VYNTH_API_KEY ?? '',
+    model:
+      overrides.model ??
+      process.env.VYNTH_MODEL ??
+      projectFile?.model ??
+      file?.model ??
+      'deepseek-v4-pro',
     theme: overrides.theme ?? envTheme ?? projectFile?.theme ?? file?.theme ?? 'mocha',
     sandbox: {
       networkAllowed:
-        overrides.sandbox?.networkAllowed ?? envNetAllowed ?? projectFile?.sandbox?.networkAllowed ?? file?.sandbox?.networkAllowed ?? true,
+        overrides.sandbox?.networkAllowed ??
+        envNetAllowed ??
+        projectFile?.sandbox?.networkAllowed ??
+        file?.sandbox?.networkAllowed ??
+        true,
       harden:
-        overrides.sandbox?.harden ?? envHarden ?? projectFile?.sandbox?.harden ?? file?.sandbox?.harden ?? false,
+        overrides.sandbox?.harden ??
+        envHarden ??
+        projectFile?.sandbox?.harden ??
+        file?.sandbox?.harden ??
+        false,
       cwd
     },
     dataDir,
@@ -140,10 +155,7 @@ export function loadConfig(overrides: Partial<ZenoConfig> = {}): ZenoConfig {
     repomap: {
       enabled: overrides.repomap?.enabled ?? envRepoMap ?? file?.repomap?.enabled ?? true,
       maxSymbols:
-        overrides.repomap?.maxSymbols ??
-        envRepoMapMax ??
-        file?.repomap?.maxSymbols ??
-        400,
+        overrides.repomap?.maxSymbols ?? envRepoMapMax ?? file?.repomap?.maxSymbols ?? 400,
       includeTests: overrides.repomap?.includeTests ?? file?.repomap?.includeTests ?? false
     }
   };
@@ -152,7 +164,7 @@ export function loadConfig(overrides: Partial<ZenoConfig> = {}): ZenoConfig {
 }
 
 export function saveConfigFile(dataDir: string, updates: Partial<ConfigFile>): void {
-  const path = process.env.ZENO_CONFIG_FILE || join(dataDir, 'config.json');
+  const path = process.env.VYNTH_CONFIG_FILE || join(dataDir, 'config.json');
   try {
     mkdirSync(dataDir, { recursive: true });
     let existing: Record<string, unknown> = {};
@@ -164,11 +176,10 @@ export function saveConfigFile(dataDir: string, updates: Partial<ConfigFile>): v
       }
     }
     const cleanUpdates = { ...updates };
-    delete (cleanUpdates as Record<string, unknown>).apiKey; // Safety redline
+    (cleanUpdates as Record<string, unknown>).apiKey = undefined; // Safety redline
     const merged = { ...existing, ...cleanUpdates };
     writeFileSync(path, JSON.stringify(merged, null, 2), 'utf8');
   } catch (err) {
     throw new ConfigError(`保存配置文件失败: ${toErrorMessage(err)}`, 'VC-010006');
   }
 }
-

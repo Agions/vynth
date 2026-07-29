@@ -8,7 +8,7 @@ const SAVED = { ...process.env };
 
 beforeEach(() => {
   for (const k of Object.keys(process.env)) {
-    if (k.startsWith('ZENO_')) delete process.env[k];
+    if (k.startsWith('VYNTH_')) delete process.env[k];
   }
 });
 
@@ -23,44 +23,44 @@ describe('loadConfig 默认值（冻结 X1/X2）', () => {
     expect(c.llmBaseUrl).toBe('https://api.deepseek.com/v1');
   });
 
-  it('ZENO_API_KEY 缺省为空串（createProvider 时会抛出 LlmError）', () => {
+  it('VYNTH_API_KEY 缺省为空串（createProvider 时会抛出 LlmError）', () => {
     expect(loadConfig().apiKey).toBe('');
   });
 
-  it('ZENO_MODE 缺省回退 vibe', () => {
+  it('VYNTH_MODE 缺省回退 vibe', () => {
     expect(loadConfig().mode).toBe('vibe');
   });
 
-  it('ZENO_MODE=plan 生效', () => {
-    process.env.ZENO_MODE = 'plan';
+  it('VYNTH_MODE=plan 生效', () => {
+    process.env.VYNTH_MODE = 'plan';
     expect(loadConfig().mode).toBe('plan');
   });
 
-  it('ZENO_MODE 非法值回退 vibe', () => {
-    process.env.ZENO_MODE = 'bogus';
+  it('VYNTH_MODE 非法值回退 vibe', () => {
+    process.env.VYNTH_MODE = 'bogus';
     expect(loadConfig().mode).toBe('vibe');
   });
 
-  it('ZENO_THEME=latte 生效，否则默认 mocha', () => {
+  it('VYNTH_THEME=latte 生效，否则默认 mocha', () => {
     expect(loadConfig().theme).toBe('mocha');
-    process.env.ZENO_THEME = 'latte';
+    process.env.VYNTH_THEME = 'latte';
     expect(loadConfig().theme).toBe('latte');
   });
 });
 
-describe('ZENO_NET 出站开关解析', () => {
+describe('VYNTH_NET 出站开关解析', () => {
   it('未设 → 放行（true）', () => {
     expect(loadConfig().sandbox.networkAllowed).toBe(true);
   });
 
   it('空串 → 视为未设（true）', () => {
-    process.env.ZENO_NET = '';
+    process.env.VYNTH_NET = '';
     expect(loadConfig().sandbox.networkAllowed).toBe(true);
   });
 
   it('off / 0 / false / no → 拒绝（false）', () => {
     for (const v of ['off', '0', 'false', 'no']) {
-      process.env.ZENO_NET = v;
+      process.env.VYNTH_NET = v;
       expect(loadConfig().sandbox.networkAllowed).toBe(false);
     }
   });

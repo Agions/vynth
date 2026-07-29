@@ -1,4 +1,3 @@
-
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -35,6 +34,5 @@ export function saveHistory(dataDir: string, entries: string[], max = DEFAULT_MA
     }
     const trimmed = dedup.slice(-max);
     writeFileSync(historyPath(dataDir), JSON.stringify(trimmed), 'utf8');
-  } catch {
-  }
+  } catch {}
 }

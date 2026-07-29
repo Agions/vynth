@@ -1,4 +1,3 @@
-
 import type { TuiState } from '../state/TuiState';
 import { fg, reset } from '../theme';
 import type { BackgroundTask } from '../utils/tasks';
@@ -93,9 +92,7 @@ export function SidePanel(props: SidePanelProps): string[] {
     } else {
       for (const name of props.toolNames.slice(0, bodyH)) {
         const isLive = state.currentTool === name;
-        const badge = isLive
-          ? `${fg(c.yellow)}● live${reset}`
-          : `${fg(c.green)}● on${reset}`;
+        const badge = isLive ? `${fg(c.yellow)}● live${reset}` : `${fg(c.green)}● on${reset}`;
         const nameStr = `${fg(isLive ? c.yellow : c.text)}${name}${reset}`;
         const gap = Math.max(1, innerW - 1 - visibleWidth(name) - (isLive ? 6 : 4));
         body.push(`${nameStr}${' '.repeat(gap)}${badge}`);

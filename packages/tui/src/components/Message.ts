@@ -1,6 +1,5 @@
-
-import type { TuiState } from '../state/TuiState';
 import { detectLanguage, highlightCode } from '../render/syntax';
+import type { TuiState } from '../state/TuiState';
 import { renderMessage } from '../utils/text';
 
 export interface MessageProps {

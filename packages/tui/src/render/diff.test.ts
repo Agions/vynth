@@ -1,6 +1,5 @@
-
 import { describe, expect, it } from 'bun:test';
-import { clearBuffer, createBuffer, setCell } from '../kernel/buffer';
+import { type DiffOp, clearBuffer, createBuffer, setCell } from '../kernel/buffer';
 import { diffCellCount, renderDiff } from './diff';
 
 describe('renderDiff', () => {
@@ -47,7 +46,7 @@ describe('renderDiff', () => {
     setCell(front, 0, 0, 'A', 1, 2);
     setCell(front, 1, 1, 'B', 3, 4);
     setCell(back, 0, 0, 'A', 1, 2); // same
-    const diff = { ops: [] as any[] };
+    const diff = { ops: [] as DiffOp[] };
     expect(diffCellCount(diff)).toBe(0);
   });
 });

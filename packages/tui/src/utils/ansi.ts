@@ -1,4 +1,3 @@
-
 const ESC = '\x1b';
 
 export function cursorTo(row: number, col: number): string {

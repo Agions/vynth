@@ -1,4 +1,3 @@
-
 import type { ScreenBuffer } from '../kernel/buffer';
 import { clearBuffer, computeDiff, createBuffer, swapBuffers } from '../kernel/buffer';
 import { ColorRegistry } from '../render/colors';

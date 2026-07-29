@@ -1,4 +1,3 @@
-
 import type { CellModifiers, ScreenBuffer } from '../kernel/buffer';
 import { clearBuffer, setCell } from '../kernel/buffer';
 import { charWidth, visibleWidth, wrapLine } from '../utils/unicode';

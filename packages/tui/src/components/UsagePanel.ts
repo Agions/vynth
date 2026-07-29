@@ -1,4 +1,3 @@
-
 import type { TuiState } from '../state/TuiState';
 import { fg, reset } from '../theme';
 import { formatCost, resolveRate } from '../utils/pricing';
@@ -20,7 +19,7 @@ export function UsagePanel(props: UsagePanelProps): string {
   const totalTokens = u.inputTokens + u.outputTokens;
   const borderCol = fg(c.teal);
 
-  const title = ` 📊 Token 用量统计 `;
+  const title = ' 📊 Token 用量统计 ';
   const leftW = visibleWidth(title);
   const dashesW = Math.max(2, panelW - 3 - leftW);
   const topBorder = `${borderCol}╭─${fg(c.teal)}\x1b[1m${title}${borderCol}${'─'.repeat(dashesW)}╮${reset}`;
@@ -39,7 +38,7 @@ export function UsagePanel(props: UsagePanelProps): string {
   lines.push(`${borderCol}│${reset}${padToWidth('', innerW)}${borderCol}│${reset}`);
 
   // Bar chart – visual breakdown
-  const inputPct = totalTokens > 0 ? (u.inputTokens / totalTokens) : 0.5;
+  const inputPct = totalTokens > 0 ? u.inputTokens / totalTokens : 0.5;
   const BAR_W = Math.max(8, innerW - 20);
   const inFill = Math.round(inputPct * BAR_W);
   const outFill = BAR_W - inFill;

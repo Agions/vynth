@@ -1,4 +1,3 @@
-
 import { describe, expect, it } from 'bun:test';
 import { createBuffer, setCell } from '../kernel/buffer';
 import { ColorRegistry, hexToAnsi256, parseHex, supportsTruecolor } from './colors';
