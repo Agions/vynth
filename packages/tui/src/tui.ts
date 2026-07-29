@@ -211,7 +211,7 @@ export async function startTui(
 
   const confirmTty: TrustConfirm = async ({ path }) => {
     return askYesNo(
-      `${c.red}⚠ 信任并加载插件？${reset}\n  插件将在本进程执行任意代码，拥有与 Zeno 同等的文件/网络/命令权限。\n  路径: ${path}\n  仅加载你完全信任的插件。确认加载`
+      `${c.red}⚠ 信任并加载插件？${reset}\n  插件将在本进程执行任意代码，拥有与 Vynth 同等的文件/网络/命令权限。\n  路径: ${path}\n  仅加载你完全信任的插件。确认加载`
     );
   };
 
@@ -360,7 +360,7 @@ export async function startTui(
         divider: r.color(state.palette.overlay0 ?? state.palette.subtext)
       };
 
-      const topText = `Zeno · ${state.theme} · ${state.liveStatus} · turn ${state.turnCount}`;
+      const topText = `Vynth · ${state.theme} · ${state.liveStatus} · turn ${state.turnCount}`;
       r.renderLine(0, topText, ci.accent);
       r.renderLine(
         1,
@@ -1601,7 +1601,7 @@ export async function startTui(
             appendSystemMessage(`ℹ 项目根目录已存在 AGENTS.md 文件 (${agentsPath})`);
           } else {
             const template =
-              '# AGENTS.md — 项目 AI 辅助开发与架构规则\n\n## 1. 项目简介与架构\n- **项目名称**: Zeno 终端 AI 编程系统\n- **开发模式**: 推荐在 Vibe 模式下快速迭代，Plan 模式下重构规划\n\n## 2. 代码规范与指令\n- 统一使用 TypeScript 严格模式\n- 运行单元测试: `bun test packages`\n- 编译可执行程序: `bun run compile`\n\n## 3. 注意事项\n- 保持 UI 组件无外框极简规范\n- 所有命令错误统一输出 VC-XXXXXX 规范 6 位错误码\n';
+              '# AGENTS.md — 项目 AI 辅助开发与架构规则\n\n## 1. 项目简介与架构\n- **项目名称**: Vynth 终端 AI 编程系统\n- **开发模式**: 推荐在 Vibe 模式下快速迭代，Plan 模式下重构规划\n\n## 2. 代码规范与指令\n- 统一使用 TypeScript 严格模式\n- 运行单元测试: `bun test packages`\n- 编译可执行程序: `bun run compile`\n\n## 3. 注意事项\n- 保持 UI 组件无外框极简规范\n- 所有命令错误统一输出 VC-XXXXXX 规范 6 位错误码\n';
             try {
               writeFileSync(agentsPath, template, 'utf8');
               appendSystemMessage('🚀 已成功初始化项目的 AGENTS.md 规则文件！');
@@ -1664,7 +1664,7 @@ export async function startTui(
           break;
         case 'help': {
           const helpLines = [
-            '◈ Zeno 终端 AI 编程助手帮助手册',
+            '◈ Vynth 终端 AI 编程助手帮助手册',
             '',
             '【 ⌨ 核心快捷按键 】',
             '  Tab          · 快捷切换 编码/开发 模式 (VIBE ⇄ PLAN) [Prompt为空时]',

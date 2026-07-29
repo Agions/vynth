@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import { resolve } from 'node:path';
 
 const REPO = resolve(import.meta.dir, '..');
-const BIN = resolve(REPO, 'dist/zeno');
+const BIN = resolve(REPO, 'dist/vynth');
 const RUNS = Number(process.env.BENCH_RUNS ?? 20);
 const LIMIT_MS = Number(process.env.BENCH_LIMIT_MS ?? 150);
 

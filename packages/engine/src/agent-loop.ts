@@ -15,13 +15,13 @@ import { loadProjectAgents } from './agents';
 import { loadProjectSkills } from './skills';
 
 const DEFAULT_SYSTEM =
-  '你是 Zeno，一个终端内的 AI 编程助手。请用简洁中文回复，必要时调用工具完成任务。';
+  '你是 Vynth，一个终端内的 AI 编程助手。请用简洁中文回复，必要时调用工具完成任务。';
 
 const PLAN_SYSTEM =
-  '你是 Zeno，一个终端内的 AI 编程助手。当前处于 Plan（规划）模式。请先进行需求与架构分析，输出清晰的分步实施计划与风险评估，而后按计划逐步调用工具执行。';
+  '你是 Vynth，一个终端内的 AI 编程助手。当前处于 Plan（规划）模式。请先进行需求与架构分析，输出清晰的分步实施计划与风险评估，而后按计划逐步调用工具执行。';
 
 const AUTO_SYSTEM =
-  '你是 Zeno，一个终端内的自主 AI 编程 Agent。当前处于 Auto（自主编程）模式。你拥有完全自主规划、多步拆解、自我纠错与工具调用的权限。请自动推进直到目标完美完成。';
+  '你是 Vynth，一个终端内的自主 AI 编程 Agent。当前处于 Auto（自主编程）模式。你拥有完全自主规划、多步拆解、自我纠错与工具调用的权限。请自动推进直到目标完美完成。';
 
 function pruneContext(messages: ChatMessage[], maxMessages = 24): void {
   if (messages.length <= maxMessages) return;

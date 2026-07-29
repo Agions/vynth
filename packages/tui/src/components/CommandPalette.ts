@@ -44,7 +44,7 @@ export const COMMANDS: Command[] = [
   { key: '/tasks', label: 'Tasks', description: '后台任务面板', category: 'view' },
 
   // System
-  { key: 'Ctrl+C', label: 'Quit', description: '退出 Zeno', category: 'system' },
+  { key: 'Ctrl+C', label: 'Quit', description: '退出 Vynth', category: 'system' },
   { key: 'Ctrl+L', label: 'Clear Screen', description: '清空终端屏幕', category: 'system' }
 ];
 

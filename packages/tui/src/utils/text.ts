@@ -503,7 +503,7 @@ export function renderInputPanel(opts: {
     const charCount = opts.input.length;
     let content: string;
     if (charCount === 0) {
-      const placeholder = `${fg(p.subtext)}Ask Zeno… type / for commands, @ for files${reset}`;
+      const placeholder = `${fg(p.subtext)}Ask Vynth… type / for commands, @ for files${reset}`;
       content = `  ${promptIcon} ${placeholder}`;
     } else {
       const inputText = `${fg(p.text)}${opts.input}${reset}`;

@@ -10,7 +10,7 @@ beforeAll(async () => {
   root = await mkdtemp(join(tmpdir(), 'zeno-fsops-'));
   await mkdir(join(root, 'src', 'utils'), { recursive: true });
   await mkdir(join(root, 'node_modules', 'junk'), { recursive: true });
-  await writeFile(join(root, 'README.md'), '# Hello Zeno\n', 'utf8');
+  await writeFile(join(root, 'README.md'), '# Hello Vynth\n', 'utf8');
   await writeFile(join(root, 'src', 'index.ts'), 'export const x = 42;\nconsole.log(x);\n', 'utf8');
   await writeFile(
     join(root, 'src', 'utils', 'calc.ts'),

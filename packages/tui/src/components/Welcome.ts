@@ -49,7 +49,7 @@ export function renderWelcome(opts: WelcomeOpts): string {
   lines.push('');
 
   lines.push(
-    `  ${fg(c.lavender)}\x1b[1mZeno Code Synthesizer v${opts.version}${reset}  ${fg(c.subtext)}·  Autonomous Terminal AI Agent${reset}`
+    `  ${fg(c.lavender)}\x1b[1mVynth Code Synthesizer v${opts.version}${reset}  ${fg(c.subtext)}·  Autonomous Terminal AI Agent${reset}`
   );
   lines.push('');
 

@@ -88,7 +88,7 @@ export class McpClient {
     const res = await this.rpc('initialize', {
       protocolVersion: MCP_PROTOCOL_VERSION,
       capabilities: {},
-      clientInfo: { name: 'zeno', version: '0.1.0' }
+      clientInfo: { name: 'vynth', version: '0.1.0' }
     });
     if (res.error) throw new McpError(`initialize failed: ${res.error.message}`, 'VC-060001');
     const listRes = await this.rpc('tools/list', {});

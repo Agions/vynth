@@ -14,7 +14,7 @@ Bun.serve({
             ctrl.enqueue(enc.encode(`data: ${JSON.stringify(obj)}\n\n`));
           if (calls === 1) {
             send({ choices: [{ delta: { content: '你好，' } }] });
-            send({ choices: [{ delta: { content: '我是 Zeno。' } }] });
+            send({ choices: [{ delta: { content: '我是 Vynth。' } }] });
             send({
               choices: [
                 {
@@ -32,7 +32,7 @@ Bun.serve({
             send({ choices: [{ finish_reason: 'tool_calls' }] });
           } else {
             send({
-              choices: [{ delta: { content: '已读取 README.md，这是 Zeno 项目的说明。' } }]
+              choices: [{ delta: { content: '已读取 README.md，这是 Vynth 项目的说明。' } }]
             });
             send({ choices: [{ finish_reason: 'stop' }] });
           }

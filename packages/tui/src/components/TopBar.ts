@@ -33,7 +33,7 @@ export function TopBar(state: TuiState): string[] {
   const connIcon =
     state.connectionStatus === 'connected' ? '●' : state.connectionStatus === 'error' ? '◐' : '○';
 
-  const brand = `${fg(c.mauve)}\x1b[1mZeno${reset}`;
+  const brand = `${fg(c.mauve)}\x1b[1mVynth${reset}`;
   const modePill = pill(modeUpper, c.crust ?? c.base, modeColor);
   const modelPill = pill(activeModel, c.crust ?? c.base, c.teal);
   const themePill = pill(state.theme, c.crust ?? c.base, c.blue);

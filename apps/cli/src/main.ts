@@ -50,14 +50,14 @@ function parseArgs(argv: string[]): Parsed {
 }
 
 function printHelp(): void {
-  console.log(`Zeno ${VERSION} — 你 terminal 里的代码合成器
+  console.log(`Vynth ${VERSION} — 你 terminal 里的代码合成器
 
 用法:
-  zeno                启动交互式 TUI（需真实终端）
-  zeno -g "<目标>"   无头 agent 模式（流式输出到终端）
-  zeno -m plan       指定模式 plan|vibe
-  zeno -p <路径>     加载插件（无头模式直接加载；TUI 模式会弹出信任确认后再加载）
-  zeno -s "<命令>"   接入 MCP server（stdio JSON-RPC 2024-11-05，可重复指定多个）
+  vynth                启动交互式 TUI（需真实终端）
+ vynth -g "<目标>"   无头 agent 模式（流式输出到终端）
+ vynth -m plan       指定模式 plan|vibe
+ vynth -p <路径>     加载插件（无头模式直接加载；TUI 模式会弹出信任确认后再加载）
+ vynth -s "<命令>"   接入 MCP server（stdio JSON-RPC 2024-11-05，可重复指定多个）
 
 环境变量:
   VYNTH_API_KEY       LLM API key（必填）
@@ -150,7 +150,7 @@ async function main(): Promise<void> {
       return;
     }
     if (!process.stdout.isTTY || !process.stdin.isTTY) {
-      console.error('当前不是交互式终端。请使用无头模式： zeno -g "<目标>"');
+      console.error('当前不是交互式终端。请使用无头模式：vynth -g "<目标>"');
       process.exit(2);
     }
     await startTui(config, parsed.plugin ? [parsed.plugin] : [], VERSION);
