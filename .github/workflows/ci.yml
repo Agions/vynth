@@ -42,9 +42,6 @@ jobs:
           bun x tsc --noEmit -p packages/harness/tsconfig.json
           bun x tsc --noEmit -p apps/cli/tsconfig.json
 
-      - name: Build packages
-        run: bun run turbo run build
-
       - name: Compile single binary
         run: bun run compile
 

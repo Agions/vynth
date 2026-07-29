@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "bin": {
-    "zeno": "src/main.ts"
+    "vynth": "src/main.ts"
   },
   "dependencies": {
     "@zeno/core": "workspace:*",
@@ -14,6 +14,6 @@
     "@zeno/plugins": "workspace:*"
   },
   "scripts": {
-    "build": "bun build --compile --target=bun src/main.ts --outfile ../../dist/zeno"
+    "build": "bun build --compile --target=bun src/main.ts --outfile ../../dist/vynth"
   }
 }
