@@ -1,4 +1,4 @@
-import type { ToolRegistry } from '@vynth/engine';
+import type { ToolRegistry } from '@zeno/engine';
 
 export const pluginName = 'sample-plugin';
 

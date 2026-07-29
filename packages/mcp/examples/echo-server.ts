@@ -1,11 +1,3 @@
-/**
- * 最小 stdio JSON-RPC 2024-11-05 MCP server（仅用于 vynth 测试与文档示例）。
- *
- * 暴露一个 `mcp_echo` 工具：把传入的 `message` 原样回显。
- * 通过标准输入按行读取 JSON-RPC 请求，向标准输出按行写回响应。
- *
- * 用法（配合 vynth）： vynth -g "<目标>" -s "bun run packages/mcp/examples/echo-server.ts"
- */
 interface JsonRpcReq {
   jsonrpc: '2.0';
   id?: number;
@@ -46,7 +38,7 @@ function handle(req: JsonRpcReq): void {
         result: {
           protocolVersion: '2024-11-05',
           capabilities: { tools: {} },
-          serverInfo: { name: 'vynth-echo', version: '0.1.0' }
+          serverInfo: { name: 'zeno-echo', version: '0.1.0' }
         }
       });
       break;
@@ -65,7 +57,6 @@ function handle(req: JsonRpcReq): void {
       break;
     }
     default:
-      // 通知类（无 id）忽略；未知方法回错
       if (req.id !== undefined) {
         send({ jsonrpc: '2.0', id, error: { message: `unknown method: ${req.method}` } });
       }
@@ -84,7 +75,6 @@ process.stdin.on('data', (chunk: string) => {
     try {
       handle(JSON.parse(line) as JsonRpcReq);
     } catch {
-      // 忽略无法解析的行
     }
   }
 });

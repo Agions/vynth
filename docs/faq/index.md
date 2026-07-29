@@ -6,7 +6,7 @@
 
 ### Q: 为什么需要 Bun？不能只用 Node.js 吗？
 
-A: Vynth 依赖 `bun build --compile` 打包为单二进制，这是核心分发形态。开发时可以使用 Node.js 运行辅助工具（如 `biome`、`turbo`），但运行时必须用 Bun。
+A: Zeno 依赖 `bun build --compile` 打包为单二进制，这是核心分发形态。开发时可以使用 Node.js 运行辅助工具（如 `biome`、`turbo`），但运行时必须用 Bun。
 
 ### Q: 编译后的二进制很大（60MB），可以优化吗？
 
@@ -19,12 +19,12 @@ A: 当前体积 60.51MB 包含 Bun 运行时 + 所有依赖。完整版目标 �
 
 A: 当前 CI 仅覆盖 macOS / Linux。Windows 上 `run_shell` 会回退到 `cmd /c`，但未充分测试。完整版将改善跨平台支持。
 
-### Q: 为什么 `vynth` 命令找不到？
+### Q: 为什么 `zeno` 命令找不到？
 
-A: 编译后的二进制位于 `./dist/vynth`。临时使用：
+A: 编译后的二进制位于 `./dist/zeno`。临时使用：
 
 ```bash
-./dist/vynth --help
+./dist/zeno --help
 ```
 
 永久使用：
@@ -39,29 +39,29 @@ bun link  # 或手动加入 PATH
 
 ### Q: 环境变量配置文件放在哪里？
 
-A: Vynth **不支持**配置文件，仅通过环境变量配置。你可以：
+A: Zeno **不支持**配置文件，仅通过环境变量配置。你可以：
 - 在 shell 配置文件中设置（`~/.zshrc`、`~/.bashrc`）
 - 使用 `direnv` 等工具按项目自动加载
 - 在 CI 脚本中直接 export
 
 ### Q: 无 API Key 能做什么？
 
-A: `VYNTH_API_KEY` 为**必填项**。未设置时 `createProvider` 会抛出 `LlmError`，不会进入 demo 模式。请先设置 API Key 再运行。
+A: `ZENO_API_KEY` 为**必填项**。未设置时 `createProvider` 会抛出 `LlmError`，不会进入 demo 模式。请先设置 API Key 再运行。
 
 ### Q: 如何接入 OpenAI / 其他兼容端点？
 
 ```bash
-export VYNTH_API_KEY="sk-..."
-export VYNTH_LLM_BASE_URL="https://api.deepseek.com/v1"
-export VYNTH_MODEL="deepseek-v4-pro"
-./dist/vynth -g '你的目标'
+export ZENO_API_KEY="sk-..."
+export ZENO_LLM_BASE_URL="https://api.deepseek.com/v1"
+export ZENO_MODEL="deepseek-v4-pro"
+./dist/zeno -g '你的目标'
 ```
 
-> 提示：默认端点已指向 DeepSeek，若使用 OpenAI 或其他兼容服务，需同时修改 `VYNTH_LLM_BASE_URL` 与 `VYNTH_MODEL`。
+> 提示：默认端点已指向 DeepSeek，若使用 OpenAI 或其他兼容服务，需同时修改 `ZENO_LLM_BASE_URL` 与 `ZENO_MODEL`。
 
-### Q: `VYNTH_NET='0'` 会影响插件吗？
+### Q: `ZENO_NET='0'` 会影响插件吗？
 
-A: 会的。`run_shell` 工具会检查 `VYNTH_NET`，关闭时禁止出站网络请求。但插件注册的自定义工具不受此约束（插件可自行发起网络请求）。
+A: 会的。`run_shell` 工具会检查 `ZENO_NET`，关闭时禁止出站网络请求。但插件注册的自定义工具不受此约束（插件可自行发起网络请求）。
 
 ---
 
@@ -72,7 +72,7 @@ A: 会的。`run_shell` 工具会检查 `VYNTH_NET`，关闭时禁止出站网�
 A: 确认在真实终端（TTY）中运行。管道 / CI 环境请用无头模式：
 
 ```bash
-./dist/vynth -g '你的目标'
+./dist/zeno -g '你的目标'
 ```
 
 ### Q: 如何调试工具调用？
@@ -116,15 +116,15 @@ A: 不支持。每次运行需重新加载。
 
 ### Q: 插件安全吗？
 
-A: **不安全**。插件在当前进程中执行任意代码，拥有与 Vynth 同等的权限。仅加载可信插件。
+A: **不安全**。插件在当前进程中执行任意代码，拥有与 Zeno 同等的权限。仅加载可信插件。
 
 ### Q: 数据会发送到第三方吗？
 
-A: LLM 请求发送到 `VYNTH_LLM_BASE_URL` 指定的端点（默认 DeepSeek）。其他数据（文件内容、环境变量）不会自动上传。
+A: LLM 请求发送到 `ZENO_LLM_BASE_URL` 指定的端点（默认 DeepSeek）。其他数据（文件内容、环境变量）不会自动上传。
 
 ### Q: 如何审计工具调用？
 
-A: F14 已内置 5 维审计日志（`tool_exec` / `file_access` / `network_egress` / `config_change` / `plugin_load`），通过 `VYNTH_AUDIT=1` 或配置文件 `audit:true` 启用，落盘 `<VYNTH_DATA_DIR>/audit.log`。插件也可在自身逻辑中手动记录：
+A: F14 已内置 5 维审计日志（`tool_exec` / `file_access` / `network_egress` / `config_change` / `plugin_load`），通过 `ZENO_AUDIT=1` 或配置文件 `audit:true` 启用，落盘 `<ZENO_DATA_DIR>/audit.log`。插件也可在自身逻辑中手动记录：
 
 ```typescript
 execute: async (args) => {
@@ -145,7 +145,7 @@ A: 安装 Bun：
 curl -fsSL https://bun.sh/install | bash
 ```
 
-### Q: 测试失败：`Cannot find module '@vynth/core'`
+### Q: 测试失败：`Cannot find module '@zeno/core'`
 
 A: 确保已安装依赖：
 
@@ -155,7 +155,7 @@ bun install
 
 ### Q: LLM 请求超时？
 
-A: 检查网络连接与 `VYNTH_LLM_BASE_URL` 可达性。可增加超时时间（完整版支持）。
+A: 检查网络连接与 `ZENO_LLM_BASE_URL` 可达性。可增加超时时间（完整版支持）。
 
 ### Q: 体积门禁失败？
 

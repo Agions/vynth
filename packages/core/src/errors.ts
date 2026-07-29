@@ -1,35 +1,25 @@
 import {
   DEFAULT_CODE_BY_FAMILY,
-  type VynthErrorCode,
+  type ZenoErrorCode,
   fromLegacy,
-  isVynthErrorCode
+  isZenoErrorCode
 } from './error-codes';
 
-export type { VynthErrorCode } from './error-codes';
+export type { ZenoErrorCode } from './error-codes';
 
-/**
- * 所有 Vynth 错误的根类。v0.1.0 起，每个错误实例同时携带：
- *   - `code: string`  — 向后兼容字段（旧族名 `config`/`llm`/...）
- *   - `numericCode: VynthErrorCode` — 权威 6 位码 `VC-XXXXXX`
- *
- * 老调用点：`new ConfigError('xxx')` —— 自动取族默认码
- * 新调用点：`new ConfigError('xxx', 'VC-010002')` —— 显式 6 位码
- */
-export class VynthError extends Error {
+export class ZenoError extends Error {
   code: string;
-  numericCode: VynthErrorCode;
+  numericCode: ZenoErrorCode;
 
-  constructor(code: string, message: string, numericCode?: VynthErrorCode) {
+  constructor(code: string, message: string, numericCode?: ZenoErrorCode) {
     super(message);
-    this.name = 'VynthError';
-    // 兼容老字段：保留家族字符串
+    this.name = 'ZenoError';
     this.code = code;
-    // 6 位码：优先用显式 → 否则从老 code 解码 → 否则降级为族默认
-    if (numericCode && isVynthErrorCode(numericCode)) {
+    if (numericCode && isZenoErrorCode(numericCode)) {
       this.numericCode = numericCode;
     } else {
       const decoded = fromLegacy(code);
-      const familyDefault = (DEFAULT_CODE_BY_FAMILY as Record<string, VynthErrorCode | undefined>)[
+      const familyDefault = (DEFAULT_CODE_BY_FAMILY as Record<string, ZenoErrorCode | undefined>)[
         code
       ];
       this.numericCode = decoded ?? familyDefault ?? 'VC-010099';
@@ -37,44 +27,60 @@ export class VynthError extends Error {
   }
 }
 
-export class ConfigError extends VynthError {
-  constructor(message: string, numericCode?: VynthErrorCode) {
+export class ConfigError extends ZenoError {
+  constructor(message: string, numericCode?: ZenoErrorCode) {
     super('config', message, numericCode);
     this.name = 'ConfigError';
   }
 }
 
-export class LlmError extends VynthError {
-  constructor(message: string, numericCode?: VynthErrorCode) {
+export class LlmError extends ZenoError {
+  constructor(message: string, numericCode?: ZenoErrorCode) {
     super('llm', message, numericCode);
     this.name = 'LlmError';
   }
 }
 
-export class ToolError extends VynthError {
-  constructor(message: string, numericCode?: VynthErrorCode) {
+export class ToolError extends ZenoError {
+  constructor(message: string, numericCode?: ZenoErrorCode) {
     super('tool', message, numericCode);
     this.name = 'ToolError';
   }
 }
 
-export class SandboxError extends VynthError {
-  constructor(message: string, numericCode?: VynthErrorCode) {
+export class SandboxError extends ZenoError {
+  constructor(message: string, numericCode?: ZenoErrorCode) {
     super('sandbox', message, numericCode);
     this.name = 'SandboxError';
   }
 }
 
-export class McpError extends VynthError {
-  constructor(message: string, numericCode?: VynthErrorCode) {
+export class McpError extends ZenoError {
+  constructor(message: string, numericCode?: ZenoErrorCode) {
     super('mcp', message, numericCode);
     this.name = 'McpError';
   }
 }
 
-export class PluginError extends VynthError {
-  constructor(message: string, numericCode?: VynthErrorCode) {
+export class PluginError extends ZenoError {
+  constructor(message: string, numericCode?: ZenoErrorCode) {
     super('plugin', message, numericCode);
     this.name = 'PluginError';
   }
 }
+
+export function toErrorMessage(err: unknown): string {
+  if (err instanceof ZenoError) return err.message;
+  return err instanceof Error ? err.message : String(err);
+}
+
+export function formatZenoError(err: unknown): string {
+  if (err && typeof err === 'object' && 'numericCode' in err && 'message' in err) {
+    const e = err as { numericCode?: string; message?: string };
+    if (e.numericCode && /^VC-\d{6}$/.test(e.numericCode)) {
+      return `[${e.numericCode}] ${e.message ?? ''}`.trim();
+    }
+  }
+  return toErrorMessage(err);
+}
+

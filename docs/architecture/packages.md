@@ -1,27 +1,27 @@
 # Package 职责详解
 
-> 替代原 `crates.md`。每个 `@vynth/*` 包的职责、关键文件与对外契约。路径相对于仓库根。
+> 替代原 `crates.md`。每个 `@zeno/*` 包的职责、关键文件与对外契约。路径相对于仓库根。
 
 ---
 
-## `@vynth/core` — 共享基础（`packages/core`）
+## `@zeno/core` — 共享基础（`packages/core`）
 
 所有包的公共地基，无业务依赖（叶子包）。
 
 | 文件 | 职责 |
 |------|------|
-| `src/types.ts` | 全局类型：`Mode`（`plan`/`vibe`）、`ChatMessage`、`ToolParam`/`ToolDef`/`ToolResult`/`ToolCall`、`StreamEvent`（`token`/`tool`/`done`）、`VynthConfig` |
+| `src/types.ts` | 全局类型：`Mode`（`plan`/`vibe`）、`ChatMessage`、`ToolParam`/`ToolDef`/`ToolResult`/`ToolCall`、`StreamEvent`（`token`/`tool`/`done`）、`ZenoConfig` |
 | `src/config.ts` | `loadConfig(overrides?)`：从 `process.env` 读取并合并默认值（**不读 config 文件**） |
-| `src/errors.ts` | 错误体系：`VynthError` 基类 + `ConfigError`/`LlmError`/`ToolError`/`SandboxError`/`McpError`/`PluginError`（均带 `code`） |
+| `src/errors.ts` | 错误体系：`ZenoError` 基类 + `ConfigError`/`LlmError`/`ToolError`/`SandboxError`/`McpError`/`PluginError`（均带 `code`） |
 | `src/events.ts` | `Emitter<M>` 类型安全事件总线：`on(key, fn)` 返回退订函数，`emit(key, payload)` |
 | `src/logger.ts` | `log(level, msg, meta?)` 分级日志（debug/info/warn/error），`setLogLevel` |
 | `src/index.ts` | 统一再导出 |
 
-**配置默认值（`loadConfig`）**：`mode=vibe`、`llmBaseUrl=https://api.deepseek.com/v1`、`apiKey=`(空)、`model=deepseek-v4-pro`、`theme=mocha`、`sandbox.networkAllowed = VYNTH_NET !== '0'`、`sandbox.cwd = process.cwd()`、`dataDir = ~/.vynth`。
+**配置默认值（`loadConfig`）**：`mode=vibe`、`llmBaseUrl=https://api.deepseek.com/v1`、`apiKey=`(空)、`model=deepseek-v4-pro`、`theme=mocha`、`sandbox.networkAllowed = ZENO_NET !== '0'`、`sandbox.cwd = process.cwd()`、`dataDir = ~/.zeno`。
 
 ---
 
-## `@vynth/engine` — LLM + 工具 + Agent（`packages/engine`）
+## `@zeno/engine` — LLM + 工具 + Agent（`packages/engine`）
 
 合并原 `llm` + `tools` + `agent` 三块；依赖 `core`、`sandbox`。
 
@@ -40,7 +40,7 @@
 
 ---
 
-## `@vynth/tui` — 轻量 ANSI TUI（`packages/tui`）
+## `@zeno/tui` — 轻量 ANSI TUI（`packages/tui`）
 
 **非 ink**：自研 ANSI 渲染器，规避 `yoga.wasm` 无法被 `bun build --compile` 打包的问题。依赖 `core`、`engine`、`ansi-escapes`。
 
@@ -55,7 +55,7 @@
 
 ---
 
-## `@vynth/sandbox` — 隔离执行（`packages/sandbox`）
+## `@zeno/sandbox` — 隔离执行（`packages/sandbox`）
 
 所有工具对宿主 fs / shell 的访问出口。依赖 `core`。
 
@@ -64,11 +64,11 @@
 | `src/sandbox.ts` | `safeResolve(target, cwd)`：路径越界守卫（解析后必须落在 `cwd` 内，否则抛 `SandboxError`）；`readText`/`writeText`；`runCommand(command, { cwd, networkAllowed?, timeoutMs? })`：spawn `sh -c`，网络被禁时直接拒绝，默认超时 30s（`SIGKILL`） |
 | `src/index.ts` | 统一再导出 |
 
-**不变量**：工具不得绕过 `sandbox` 直接 `fs`/`child_process`；网络默认开启（`VYNTH_NET !== '0'` 时关闭）。
+**不变量**：工具不得绕过 `sandbox` 直接 `fs`/`child_process`；网络默认开启（`ZENO_NET !== '0'` 时关闭）。
 
 ---
 
-## `@vynth/mcp` — MCP 客户端（`packages/mcp`）
+## `@zeno/mcp` — MCP 客户端（`packages/mcp`）
 
 stdio JSON-RPC 的 Model Context Protocol 客户端。依赖 `core`。
 
@@ -81,7 +81,7 @@ stdio JSON-RPC 的 Model Context Protocol 客户端。依赖 `core`。
 
 ---
 
-## `@vynth/plugins` — 插件体系（`packages/plugins`）
+## `@zeno/plugins` — 插件体系（`packages/plugins`）
 
 动态加载第三方 / 本地工具扩展。依赖 `core`、`engine`。
 
@@ -92,11 +92,11 @@ stdio JSON-RPC 的 Model Context Protocol 客户端。依赖 `core`。
 
 **契约**：插件模块默认导出 `pluginName: string` 与 `activate(reg: ToolRegistry): void`；`activate` 内向 `reg` 注册工具即可被 agent 调用。
 
-**实现状态**：`loader` 已就绪；CLI 的 `--plugin <path>` 加载入口由插件加载工作流补齐（见 [API 总览](/api/overview.md#实现状态)）。
+**实现状态**：`loader` 已就绪；CLI 经 `-p/--plugin` 加载（无头直接加载，TUI 弹信任确认），见 [API 总览](../api/overview.md)。
 
 ---
 
-## `@vynth/harness` — 集成测试（`packages/harness`）
+## `@zeno/harness` — 集成测试（`packages/harness`）
 
 e2e / 集成测试驱动，私包（`private: true`）。依赖 `core`、`engine`。
 
@@ -108,13 +108,13 @@ e2e / 集成测试驱动，私包（`private: true`）。依赖 `core`、`engine
 
 ---
 
-## `@vynth/cli` — CLI 应用（`apps/cli`）
+## `@zeno/cli` — CLI 应用（`apps/cli`）
 
 唯一带 `bin` 的包，聚合 `core` + `engine` + `tui`。
 
 | 文件 | 职责 |
 |------|------|
 | `src/main.ts` | `parseArgs`（`-g/--goal`、`-m/--mode`、`-v/--version`、`-h/--help`）；`printHelp`；`runHeadless(goal)`（无头流式）；`main()` 分发到 TUI 或无头 |
-| `package.json` | `bin: { vynth: src/main.ts }`；`build` = `bun build --compile ... --outfile ../../dist/vynth` |
+| `package.json` | `bin: { zeno: src/main.ts }`；`build` = `bun build --compile ... --outfile ../../dist/zeno` |
 
-**分发**：`bun run compile` 产出单二进制 `dist/vynth`；`--version` 输出 `0.1.0`。
+**分发**：`bun run compile` 产出单二进制 `dist/zeno`；`--version` 输出 `0.1.0`。

@@ -1,5 +1,5 @@
-import { PluginError, audit } from '@vynth/core';
-import type { ToolRegistry } from '@vynth/engine';
+import { PluginError, audit, toErrorMessage } from '@zeno/core';
+import type { ToolRegistry } from '@zeno/engine';
 
 export interface Plugin {
   name: string;
@@ -17,7 +17,7 @@ export async function loadPlugin(entryPath: string): Promise<Plugin> {
     mod = (await import(entryPath)) as PluginModule;
   } catch (err) {
     audit().record('plugin_load', { path: entryPath, ok: false }, false);
-    throw new PluginError(`failed to load plugin ${entryPath}: ${errMsg(err)}`);
+    throw new PluginError(`failed to load plugin ${entryPath}: ${toErrorMessage(err)}`);
   }
   if (!mod.pluginName || typeof mod.activate !== 'function') {
     audit().record('plugin_load', { path: entryPath, ok: false }, false);
@@ -35,8 +35,4 @@ export async function loadAll(entries: string[], reg: ToolRegistry): Promise<str
     loaded.push(plugin.name);
   }
   return loaded;
-}
-
-function errMsg(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
 }

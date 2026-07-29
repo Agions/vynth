@@ -4,16 +4,16 @@ import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { join } from 'node:path';
-import type { ChatMessage, StreamEvent, ToolCall, ToolDef } from '@vynth/core';
-import { loadConfig } from '@vynth/core';
+import type { ChatMessage, StreamEvent, ToolCall, ToolDef } from '@zeno/core';
+import { loadConfig } from '@zeno/core';
 import {
   type LLMProvider,
   ToolRegistry,
   builtinTools,
   createProvider,
   runAgent
-} from '@vynth/engine';
-import { McpClient } from '@vynth/mcp';
+} from '@zeno/engine';
+import { McpClient } from '@zeno/mcp';
 import * as samplePlugin from './fixtures/sample-plugin';
 
 class MockProvider implements LLMProvider {
@@ -89,7 +89,6 @@ test('plugin activates and registers a tool', async () => {
 });
 
 test('createProvider throws LlmError when API key is empty (v0.1.0 demo removed)', () => {
-  // v0.1.0 起不再有 EchoProvider：空 apiKey 必须立刻抛 LlmError，不静默 fallback
   expect(() => createProvider({ ...loadConfig(), apiKey: '' })).toThrow();
   const e = (() => {
     try {
@@ -105,7 +104,7 @@ test('createProvider throws LlmError when API key is empty (v0.1.0 demo removed)
 });
 
 test('sandbox read_file reads within cwd and rejects escape', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'vynth-test-'));
+  const dir = mkdtempSync(join(tmpdir(), 'zeno-test-'));
   try {
     writeFileSync(join(dir, 'note.txt'), 'hello-sandbox');
     const reg = builtinTools(dir);
@@ -121,8 +120,8 @@ test('sandbox read_file reads within cwd and rejects escape', async () => {
 });
 
 test('sandbox rejects symlink escape', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'vynth-sym-'));
-  const outside = mkdtempSync(join(tmpdir(), 'vynth-out-'));
+  const dir = mkdtempSync(join(tmpdir(), 'zeno-sym-'));
+  const outside = mkdtempSync(join(tmpdir(), 'zeno-out-'));
   try {
     writeFileSync(join(outside, 'secret.txt'), 'TOPSECRET');
     symlinkSync(outside, join(dir, 'escape'));
@@ -135,8 +134,8 @@ test('sandbox rejects symlink escape', async () => {
   }
 });
 
-test('VYNTH_NET=off blocks run_shell networking', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'vynth-net-'));
+test('ZENO_NET=off blocks run_shell networking', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'zeno-net-'));
   try {
     const reg = builtinTools(dir, { networkAllowed: false });
     const r = await reg.run('run_shell', { command: 'echo hi' });
@@ -158,7 +157,7 @@ const CLI = resolve(REPO, 'apps/cli/src/main.ts');
 
 function runCli(
   args: string[],
-  env: Record<string, string> = { ...process.env, VYNTH_API_KEY: 'test-key-for-cli-tests' }
+  env: Record<string, string> = { ...process.env, ZENO_API_KEY: 'test-key-for-cli-tests' }
 ): { code: number; out: string; err: string } {
   try {
     const out = execFileSync(process.execPath, [CLI, ...args], {
@@ -212,28 +211,23 @@ describe('CLI 退出码契约（F11）', () => {
     expect(r.err).toMatch(/VC-\d{6}/);
   });
 
-  test('空 VYNTH_API_KEY 跑 headless → 退出 1 + LLM 6 位码', () => {
-    // v0.1.0 起 demo 已移除：缺 apiKey 必须抛 LlmError 并以 6 位码前缀输出
-    const r = runCli(['-g', 'echo run'], { ...process.env, VYNTH_API_KEY: '' });
+  test('空 ZENO_API_KEY 跑 headless → 退出 1 + LLM 6 位码', () => {
+    const r = runCli(['-g', 'echo run'], { ...process.env, ZENO_API_KEY: '' });
     expect(r.code).toBe(1);
-    expect(r.err).toMatch(/\[VC-\d{6}\]\s+missing VYNTH_API_KEY/);
+    expect(r.err).toMatch(/\[VC-\d{6}\]\s+missing ZENO_API_KEY/);
   });
 });
 
 describe('CLI TUI 分流契约（F2/F3）', () => {
   test('无 -g 且非 TTY（stdin/stdout 都不可交互）→ 退出 2 提示用无头模式', () => {
-    // v0.1.0 起即便有 key 也仍受 TTY 约束
     const r = runCli([]);
     expect(r.code).toBe(2);
     expect(r.err).toContain('无头模式');
   });
 
   test('-g 在非 TTY 环境下也能跑通（headless 不依赖 TTY）', () => {
-    // 通过默认注入的 fake apiKey，CLI 应当能够启动 headless；
-    // 真实 LLM 不可达会以 LlmError 形式体现到 stderr/stdout，不再依赖 demo
     const r = runCli(['-g', 'echo run']);
-    expect(r.code).not.toBe(0); // fake key 不会真正命中 DeepSeek
-    // 但 CLI 不应崩溃到 exit 2（参数错误），也不应静默进入 demo
+    expect(r.code).not.toBe(0);
     expect(r.code).not.toBe(2);
   });
 });
@@ -271,8 +265,6 @@ describe('MCP CLI 接入（F12）', () => {
   });
 
   test('-s 接入 MCP server（fake key 下不崩，退出码非 2）', () => {
-    // 验证 -s 标志被识别、echo server 能连接并注册工具；
-    // 无真实 LLM 时以非 2（非参数错误）退出，证明 MCP 接入链路未阻断启动
     const r = runCli(['-g', 'x', '-s', `${process.execPath} ${ECHO_SERVER}`]);
     expect(r.code).not.toBe(2);
   });

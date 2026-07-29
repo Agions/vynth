@@ -1,5 +1,5 @@
 {
-  "name": "@vynth/engine",
+  "name": "@zeno/engine",
   "description": "Agent 引擎 + LLM 客户端：多轮对话编排、SSE 流式解析、DeepSeek V4 thinking 兼容、工具调用闭环",
   "version": "0.1.1",
   "type": "module",
@@ -8,10 +8,10 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@vynth/core": "workspace:*",
-    "@vynth/sandbox": "workspace:*"
+    "@zeno/core": "workspace:*",
+    "@zeno/sandbox": "workspace:*"
   },
   "scripts": {
-    "build": "echo '@vynth/engine consumed via workspace'"
+    "build": "echo '@zeno/engine consumed via workspace'"
   }
 }

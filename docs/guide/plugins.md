@@ -1,6 +1,6 @@
 # 插件开发
 
-Vynth 支持通过 `-p/--plugin` 加载本地 TypeScript 插件，动态扩展 agent 工具集。
+Zeno 支持通过 `-p/--plugin` 加载本地 TypeScript 插件，动态扩展 agent 工具集。
 
 ---
 
@@ -23,7 +23,7 @@ export function activate(reg: ToolRegistry): void {
       required: [],
     },
     execute: async () => {
-      return { ok: true, output: 'Hello, Vynth!' };
+      return { ok: true, output: 'Hello, Zeno!' };
     },
   });
 }
@@ -35,7 +35,7 @@ export function activate(reg: ToolRegistry): void {
 
 ```typescript
 // packages/plugins/examples/hello-plugin.ts
-import type { ToolRegistry, ToolDefinition } from '@vynth/engine';
+import type { ToolRegistry, ToolDefinition } from '@zeno/engine';
 
 export const pluginName = 'hello-world';
 
@@ -105,10 +105,10 @@ interface ToolResult {
 
 ```bash
 # 无头模式加载插件（脚本中 -p 即视为已授权，直接加载）
-./dist/vynth -g '使用 hello 工具问好' -p ./my-plugin.ts
+./dist/zeno -g '使用 hello 工具问好' -p ./my-plugin.ts
 
 # 交互 TUI 加载插件（启动后弹出信任确认，确认后才加载）
-./dist/vynth -p ./my-plugin.ts
+./dist/zeno -p ./my-plugin.ts
 ```
 
 ### 生命周期
@@ -122,7 +122,7 @@ interface ToolResult {
 ### 批量加载
 
 ```typescript
-import { loadAll } from '@vynth/plugins';
+import { loadAll } from '@zeno/plugins';
 
 const plugins = await loadAll([
   './plugins/hello.ts',
@@ -136,15 +136,15 @@ const plugins = await loadAll([
 
 ## 信任确认（F13 · 信任模型联动）
 
-插件在本进程内执行任意代码，拥有与 Vynth 同等的权限。因此加载插件必须受信任门禁约束：
+插件在本进程内执行任意代码，拥有与 Zeno 同等的权限。因此加载插件必须受信任门禁约束：
 
 - **无头模式（`-g ... -p <路径>`）**：`-p` 是脚本/管道中的显式授权，启动即加载，不做交互确认。
 - **交互 TUI（`-p <路径>`）**：进入 TUI 后会**在 `import` 之前**弹出信任确认，展示插件路径与信任边界警告，需用户输入 `y`/`yes` 才真正加载；输入其他（`n`/回车）则拒绝，插件代码不会被执行。
 
-底层由 `@vynth/plugins` 的 `loadPluginsWithTrust(paths, reg, confirm)` 实现：确认回调返回 `true` 才 `import` + `activate`，故门禁在任意代码执行前生效。
+底层由 `@zeno/plugins` 的 `loadPluginsWithTrust(paths, reg, confirm)` 实现：确认回调返回 `true` 才 `import` + `activate`，故门禁在任意代码执行前生效。
 
 ```typescript
-import { loadPluginsWithTrust } from '@vynth/plugins';
+import { loadPluginsWithTrust } from '@zeno/plugins';
 
 // TUI：确认回调弹出交互式信任提示
 const res = await loadPluginsWithTrust(paths, tools, async ({ path }) => askUserTrust(path));
@@ -155,11 +155,11 @@ const res = await loadPluginsWithTrust(paths, tools, async ({ path }) => askUser
 
 ## 信任边界
 
-> ⚠ **安全警告**：插件在当前进程中执行**任意代码**，拥有与 Vynth 同等的权限。
+> ⚠ **安全警告**：插件在当前进程中执行**任意代码**，拥有与 Zeno 同等的权限。
 
 - 文件系统：可读写 cwd 内任意文件（受 `safeResolve` 守卫约束）
-- 环境���量：可访问 `VYNTH_API_KEY` 等敏感变量
-- 网络：可发起任意出站请求（受 `VYNTH_NET` 开关约束）
+- 环境���量：可访问 `ZENO_API_KEY` 等敏感变量
+- 网络：可发起任意出站请求（受 `ZENO_NET` 开关约束）
 - 命令执行：可调用 `run_shell` 执行宿主命令
 
 **仅加载你完全信任的插件**。恶意插件可窃取凭���或破坏系统。
@@ -186,7 +186,7 @@ execute: async (args) => {
 bun run scripts/mock-llm.ts
 
 # 指向 mock
-VYNTH_LLM_BASE_URL=http://localhost:8787 ./dist/vynth -g '测试插件'
+ZENO_LLM_BASE_URL=http://localhost:8787 ./dist/zeno -g '测试插件'
 ```
 
 ---
@@ -209,6 +209,6 @@ A: 不支持。每次运行需重新加载。
 
 ## 相关文档
 
-- [API 参考](api/overview.md) —— CLI 参数与退出码
-- [架构总览](architecture/index.md) —— 插件在系统中的位置
-- [开发规范](development/dev-guide.md) —— 安全红线与冻结值
+- [API 参考](../api/overview.md) —— CLI 参数与退出码
+- [架构总览](../architecture/index.md) —— 插件在系统中的位置
+- [开发规范](../development/dev-guide.md) —— 安全红线与冻结值

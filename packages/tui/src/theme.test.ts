@@ -32,3 +32,15 @@ describe('theme (catppuccin mocha | latte)', () => {
     expect(reset).toBe('\x1b[0m');
   });
 });
+
+describe('theme (neon)', () => {
+  it('palette("neon") resolves the cyber teal palette', () => {
+    const p = palette('neon');
+    expect(p.base).toBe('#0b0e14');
+    expect(p.text).toBe('#5ef2c4');
+    expect(p.mauve).toBe('#22d3ee');
+    // neon is dark-on-teal and distinct from both mocha and latte
+    expect(palette('neon').base).not.toBe(palette('mocha').base);
+    expect(palette('neon').base).not.toBe(palette('latte').base);
+  });
+});

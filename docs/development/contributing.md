@@ -1,6 +1,6 @@
 # 贡献指南
 
-欢迎贡献 Vynth！本文档帮助你了解如何参与项目开发。
+欢迎贡献 Zeno！本文档帮助你了解如何参与项目开发。
 
 ---
 
@@ -17,8 +17,8 @@
 ### 1. Fork 与克隆
 
 ```bash
-git clone git@github.com:Agions/vynth.git
-cd vynth
+git clone git@github.com:Agions/zeno.git
+cd zeno
 ```
 
 ### 2. 安装依赖
@@ -56,7 +56,7 @@ chore: 升级 biome 至 1.9.0
 | 类型 | 说明 | 示例 |
 |------|------|------|
 | `feat` | 新功能 | `feat: 支持 MCP 工具调用` |
-| `fix` | Bug 修复 | `fix: 修复 VYNTH_NET 解析错误` |
+| `fix` | Bug 修复 | `fix: 修复 ZENO_NET 解析错误` |
 | `docs` | 文档更改 | `docs: 补充插件开发指南` |
 | `refactor` | 代码重构 | `refactor: 合并 llm 与 tools 包` |
 | `test` | 测试相关 | `test: 新增 sandbox 越界单测` |
@@ -145,7 +145,7 @@ Closes #123
 ```bash
 # 编译并运行
 bun run compile
-./dist/vynth --help
+./dist/zeno --help
 
 # 或直接用 bun 运行（开发时）
 bun run apps/cli/src/main.ts --help
@@ -181,8 +181,8 @@ PR 合并前需通过以下检查：
 
 ## 获取帮助
 
-- [GitHub Issues](https://github.com/Agions/vynth/issues)
-- [GitHub Discussions](https://github.com/Agions/vynth/discussions)
+- [GitHub Issues](https://github.com/Agions/zeno/issues)
+- [GitHub Discussions](https://github.com/Agions/zeno/discussions)
 
 ---
 

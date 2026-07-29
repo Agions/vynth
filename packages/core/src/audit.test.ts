@@ -7,7 +7,7 @@ import { audit, initAudit, resetAudit } from './audit';
 let dir: string;
 
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), 'vynth-audit-'));
+  dir = mkdtempSync(join(tmpdir(), 'zeno-audit-'));
 });
 afterEach(() => {
   resetAudit();

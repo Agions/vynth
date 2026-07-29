@@ -4,8 +4,8 @@ import {
   type StreamEvent,
   type ToolCall,
   type ToolDef,
-  type VynthConfig
-} from '@vynth/core';
+  type ZenoConfig
+} from '@zeno/core';
 
 export interface LLMProvider {
   chat(messages: ChatMessage[], tools: ToolDef[]): AsyncIterable<StreamEvent>;
@@ -27,8 +27,8 @@ interface OpenAiDelta {
   usage?: { prompt_tokens?: number; completion_tokens?: number };
 }
 
-export function createProvider(config: VynthConfig): LLMProvider {
-  if (!config.apiKey) throw new LlmError('missing VYNTH_API_KEY; set it to use a real LLM');
+export function createProvider(config: ZenoConfig): LLMProvider {
+  if (!config.apiKey) throw new LlmError('missing ZENO_API_KEY; set it to use a real LLM');
   return new OpenAiProvider(config);
 }
 
@@ -62,7 +62,7 @@ function assertSafeEndpoint(raw: string): void {
 }
 
 class OpenAiProvider implements LLMProvider {
-  constructor(private readonly config: VynthConfig) {
+  constructor(private readonly config: ZenoConfig) {
     assertSafeEndpoint(this.config.llmBaseUrl);
   }
 

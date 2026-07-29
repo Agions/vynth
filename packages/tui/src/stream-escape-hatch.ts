@@ -1,7 +1,3 @@
-/**
- * 流式逃生舱：在 TUI 之外（或无头模式）用原始 ANSI 直写，
- * 绕过 ink 的 React reconciliation，避免每个 token 触发全树重渲染。
- */
 const ESC = String.fromCharCode(0x1b);
 const clearLineSeq = `${ESC}[G${ESC}[2K`;
 

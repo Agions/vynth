@@ -2,11 +2,10 @@ import { describe, expect, test } from 'bun:test';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { ChatMessage, StreamEvent, ToolCall, ToolDef } from '@vynth/core';
-import { audit, initAudit, loadConfig, resetAudit } from '@vynth/core';
+import type { ChatMessage, StreamEvent, ToolCall, ToolDef } from '@zeno/core';
+import { audit, initAudit, loadConfig, resetAudit } from '@zeno/core';
 import { type LLMProvider, ToolRegistry, createProvider, runAgent } from './index';
 
-// 一个可控的 Mock Provider：第一次返回 token + 一个工具调用，之后只返回 token。
 class MockProvider implements LLMProvider {
   private calls = 0;
   async *chat(_m: ChatMessage[], tools: ToolDef[]): AsyncIterable<StreamEvent> {
@@ -49,8 +48,54 @@ test('runAgent 流式 token + 单个工具调用后终止（F4）', async () => 
   expect(events[events.length - 1].type).toBe('done');
 });
 
+class OneToolProvider implements LLMProvider {
+  constructor(private toolName: string) {}
+  async *chat(_m: ChatMessage[], tools: ToolDef[]): AsyncIterable<StreamEvent> {
+    yield { type: 'token', text: 'go' };
+    const t = tools.find((x) => x.name === this.toolName) ?? tools[0];
+    yield { type: 'tool', call: { id: 'c1', name: t.name, args: {} } as ToolCall };
+    yield { type: 'done' };
+  }
+}
+
+test('runAgent 工具执行后 yield tool_result（ok 路径带 output）', async () => {
+  const reg = new ToolRegistry();
+  reg.register({
+    name: 'ok_tool',
+    description: 'ok',
+    parameters: [],
+    run: () => ({ ok: true, output: 'fine result' })
+  });
+  const events: StreamEvent[] = [];
+  for await (const ev of runAgent('run ok', { provider: new OneToolProvider('ok_tool'), tools: reg })) {
+    events.push(ev);
+  }
+  const r = events.find((e) => e.type === 'tool_result') as Extract<StreamEvent, { type: 'tool_result' }>;
+  expect(r).toBeDefined();
+  expect(r.ok).toBe(true);
+  expect(r.output).toBe('fine result');
+  expect(r.name).toBe('ok_tool');
+});
+
+test('runAgent 工具失败 yield tool_result（error 带诊断码）', async () => {
+  const reg = new ToolRegistry();
+  reg.register({
+    name: 'fail_tool',
+    description: 'fail',
+    parameters: [],
+    run: () => ({ ok: false, output: '', error: '[VC-030006] sandbox backend unavailable' })
+  });
+  const events: StreamEvent[] = [];
+  for await (const ev of runAgent('run fail', { provider: new OneToolProvider('fail_tool'), tools: reg })) {
+    events.push(ev);
+  }
+  const r = events.find((e) => e.type === 'tool_result') as Extract<StreamEvent, { type: 'tool_result' }>;
+  expect(r).toBeDefined();
+  expect(r.ok).toBe(false);
+  expect(r.error).toContain('VC-030006');
+});
+
 test('runAgent 遵守 maxSteps 上限（F4）', async () => {
-  // 一个每次都要求调用工具的 Provider，必须被 maxSteps 截断。
   class LoopProvider implements LLMProvider {
     async *chat(_m: ChatMessage[], tools: ToolDef[]): AsyncIterable<StreamEvent> {
       yield { type: 'token', text: '.' };
@@ -194,7 +239,6 @@ test('runAgent 正确构建 tool_calls + reasoning_content + tool_call_id 消息
   expect(secondCallMessages).not.toBeNull();
   const msgs: ChatMessage[] = secondCallMessages ?? [];
 
-  // assistant 消息必须携带 tool_calls + reasoning_content
   const assistant = msgs.find((m) => m.role === 'assistant');
   expect(assistant).toBeDefined();
   expect(assistant?.tool_calls).toBeDefined();
@@ -204,7 +248,6 @@ test('runAgent 正确构建 tool_calls + reasoning_content + tool_call_id 消息
   expect(assistant?.tool_calls?.[0]?.function?.arguments).toBe('{"x":1}');
   expect(assistant?.reasoning_content).toBe('thinking...');
 
-  // tool 消息必须用 tool_call_id 而非 name
   const tool = msgs.find((m) => m.role === 'tool');
   expect(tool).toBeDefined();
   expect(tool?.tool_call_id).toBe('call_1');
@@ -212,7 +255,7 @@ test('runAgent 正确构建 tool_calls + reasoning_content + tool_call_id 消息
 });
 
 test('runAgent 工具执行被 F14 审计记录（tool_exec 维度）', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'vynth-eng-audit-'));
+  const dir = mkdtempSync(join(tmpdir(), 'zeno-eng-audit-'));
   try {
     initAudit({ dataDir: dir, audit: true });
     const reg = new ToolRegistry();

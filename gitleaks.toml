@@ -1,7 +1,7 @@
 # gitleaks 密钥扫描红线配置
 # 对齐 安全设计.md §1 信息泄露 / §6 密钥与凭证管理 / 部署设计.md §4 安全扫描阶段
 # 任何真实密钥（API Key / AKSK / SSH key / token）提交即阻断 CI。
-title = "vynth gitleaks config"
+title = "zeno gitleaks config"
 
 [extend]
 useDefault = true
@@ -17,7 +17,7 @@ paths = [
   '''gitleaks\.toml''',
 ]
 regexes = [
-  '''(?i)VYNTH_API_KEY\s*[=:]\s*["']?(sk-test-|demo-|example-|your_|<).*''',
+  '''(?i)ZENO_API_KEY\s*[=:]\s*["']?(sk-test-|demo-|example-|your_|<).*''',
   '''(?i)api[_-]?key\s*[=:]\s*["']?(test|demo|example|your_|<).*''',
 ]
 stopwords = [

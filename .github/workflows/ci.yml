@@ -26,8 +26,8 @@ jobs:
 
       # 阶段 2: biome + workspace TypeScript strict check
       # 注意：用 pnpm 而非 bun install —— bun 1.3.14 不会自动 link workspace 软链，
-      # 会导致 `bun test packages` 在 e2e 中报 "Cannot find module @vynth/mcp"。
-      # .npmrc 已开 shamefully-hoist=true，pnpm 会把 @vynth/* hoist 到顶层 node_modules/@vynth/。
+      # 会导致 `bun test packages` 在 e2e 中报 "Cannot find module @zeno/mcp"。
+      # .npmrc 已开 shamefully-hoist=true，pnpm 会把 @zeno/* hoist 到顶层 node_modules/@zeno/。
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -51,7 +51,7 @@ jobs:
       - name: Build packages
         run: bun run turbo run build
 
-      # 阶段 4: compile single binary (bun build --compile -> dist/vynth)
+      # 阶段 4: compile single binary (bun build --compile -> dist/zeno)
       - name: Compile single binary
         run: bun run compile
 
@@ -85,8 +85,8 @@ jobs:
             echo "Signing secrets are not configured; skipping macOS signing on this runner."
             exit 0
           fi
-          keychain="$RUNNER_TEMP/vynth-signing.keychain-db"
-          certificate="$RUNNER_TEMP/vynth-signing.p12"
+          keychain="$RUNNER_TEMP/zeno-signing.keychain-db"
+          certificate="$RUNNER_TEMP/zeno-signing.p12"
           echo "$APPLE_CERTIFICATE_BASE64" | base64 --decode > "$certificate"
           security create-keychain -p "$RUNNER_TEMP" "$keychain"
           security set-keychain-settings -lut 21600 "$keychain"
@@ -95,11 +95,11 @@ jobs:
           security list-keychains -d user -s "$keychain"
           security default-keychain -s "$keychain"
           security set-key-partition-list -S apple-tool:,apple: -s -k "$RUNNER_TEMP" "$keychain"
-          codesign --force --options runtime --timestamp --sign "$APPLE_SIGNING_IDENTITY" dist/vynth
-          codesign --verify --strict --verbose=2 dist/vynth
+          codesign --force --options runtime --timestamp --sign "$APPLE_SIGNING_IDENTITY" dist/zeno
+          codesign --verify --strict --verbose=2 dist/zeno
           if [[ -n "$APPLE_ID" && -n "$APPLE_TEAM_ID" && -n "$APPLE_APP_PASSWORD" ]]; then
-            ditto -c -k --keepParent dist/vynth "$RUNNER_TEMP/vynth.zip"
-            xcrun notarytool submit "$RUNNER_TEMP/vynth.zip" --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_APP_PASSWORD" --wait
+            ditto -c -k --keepParent dist/zeno "$RUNNER_TEMP/zeno.zip"
+            xcrun notarytool submit "$RUNNER_TEMP/zeno.zip" --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_APP_PASSWORD" --wait
           else
             echo "Notarization secrets are not configured; signing completed without notarization."
           fi
@@ -161,8 +161,8 @@ jobs:
             echo "Signing secrets are not configured; skipping macOS signing."
             exit 0
           fi
-          keychain="$RUNNER_TEMP/vynth-signing.keychain-db"
-          certificate="$RUNNER_TEMP/vynth-signing.p12"
+          keychain="$RUNNER_TEMP/zeno-signing.keychain-db"
+          certificate="$RUNNER_TEMP/zeno-signing.p12"
           echo "$APPLE_CERTIFICATE_BASE64" | base64 --decode > "$certificate"
           security create-keychain -p "$RUNNER_TEMP" "$keychain"
           security set-keychain-settings -lut 21600 "$keychain"
@@ -171,11 +171,11 @@ jobs:
           security list-keychains -d user -s "$keychain"
           security default-keychain -s "$keychain"
           security set-key-partition-list -S apple-tool:,apple: -s -k "$RUNNER_TEMP" "$keychain"
-          codesign --force --options runtime --timestamp --sign "$APPLE_SIGNING_IDENTITY" dist/vynth
-          codesign --verify --strict --verbose=2 dist/vynth
+          codesign --force --options runtime --timestamp --sign "$APPLE_SIGNING_IDENTITY" dist/zeno
+          codesign --verify --strict --verbose=2 dist/zeno
           if [[ -n "$APPLE_ID" && -n "$APPLE_TEAM_ID" && -n "$APPLE_APP_PASSWORD" ]]; then
-            ditto -c -k --keepParent dist/vynth "$RUNNER_TEMP/vynth.zip"
-            xcrun notarytool submit "$RUNNER_TEMP/vynth.zip" --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_APP_PASSWORD" --wait
+            ditto -c -k --keepParent dist/zeno "$RUNNER_TEMP/zeno.zip"
+            xcrun notarytool submit "$RUNNER_TEMP/zeno.zip" --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_APP_PASSWORD" --wait
           else
             echo "Notarization secrets are not configured; signing completed without notarization."
           fi
@@ -183,18 +183,18 @@ jobs:
       - name: Generate checksum
         run: |
           if command -v sha256sum >/dev/null 2>&1; then
-            sha256sum dist/vynth > dist/vynth.sha256
+            sha256sum dist/zeno > dist/zeno.sha256
           elif command -v shasum >/dev/null 2>&1; then
-            shasum -a 256 dist/vynth > dist/vynth.sha256
+            shasum -a 256 dist/zeno > dist/zeno.sha256
           fi
 
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
         with:
-          name: vynth-${{ matrix.os }}-${{ github.ref_name }}
+          name: zeno-${{ matrix.os }}-${{ github.ref_name }}
           path: |
-            dist/vynth
-            dist/vynth.sha256
+            dist/zeno
+            dist/zeno.sha256
           retention-days: 90
 
       - name: Create GitHub Release with assets (ubuntu only)
@@ -204,7 +204,7 @@ jobs:
         run: |
           # Download macOS artifact from the macOS build
           echo "Downloading macOS artifact..."
-          gh run download ${{ github.run_id }} -n vynth-macos-latest-${{ github.ref_name }} -D /tmp/macos-build/ || true
+          gh run download ${{ github.run_id }} -n zeno-macos-latest-${{ github.ref_name }} -D /tmp/macos-build/ || true
           
           # Create release
           gh release create "${{ github.ref_name }}" \
@@ -216,8 +216,8 @@ jobs:
   
   ### Download
   
-  - **Linux**: `dist/vynth` (built on Ubuntu)
-  - **macOS**: `dist/vynth` (built on macOS, signed + notarized)
+  - **Linux**: `dist/zeno` (built on Ubuntu)
+  - **macOS**: `dist/zeno` (built on macOS, signed + notarized)
   - **Checksums**: SHA256 for each binary
   
   ### Verification
@@ -226,16 +226,16 @@ jobs:
   - `bun run lint`: 0 error
   - `bun run compile`: 61 MB <= 61 MB PASS
   
-  **Full diff**: https://github.com/Agions/vynth/compare/v${{ github.ref_name }}...HEAD
+  **Full diff**: https://github.com/Agions/zeno/compare/v${{ github.ref_name }}...HEAD
   EOF
 
           # Upload Linux binary
-          gh release upload "${{ github.ref_name }}" dist/vynth --clobber
-          gh release upload "${{ github.ref_name }}" dist/vynth.sha256 --clobber
+          gh release upload "${{ github.ref_name }}" dist/zeno --clobber
+          gh release upload "${{ github.ref_name }}" dist/zeno.sha256 --clobber
           
           # Upload macOS binary if available
-          if [ -f /tmp/macos-build/vynth ]; then
-            gh release upload "${{ github.ref_name }}" /tmp/macos-build/vynth --clobber
-            gh release upload "${{ github.ref_name }}" /tmp/macos-build/vynth.sha256 --clobber
+          if [ -f /tmp/macos-build/zeno ]; then
+            gh release upload "${{ github.ref_name }}" /tmp/macos-build/zeno --clobber
+            gh release upload "${{ github.ref_name }}" /tmp/macos-build/zeno.sha256 --clobber
           fi
 

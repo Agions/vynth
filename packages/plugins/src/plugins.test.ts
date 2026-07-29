@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'bun:test';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PluginError } from '@vynth/core';
-import { ToolRegistry } from '@vynth/engine';
+import { PluginError } from '@zeno/core';
+import { ToolRegistry } from '@zeno/engine';
 import { loadAll, loadPlugin } from './loader';
 
 const here = dirname(fileURLToPath(import.meta.url));

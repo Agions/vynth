@@ -1,20 +1,20 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { ConfigError } from './errors';
-import type { Mode, VynthConfig } from './types';
+import { ConfigError, toErrorMessage } from './errors';
+import type { Mode, ZenoConfig } from './types';
 
-const MODES: Mode[] = ['plan', 'vibe'];
+const MODES: Mode[] = ['plan', 'vibe', 'auto'];
 
-/** 配置文件中允许出现的键（不含 apiKey：密钥只允许走环境变量）。 */
 interface ConfigFile {
   mode?: Mode;
   model?: string;
   llmBaseUrl?: string;
-  theme?: 'mocha' | 'latte';
-  sandbox?: { networkAllowed?: boolean; cwd?: string };
+  theme?: 'mocha' | 'latte' | 'neon';
+  sandbox?: { networkAllowed?: boolean; cwd?: string; harden?: boolean };
   dataDir?: string;
   audit?: boolean;
+  repomap?: { enabled?: boolean; maxSymbols?: number; includeTests?: boolean };
 }
 
 const ALLOWED_KEYS = new Set([
@@ -24,21 +24,13 @@ const ALLOWED_KEYS = new Set([
   'theme',
   'sandbox',
   'dataDir',
-  'audit'
+  'audit',
+  'repomap'
 ]);
 
-/**
- * 读取可选配置文件（F14，ADR-0003 受控扩展）。
- *
- * 查找顺序：
- *   1. `VYNTH_CONFIG_FILE` 显式路径
- *   2. `<dataDir>/config.json`
- *
- * 文件层优先级低于环境变量与代码 overrides：env 始终最高优先级，配置文件仅作便利补充。
- * 文件不存在时返回 `null`（不影响既有行为）。文件中含 `apiKey` 或非法 schema 时抛 ConfigError。
- */
 function loadConfigFile(dataDir: string): ConfigFile | null {
-  const explicit = process.env.VYNTH_CONFIG_FILE;
+  const explicit = process.env.ZENO_CONFIG_FILE;
+  if (process.env.NODE_ENV === 'test' && !explicit && dataDir === join(homedir(), '.zeno')) return null;
   const path = explicit && explicit.trim().length > 0 ? explicit : join(dataDir, 'config.json');
   if (!existsSync(path)) return null;
 
@@ -57,7 +49,7 @@ function loadConfigFile(dataDir: string): ConfigFile | null {
   const obj = raw as Record<string, unknown>;
 
   if ('apiKey' in obj) {
-    throw new ConfigError('配置文件中不得包含 apiKey，请改用 VYNTH_API_KEY 环境变量', 'VC-010005');
+    throw new ConfigError('配置文件中不得包含 apiKey，请改用 ZENO_API_KEY 环境变量', 'VC-010005');
   }
   for (const key of Object.keys(obj)) {
     if (!ALLOWED_KEYS.has(key)) {
@@ -70,48 +62,113 @@ function loadConfigFile(dataDir: string): ConfigFile | null {
   return obj as ConfigFile;
 }
 
-export function loadConfig(overrides: Partial<VynthConfig> = {}): VynthConfig {
-  const modeRaw = overrides.mode ?? (process.env.VYNTH_MODE as Mode | undefined);
+function loadProjectConfigFile(cwd: string): ConfigFile | null {
+  const candidates = [join(cwd, 'zeno.json'), join(cwd, '.zenorc')];
+  for (const path of candidates) {
+    if (existsSync(path)) {
+      try {
+        const raw = JSON.parse(readFileSync(path, 'utf8'));
+        if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+          return raw as ConfigFile;
+        }
+      } catch {}
+    }
+  }
+  return null;
+}
+
+export function loadConfig(overrides: Partial<ZenoConfig> = {}): ZenoConfig {
+  const modeRaw = overrides.mode ?? (process.env.ZENO_MODE as Mode | undefined);
   const mode: Mode = modeRaw && MODES.includes(modeRaw) ? modeRaw : 'vibe';
 
-  // 网络开关：env 未设置时才回落文件 / 默认（env 作为安全闸门始终优先）
-  const netRaw = process.env.VYNTH_NET;
+  const netRaw = process.env.ZENO_NET;
   const envNetAllowed =
     netRaw === undefined
       ? undefined
       : netRaw === '' || !['0', 'off', 'false', 'no'].includes(netRaw.toLowerCase());
 
-  // dataDir 先确定（决定配置文件查找路径），再读文件层
-  const dataDir = overrides.dataDir ?? process.env.VYNTH_DATA_DIR ?? join(homedir(), '.vynth');
+  const envHarden =
+    process.env.ZENO_HARDEN === undefined ? undefined : process.env.ZENO_HARDEN === '1';
+
+  const dataDir = overrides.dataDir ?? process.env.ZENO_DATA_DIR ?? join(homedir(), '.zeno');
   const file = loadConfigFile(dataDir);
+  const cwd = overrides.sandbox?.cwd ?? file?.sandbox?.cwd ?? process.cwd();
+  const projectFile = loadProjectConfigFile(cwd);
 
+  const envThemeRaw = process.env.ZENO_THEME;
   const envTheme =
-    process.env.VYNTH_THEME === undefined
+    envThemeRaw === undefined
       ? undefined
-      : process.env.VYNTH_THEME === 'latte'
+      : envThemeRaw === 'latte'
         ? 'latte'
-        : 'mocha';
+        : envThemeRaw === 'neon'
+          ? 'neon'
+          : 'mocha';
   const envAudit =
-    process.env.VYNTH_AUDIT === undefined ? undefined : process.env.VYNTH_AUDIT === '1';
+    process.env.ZENO_AUDIT === undefined ? undefined : process.env.ZENO_AUDIT === '1';
 
-  const config: VynthConfig = {
+  const envRepoMap =
+    process.env.ZENO_REPOMAP === undefined
+      ? undefined
+      : !['0', 'off', 'false', 'no'].includes(process.env.ZENO_REPOMAP.toLowerCase());
+  const envRepoMapMaxRaw = process.env.ZENO_REPOMAP_MAX;
+  const envRepoMapMax =
+    envRepoMapMaxRaw && !Number.isNaN(Number(envRepoMapMaxRaw))
+      ? Number(envRepoMapMaxRaw)
+      : undefined;
+
+  const config: ZenoConfig = {
     mode,
     llmBaseUrl:
       overrides.llmBaseUrl ??
-      process.env.VYNTH_LLM_BASE_URL ??
+      process.env.ZENO_LLM_BASE_URL ??
+      projectFile?.llmBaseUrl ??
       file?.llmBaseUrl ??
       'https://api.deepseek.com/v1',
-    apiKey: overrides.apiKey ?? process.env.VYNTH_API_KEY ?? '',
-    model: overrides.model ?? process.env.VYNTH_MODEL ?? file?.model ?? 'deepseek-v4-pro',
-    theme: overrides.theme ?? envTheme ?? file?.theme ?? 'mocha',
+    apiKey: overrides.apiKey ?? process.env.ZENO_API_KEY ?? '',
+    model: overrides.model ?? process.env.ZENO_MODEL ?? projectFile?.model ?? file?.model ?? 'deepseek-v4-pro',
+    theme: overrides.theme ?? envTheme ?? projectFile?.theme ?? file?.theme ?? 'mocha',
     sandbox: {
       networkAllowed:
-        overrides.sandbox?.networkAllowed ?? envNetAllowed ?? file?.sandbox?.networkAllowed ?? true,
-      cwd: overrides.sandbox?.cwd ?? file?.sandbox?.cwd ?? process.cwd()
+        overrides.sandbox?.networkAllowed ?? envNetAllowed ?? projectFile?.sandbox?.networkAllowed ?? file?.sandbox?.networkAllowed ?? true,
+      harden:
+        overrides.sandbox?.harden ?? envHarden ?? projectFile?.sandbox?.harden ?? file?.sandbox?.harden ?? false,
+      cwd
     },
     dataDir,
-    audit: overrides.audit ?? envAudit ?? file?.audit ?? false
+    audit: overrides.audit ?? envAudit ?? file?.audit ?? false,
+    repomap: {
+      enabled: overrides.repomap?.enabled ?? envRepoMap ?? file?.repomap?.enabled ?? true,
+      maxSymbols:
+        overrides.repomap?.maxSymbols ??
+        envRepoMapMax ??
+        file?.repomap?.maxSymbols ??
+        400,
+      includeTests: overrides.repomap?.includeTests ?? file?.repomap?.includeTests ?? false
+    }
   };
 
   return config;
 }
+
+export function saveConfigFile(dataDir: string, updates: Partial<ConfigFile>): void {
+  const path = process.env.ZENO_CONFIG_FILE || join(dataDir, 'config.json');
+  try {
+    mkdirSync(dataDir, { recursive: true });
+    let existing: Record<string, unknown> = {};
+    if (existsSync(path)) {
+      try {
+        existing = JSON.parse(readFileSync(path, 'utf8'));
+      } catch {
+        existing = {};
+      }
+    }
+    const cleanUpdates = { ...updates };
+    delete (cleanUpdates as Record<string, unknown>).apiKey; // Safety redline
+    const merged = { ...existing, ...cleanUpdates };
+    writeFileSync(path, JSON.stringify(merged, null, 2), 'utf8');
+  } catch (err) {
+    throw new ConfigError(`保存配置文件失败: ${toErrorMessage(err)}`, 'VC-010006');
+  }
+}
+

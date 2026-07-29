@@ -69,7 +69,6 @@ describe('McpClient (stdio JSON-RPC 2024-11-05)', () => {
     try {
       await client.connect();
       const res = await client.callTool('mcp_echo', {});
-      // 缺 message 时服务器仍返回 200，内容为空回显；此处校验正常路径
       expect(res.ok).toBe(true);
     } finally {
       client.close();

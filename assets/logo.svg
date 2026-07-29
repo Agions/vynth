@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 160" width="480" height="160" role="img" aria-label="Zeno">
+  <title>Zeno</title>
+  <rect x="16" y="16" width="128" height="128" rx="28" fill="#534AB7"/>
+  <path d="M40 56 L60 80 L40 104" fill="none" stroke="#ffffff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M80 56 L100 80 L80 104" fill="none" stroke="#ffffff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="172" y="108" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="60" font-weight="600" letter-spacing="-1" fill="#1f1f22"><tspan fill="#534AB7">❯</tspan>Zeno</text>
+</svg>

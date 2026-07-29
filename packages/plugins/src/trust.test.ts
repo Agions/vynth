@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ToolRegistry } from '@vynth/engine';
+import { ToolRegistry } from '@zeno/engine';
 import { loadPluginsWithTrust } from './trust';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -23,7 +23,6 @@ describe('loadPluginsWithTrust (F13 信任门禁)', () => {
     expect(res.declined).toEqual([fx('good-plugin.ts')]);
     expect(res.loaded).toEqual([]);
     expect(res.errors).toEqual([]);
-    // 插件工具未注册
     expect(reg.list().some((t) => t.name === 'good_tool')).toBe(false);
   });
 

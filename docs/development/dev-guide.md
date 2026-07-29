@@ -1,28 +1,28 @@
-# vynth 开发规范（工程规矩）
+# zeno 开发规范（工程规矩）
 
 > 本文件是 `docs/实施开发计划.md §1` 的落地细则，所有开发前置闸门。
 > 对齐已交付架构：`delivery/部署设计.md §4`（CI/CD 8 阶段）、`delivery/安全设计.md §1/§6`（密钥红线）、`delivery/系统设计.md`（错误码 6 位体系）。
 
-## 1. 包边界（M1–M7 ↔ @vynth/*）
+## 1. 包边界（M1–M7 ↔ @zeno/*）
 
 | 模块 | 包 | 职责 |
 |---|---|---|
-| M1 接入层 | `@vynth/cli` (apps/cli) | 单二进制入口、参数解析、退出码、TUI/无头分发 |
-| M2 业务能力 | `@vynth/engine` | agent loop、LLM 客户端、内置工具 |
-| M3 基础能力 | `@vynth/core` | 类型/配置/错误码/事件/日志（跨域唯一共享契约） |
-| M4 基础能力 | `@vynth/sandbox` | 工具执行沙箱 + 越界守卫 |
-| M5 扩展 | `@vynth/plugins` | 插件加载与生命周期 |
-| M6 扩展 | `@vynth/tui` | 自研 ANSI 渲染 + 双模式 + 主题 |
-| M7 扩展 | `@vynth/mcp` | MCP stdio 客户端（F12，尚未并入 CLI） |
-| — 测试 | `@vynth/harness` | e2e 夹具与测试 |
+| M1 接入层 | `@zeno/cli` (apps/cli) | 单二进制入口、参数解析、退出码、TUI/无头分发 |
+| M2 业务能力 | `@zeno/engine` | agent loop、LLM 客户端、内置工具 |
+| M3 基础能力 | `@zeno/core` | 类型/配置/错误码/事件/日志（跨域唯一共享契约） |
+| M4 基础能力 | `@zeno/sandbox` | 工具执行沙箱 + 越界守卫 |
+| M5 扩展 | `@zeno/plugins` | 插件加载与生命周期 |
+| M6 扩展 | `@zeno/tui` | 自研 ANSI 渲染 + 双模式 + 主题 |
+| M7 扩展 | `@zeno/mcp` | MCP stdio 客户端（F12，尚未并入 CLI） |
+| — 测试 | `@zeno/harness` | e2e 夹具与测试 |
 
-**铁律**：跨包仅经 `@vynth/core` 导出的契约类型（`VynthConfig` / `StreamEvent` / `ToolDef` / `VynthError` / `Emitter`）。禁止包间直接 import 实现。
+**铁律**：跨包仅经 `@zeno/core` 导出的契约类型（`ZenoConfig` / `StreamEvent` / `ToolDef` / `ZenoError` / `Emitter`）。禁止包间直接 import 实现。
 
 ## 2. 代码质量
 
 - 格式化/校验：**biome**（`biome check .` 必须 0 error）。规则：`single` 引号、`semicolons: always`、`noExplicitAny: error`、`noDefaultExport: error`、`lineWidth: 100`。
 - TypeScript：`strict: true`，`verbatimModuleSyntax: false`。
-- 错误表达：统一 `VynthError` 子类；**v0.1.0 起落地 6 位全局错误码 `VC-XXXXXX`**（旧字符串域 `config/llm/tool/...` 由 `fromLegacy()` 兼容映射，详见 `packages/core/src/error-codes.ts`）。
+- 错误表达：统一 `ZenoError` 子类；**v0.1.0 起落地 6 位全局错误码 `VC-XXXXXX`**（旧字符串域 `config/llm/tool/...` 由 `fromLegacy()` 兼容映射，详见 `packages/core/src/error-codes.ts`）。
 
 ### 错误码权威表（`packages/core/src/error-codes.ts`）
 
@@ -41,7 +41,7 @@
 | `VC-020005` | `LLM_PLAINTEXT_HTTP` | `OpenAiProvider` 拒绝明文 http |
 | `VC-030001` | `SANDBOX_PATH_ESCAPE` | `safeResolve` 拒绝 `../` 与绝对路径 |
 | `VC-030002` | `SANDBOX_SYMLINK_ESCAPE` | `safeResolve` realpath 后越界 |
-| `VC-030003` | `SANDBOX_NETWORK_BLOCKED` | `runCommand` `VYNTH_NET=0` 阻断 |
+| `VC-030003` | `SANDBOX_NETWORK_BLOCKED` | `runCommand` `ZENO_NET=0` 阻断 |
 | `VC-030004` | `SANDBOX_READ_FAILED` | `runCommand` 命令超时 |
 | `VC-030005` | `SANDBOX_WRITE_FAILED` | `runCommand` 非 0 exit |
 | `VC-040001` | `TOOL_NOT_FOUND` | `ToolRegistry.run` 未知工具 |
@@ -66,7 +66,7 @@
 1. install（`pnpm install --frozen-lockfile` —— 见下方说明）
 2. lint & typecheck（`bun run lint`）
 3. build packages（`bun run turbo run build`）
-4. compile single binary（`bun run compile` → `dist/vynth`）
+4. compile single binary（`bun run compile` → `dist/zeno`）
 5. tests（`bun test packages`，含 harness e2e）
 6. **安全扫描 — 密钥硬编码红线（gitleaks）**：提交真实密钥即阻断
 7. **体积门禁**（`bun scripts/check-binary-size.ts`，MVP ≤61MB）
@@ -76,7 +76,7 @@
 
 ### 3.1 为什么 install 用 pnpm 而不是 bun install
 
-bun 1.3.14 **不会** 自动给 monorepo workspace 建立 `node_modules/@vynth/*` 软链接，导致 `bun test packages` 在执行 `import { McpClient } from '@vynth/mcp'` 时报 `Cannot find module '@vynth/mcp'`。
+bun 1.3.14 **不会** 自动给 monorepo workspace 建立 `node_modules/@zeno/*` 软链接，导致 `bun test packages` 在执行 `import { McpClient } from '@zeno/mcp'` 时报 `Cannot find module '@zeno/mcp'`。
 
 项目已有 `pnpm-workspace.yaml`，CI 改用 pnpm 安装，并通过根目录 `.npmrc` 设置：
 
@@ -84,7 +84,7 @@ bun 1.3.14 **不会** 自动给 monorepo workspace 建立 `node_modules/@vynth/*
 shamefully-hoist=true
 ```
 
-pnpm 在严格模式下默认不把 workspace 依赖 hoist 到顶层；`shamefully-hoist=true` 强制把所有 `@vynth/*` 软链到顶层 `node_modules/@vynth/`，bun 即可正常解析。锁文件同时维护两份可能引起混淆，**项目仅维护 `pnpm-lock.yaml`**，提交策略：
+pnpm 在严格模式下默认不把 workspace 依赖 hoist 到顶层；`shamefully-hoist=true` 强制把所有 `@zeno/*` 软链到顶层 `node_modules/@zeno/`，bun 即可正常解析。锁文件同时维护两份可能引起混淆，**项目仅维护 `pnpm-lock.yaml`**，提交策略：
 
 - CI / 本地均用 `pnpm install --frozen-lockfile`
 - 锁文件更新：用 `pnpm install` 后再 `pnpm install --lockfile-only` 校验
@@ -102,12 +102,12 @@ pnpm 在严格模式下默认不把 workspace 依赖 hoist 到顶层；`shameful
 
 ## 5. 安全红线（MVP 即生效，对齐 安全设计.md）
 
-- **密钥绝不硬编码**；`VYNTH_API_KEY` 仅经环境变量/OS keychain 入参（见 `VYNTH_NET` 与密钥分级 §6）。
+- **密钥绝不硬编码**；`ZENO_API_KEY` 仅经环境变量/OS keychain 入参（见 `ZENO_NET` 与密钥分级 §6）。
 - **提示注入防护**：系统提示完整性保护、工具结果沙箱化、危险操作二次确认。
 - **命令注入防护**：shell 工具禁用动态拼接，参数化白名单数组。
 - **路径穿越防护**：`sandbox.safeResolve` 规范化 + 符号链接守卫（对抗 X3 sandbox symlink bug）。
-- **SSRF 防护**：工具出站仅允许 `VYNTH_NET` 白名单（默认 `api.deepseek.com:443`）。
-- **沙箱策略（方案 A）**：MVP 维持设计信任模型（软 `VYNTH_NET`），OS 级硬隔离推迟至 F15。
+- **SSRF 防护**：工具出站仅允许 `ZENO_NET` 白名单（默认 `api.deepseek.com:443`）。
+- **沙箱策略（方案 A）**：MVP 维持设计信任模型（软 `ZENO_NET`），OS 级硬隔离推迟至 F15。
 
 ## 6. 默认配置冻结值（X1–X5，以代码为准）
 

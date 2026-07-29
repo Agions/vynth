@@ -4,22 +4,22 @@ import {
   allCodes,
   describe as describeCode,
   fromLegacy,
-  isVynthErrorCode
+  isZenoErrorCode
 } from './error-codes';
 
 describe('error-codes 表（VC-XXXXXX）', () => {
-  it('isVynthErrorCode 接受合法 6 位码并拒绝其它', () => {
-    expect(isVynthErrorCode('VC-030001')).toBe(true);
-    expect(isVynthErrorCode('VC-060003')).toBe(true);
-    expect(isVynthErrorCode('config')).toBe(false);
-    expect(isVynthErrorCode('VC-999')).toBe(false);
-    expect(isVynthErrorCode('VC-9999999')).toBe(false);
-    expect(isVynthErrorCode('')).toBe(false);
+  it('isZenoErrorCode 接受合法 6 位码并拒绝其它', () => {
+    expect(isZenoErrorCode('VC-030001')).toBe(true);
+    expect(isZenoErrorCode('VC-060003')).toBe(true);
+    expect(isZenoErrorCode('config')).toBe(false);
+    expect(isZenoErrorCode('VC-999')).toBe(false);
+    expect(isZenoErrorCode('VC-9999999')).toBe(false);
+    expect(isZenoErrorCode('')).toBe(false);
   });
 
-  it('allCodes 中每个码都通过 isVynthErrorCode 校验（防漂移）', () => {
+  it('allCodes 中每个码都通过 isZenoErrorCode 校验（防漂移）', () => {
     for (const code of allCodes()) {
-      expect(isVynthErrorCode(code)).toBe(true);
+      expect(isZenoErrorCode(code)).toBe(true);
       expect(code).toMatch(/^VC-\d{6}$/);
     }
   });

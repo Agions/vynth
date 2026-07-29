@@ -1,7 +1,6 @@
 import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process';
-import { McpError, type ToolDef, type ToolParam, type ToolResult } from '@vynth/core';
+import { McpError, type ToolDef, type ToolParam, type ToolResult } from '@zeno/core';
 
-/** MCP stdio JSON-RPC 协议版本（F12 锁定 2024-11-05，见实施开发计划 §2.3 / 风险 U-05） */
 export const MCP_PROTOCOL_VERSION = '2024-11-05';
 
 interface JsonRpcReq {
@@ -18,7 +17,6 @@ interface JsonRpcRes {
   error?: { message: string };
 }
 
-/** MCP `tools/list` 返回的单个工具定义（2024-11-05 子集） */
 export interface McpTool {
   name: string;
   description?: string;
@@ -31,10 +29,6 @@ export interface McpTool {
 
 type McpCall = (name: string, args: Record<string, unknown>) => Promise<ToolResult>;
 
-/**
- * 将 MCP 工具定义转换为 engine 的 `ToolDef`，使 MCP 工具能并入 agent 工具集（F12）。
- * `call` 由 `McpClient` 注入，绑定到对应服务器的 `tools/call`，从而复用同一套沙箱/审计链路。
- */
 export function mcpToolToToolDef(tool: McpTool, call: McpCall): ToolDef {
   const schema = tool.inputSchema ?? {};
   const props = schema.properties ?? {};
@@ -84,7 +78,6 @@ export class McpClient {
     }
     this.proc = spawned as unknown as ChildProcessWithoutNullStreams;
     this.proc.stdout.on('data', (d) => this.onData(String(d)));
-    // 服务器异常退出时，让所有挂起请求失败，避免调用方永久挂起
     this.proc.on('exit', (code) => {
       if (code === null || code === 0) return;
       for (const resolve of this.pending.values()) {
@@ -95,7 +88,7 @@ export class McpClient {
     const res = await this.rpc('initialize', {
       protocolVersion: MCP_PROTOCOL_VERSION,
       capabilities: {},
-      clientInfo: { name: 'vynth', version: '0.1.0' }
+      clientInfo: { name: 'zeno', version: '0.1.0' }
     });
     if (res.error) throw new McpError(`initialize failed: ${res.error.message}`, 'VC-060001');
     const listRes = await this.rpc('tools/list', {});
@@ -105,7 +98,6 @@ export class McpClient {
     for (const t of list) this.tools.set(t.name, t);
   }
 
-  /** 返回并入 agent 工具集所需的 `ToolDef[]`（每个 MCP 工具绑定到本客户端的 tools/call） */
   getToolDefs(): ToolDef[] {
     return [...this.tools.values()].map((t) => mcpToolToToolDef(t, (n, a) => this.callTool(n, a)));
   }

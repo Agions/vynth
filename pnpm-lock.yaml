@@ -23,19 +23,19 @@ importers:
 
   apps/cli:
     dependencies:
-      '@vynth/core':
+      '@covyx/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@vynth/engine':
+      '@covyx/engine':
         specifier: workspace:*
         version: link:../../packages/engine
-      '@vynth/mcp':
+      '@covyx/mcp':
         specifier: workspace:*
         version: link:../../packages/mcp
-      '@vynth/plugins':
+      '@covyx/plugins':
         specifier: workspace:*
         version: link:../../packages/plugins
-      '@vynth/tui':
+      '@covyx/tui':
         specifier: workspace:*
         version: link:../../packages/tui
 
@@ -43,58 +43,58 @@ importers:
 
   packages/engine:
     dependencies:
-      '@vynth/core':
+      '@covyx/core':
         specifier: workspace:*
         version: link:../core
-      '@vynth/sandbox':
+      '@covyx/sandbox':
         specifier: workspace:*
         version: link:../sandbox
 
   packages/harness:
     dependencies:
-      '@vynth/core':
+      '@covyx/core':
         specifier: workspace:*
         version: link:../core
-      '@vynth/engine':
+      '@covyx/engine':
         specifier: workspace:*
         version: link:../engine
-      '@vynth/mcp':
+      '@covyx/mcp':
         specifier: workspace:*
         version: link:../mcp
-      '@vynth/plugins':
+      '@covyx/plugins':
         specifier: workspace:*
         version: link:../plugins
 
   packages/mcp:
     dependencies:
-      '@vynth/core':
+      '@covyx/core':
         specifier: workspace:*
         version: link:../core
 
   packages/plugins:
     dependencies:
-      '@vynth/core':
+      '@covyx/core':
         specifier: workspace:*
         version: link:../core
-      '@vynth/engine':
+      '@covyx/engine':
         specifier: workspace:*
         version: link:../engine
 
   packages/sandbox:
     dependencies:
-      '@vynth/core':
+      '@covyx/core':
         specifier: workspace:*
         version: link:../core
 
   packages/tui:
     dependencies:
-      '@vynth/core':
+      '@covyx/core':
         specifier: workspace:*
         version: link:../core
-      '@vynth/engine':
+      '@covyx/engine':
         specifier: workspace:*
         version: link:../engine
-      '@vynth/plugins':
+      '@covyx/plugins':
         specifier: workspace:*
         version: link:../plugins
       ansi-escapes:

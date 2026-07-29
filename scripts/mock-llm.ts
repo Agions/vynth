@@ -1,10 +1,3 @@
-/**
- * 本地 mock LLM 服务（OpenAI 兼容 SSE），用于在无真实 API key 的情况下
- * 验证 Vynth 的 OpenAiProvider 真实代码路径（VYN-005）。
- *
- * 运行： bun run scripts/mock-llm.ts
- * 验证： VYNTH_LLM_BASE_URL=http://localhost:8787 VYNTH_API_KEY=test ./dist/vynth -g "读一下 README"
- */
 const port = Number(process.env.PORT ?? 8787);
 const enc = new TextEncoder();
 let calls = 0;
@@ -21,7 +14,7 @@ Bun.serve({
             ctrl.enqueue(enc.encode(`data: ${JSON.stringify(obj)}\n\n`));
           if (calls === 1) {
             send({ choices: [{ delta: { content: '你好，' } }] });
-            send({ choices: [{ delta: { content: '我是 Vynth。' } }] });
+            send({ choices: [{ delta: { content: '我是 Zeno。' } }] });
             send({
               choices: [
                 {
@@ -39,7 +32,7 @@ Bun.serve({
             send({ choices: [{ finish_reason: 'tool_calls' }] });
           } else {
             send({
-              choices: [{ delta: { content: '已读取 README.md，这是 Vynth 项目的说明。' } }]
+              choices: [{ delta: { content: '已读取 README.md，这是 Zeno 项目的说明。' } }]
             });
             send({ choices: [{ finish_reason: 'stop' }] });
           }

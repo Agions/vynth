@@ -27,7 +27,6 @@ describe('StreamArea (F3 headless 流式退路 / F2 TUI 流式退路)', () => {
     writes.length = 0;
     area.clear();
     expect(writes).toEqual([clearLineSeq]);
-    // 再 update 应该不再擦线（lastLen=0）
     writes.length = 0;
     area.update('y');
     expect(writes).toEqual(['y']);
@@ -44,7 +43,6 @@ describe('StreamArea (F3 headless 流式退路 / F2 TUI 流式退路)', () => {
     const writes: string[] = [];
     const area = new StreamArea((s) => writes.push(s));
     expect(() => area.update('')).not.toThrow();
-    // lastLen 是文本"长度"，空串应让下一次 update 也不发出擦线（边界 case 当前实现允许 lastLen=0）
     area.update('a');
     expect(writes).toEqual(['', 'a']);
   });

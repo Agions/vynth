@@ -1,6 +1,6 @@
 # API 参考（详细）
 
-本文档提供 Vynth 对外接口的完整参考，包括 CLI 参数、环境变量、退出码、工具调用协议。
+本文档提供 Zeno 对外接口的完整参考，包括 CLI 参数、环境变量、退出码、工具调用协议。
 
 ---
 
@@ -8,8 +8,8 @@
 
 | 参数 | 等价长名 | 作用 | 备注 |
 |------|----------|------|------|
-| `-g <目标>` | `--goal <目标>` | 无头 agent 模式，把 `<目标>` 流式输出到 stdout | 无需 TTY；需设置 `VYNTH_API_KEY` |
-| `-m <mode>` | `--mode <mode>` | 指定模式 `plan` \| `vibe` | 覆盖 `VYNTH_MODE`，默认 `vibe` |
+| `-g <目标>` | `--goal <目标>` | 无头 agent 模式，把 `<目标>` 流式输出到 stdout | 无需 TTY；需设置 `ZENO_API_KEY` |
+| `-m <mode>` | `--mode <mode>` | 指定模式 `plan` \| `vibe` | 覆盖 `ZENO_MODE`，默认 `vibe` |
 | `--plugin <path>` | — | 加载本地插件入口 | 仅无头模式 `-g` 下生效 |
 | `-v` | `--version` | 输出版本号并退出 | 退出码 0 |
 | `-h` | `--help` | 输出用法说明并退出 | 退出码 0 |
@@ -19,22 +19,22 @@
 
 ```bash
 # 交互 TUI
-vynth
+zeno
 
 # 无头 agent
-vynth -g '给当前目录写个 README'
+zeno -g '给当前目录写个 README'
 
 # 指定模式
-vynth -m plan -g '重构 src 下的工具函数'
+zeno -m plan -g '重构 src 下的工具函数'
 
 # 加载插件
-vynth --plugin ./my-plugin.ts -g '使用自定义工具'
+zeno --plugin ./my-plugin.ts -g '使用自定义工具'
 
 # 查看版本
-vynth --version
+zeno --version
 
 # 查看帮助
-vynth --help
+zeno --help
 ```
 
 ---
@@ -43,13 +43,13 @@ vynth --help
 
 | 变量 | 作用 | 默认值 | 读取位置 |
 |------|------|--------|----------|
-| `VYNTH_API_KEY` | LLM API Key（必填） | 空 | `core` `loadConfig` |
-| `VYNTH_MODEL` | 模型名 | `deepseek-v4-pro` | `core` `loadConfig` |
-| `VYNTH_LLM_BASE_URL` | OpenAI 兼容端点 | `https://api.deepseek.com/v1` | `core` `loadConfig` |
-| `VYNTH_MODE` | `plan` \| `vibe` | `vibe` | `core` `loadConfig` |
-| `VYNTH_THEME` | `mocha` \| `latte`（Catppuccin） | `mocha` | `core` `loadConfig` |
-| `VYNTH_NET` | 沙箱网络开关；`'0'` = 禁止联网 | 开启（非 `'0'`） | `core` `loadConfig` → `sandbox` |
-| `VYNTH_DATA_DIR` | 数据目录 | `~/.vynth` | `core` `loadConfig` |
+| `ZENO_API_KEY` | LLM API Key（必填） | 空 | `core` `loadConfig` |
+| `ZENO_MODEL` | 模型名 | `deepseek-v4-pro` | `core` `loadConfig` |
+| `ZENO_LLM_BASE_URL` | OpenAI 兼容端点 | `https://api.deepseek.com/v1` | `core` `loadConfig` |
+| `ZENO_MODE` | `plan` \| `vibe` | `vibe` | `core` `loadConfig` |
+| `ZENO_THEME` | `mocha` \| `latte`（Catppuccin） | `mocha` | `core` `loadConfig` |
+| `ZENO_NET` | 沙箱网络开关；`'0'` = 禁止联网 | 开启（非 `'0'`） | `core` `loadConfig` → `sandbox` |
+| `ZENO_DATA_DIR` | 数据目录 | `~/.zeno` | `core` `loadConfig` |
 
 > 注：配置**仅通过环境变量注入**（`loadConfig` 只读 `process.env`，不读取任何配置文件）。
 
@@ -117,7 +117,7 @@ interface ToolResult {
 {
   "role": "tool",
   "tool_call_id": "call_abc123",
-  "content": "Vynth 是一个..."
+  "content": "Zeno 是一个..."
 }
 ```
 

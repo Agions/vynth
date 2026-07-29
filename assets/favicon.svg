@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Zeno">
+  <title>Zeno</title>
+  <rect x="8" y="8" width="112" height="112" rx="24" fill="#534AB7"/>
+  <path d="M36 44 L56 68 L36 92" fill="none" stroke="#ffffff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M76 44 L96 68 L76 92" fill="none" stroke="#ffffff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

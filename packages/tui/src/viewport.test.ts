@@ -1,6 +1,3 @@
-/**
- * viewport / scrollback 单测。
- */
 import { describe, expect, it } from 'bun:test';
 import { Scrollback } from './scrollback';
 import {
@@ -19,7 +16,6 @@ describe('viewport layout', () => {
     expect(layout.midStart).toBe(layout.topEnd + 1);
     expect(layout.botEnd).toBe(32);
     expect(layout.botEnd).toBeGreaterThan(layout.midEnd);
-    // 至少留 5 行给中间
     expect(layout.midEnd - layout.midStart + 1).toBeGreaterThanOrEqual(5);
   });
 

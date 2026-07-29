@@ -1,6 +1,6 @@
 # 测试指南
 
-Vynth 使用 `bun test` 作为测试框架，覆盖单元测试、集成测试与端到端测试。
+Zeno 使用 `bun test` 作为测试框架，覆盖单元测试、集成测试与端到端测试。
 
 ---
 
@@ -76,7 +76,7 @@ it('CLI 无头模式输出', () => {
   const out = execFileSync(process.execPath, [
     'apps/cli/src/main.ts',
     '-g', 'hello'
-  ], { env: { ...process.env, VYNTH_API_KEY: '' } });
+  ], { env: { ...process.env, ZENO_API_KEY: '' } });
   
   expect(out.toString()).toContain('Hello');
 });
@@ -154,11 +154,11 @@ describe('模块名', () => {
 
 | 包 | 当前覆盖率 | 目标 |
 |----|-----------|------|
-| `@vynth/core` | ~95% | ≥ 90% |
-| `@vynth/engine` | ~85% | ≥ 80% |
-| `@vynth/sandbox` | ~90% | ≥ 85% |
-| `@vynth/plugins` | ~80% | ≥ 75% |
-| `@vynth/tui` | ~70% | ≥ 60% |
+| `@zeno/core` | ~95% | ≥ 90% |
+| `@zeno/engine` | ~85% | ≥ 80% |
+| `@zeno/sandbox` | ~90% | ≥ 85% |
+| `@zeno/plugins` | ~80% | ≥ 75% |
+| `@zeno/tui` | ~70% | ≥ 60% |
 
 > TUI 渲染层（ansi-escapes 集成）难以单元测试，以集成测试补充。
 

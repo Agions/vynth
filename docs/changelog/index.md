@@ -1,6 +1,6 @@
 # 变更日志
 
-所有 Vynth 的 notable changes 都记录在此文件中。格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
+所有 Zeno 的 notable changes 都记录在此文件中。格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
 ---
 
@@ -22,7 +22,7 @@
 
 **新增：**
 - 错误码 6 位码（VC-XXXXXX）权威表 + 单测（22 个已声明码 + 6 个族默认回退码）
-- `VynthError.numericCode` 字段，旧 `code` 保留兼容（`fromLegacy()` 桥接）
+- `ZenoError.numericCode` 字段，旧 `code` 保留兼容（`fromLegacy()` 桥接）
 - DeepSeek V4 thinking 模式支持：`reasoning_content` / `tool_calls` / `tool_call_id` 字段
 - Agent 引擎 + LLM（F4 / F6 / F7 / F8）
 - 内置工具 + 沙箱守卫（F5 / F10，含 symlink 二次校验）
@@ -41,12 +41,12 @@
 - 文档结构：`docs/dev-guide.md` → `docs/development/dev-guide.md`；`docs/release-notes-v0.*.md` → `docs/changelog/v0.*.md`
 
 **Breaking：**
-- 移除 `EchoProvider` / demo 模式；`VYNTH_API_KEY` 为必填项（空时抛 `[VC-020099]`）
+- 移除 `EchoProvider` / demo 模式；`ZENO_API_KEY` 为必填项（空时抛 `[VC-020099]`）
 
 **安全：**
 - 错误字符串前缀化（`[VC-XXXXXX] message`），便于日志聚合 / 监控告警
 - 沙箱守卫覆盖路径越界、绝对路径越界、symlink 逃逸（F10 对抗 X3）
-- `VYNTH_NET='0'` 联网开关
+- `ZENO_NET='0'` 联网开关
 - `OpenAiProvider` 拒绝向远程明文 http 端点发 API Key
 - gitleaks 密钥扫描入 CI 红线
 

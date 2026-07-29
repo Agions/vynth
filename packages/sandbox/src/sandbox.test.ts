@@ -19,7 +19,7 @@ afterEach(() => {
 });
 
 function fresh(): string {
-  dir = mkdtempSync(join(tmpdir(), 'vynth-sb-'));
+  dir = mkdtempSync(join(tmpdir(), 'zeno-sb-'));
   return dir;
 }
 
@@ -48,7 +48,7 @@ describe('safeResolve / 沙箱边界（F10 对抗 X3）', () => {
 
   test('拒绝经 symlink 逃逸到 cwd 外（F10）', async () => {
     const d = fresh();
-    outside = mkdtempSync(join(tmpdir(), 'vynth-out-'));
+    outside = mkdtempSync(join(tmpdir(), 'zeno-out-'));
     writeFileSync(join(outside, 'secret.txt'), 'TOPSECRET');
     symlinkSync(outside, join(d, 'escape'));
     const r = await readText('escape/secret.txt', d);
@@ -64,8 +64,8 @@ describe('safeResolve / 沙箱边界（F10 对抗 X3）', () => {
   });
 });
 
-describe('runCommand 联网闸门（F5 / VYNTH_NET）', () => {
-  test('VYNTH_NET=off 时任何 shell 被拦截', async () => {
+describe('runCommand 联网闸门（F5 / ZENO_NET）', () => {
+  test('ZENO_NET=off 时任何 shell 被拦截', async () => {
     const d = fresh();
     const r = await runCommand('echo hi', { cwd: d, networkAllowed: false });
     expect(r.ok).toBe(false);

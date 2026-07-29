@@ -1,6 +1,6 @@
 # 数据流
 
-> 理解 Vynth 的数据流是贡献代码的第一步。本文档描述从用户输入到渲染输出的完整链路。
+> 理解 Zeno 的数据流是贡献代码的第一步。本文档描述从用户输入到渲染输出的完整链路。
 
 ---
 
@@ -8,7 +8,7 @@
 
 ```
             ┌──────────────────────── 交互入口 ────────────────────────┐
-            │  vynth (TUI, 需 TTY)        vynth -g '<goal>' (无头)      │
+            │  zeno (TUI, 需 TTY)        zeno -g '<goal>' (无头)      │
             └───────────────────────────┬─────────────────────────────┘
                                          │  goal (string) + loadConfig()
                                          ▼
@@ -49,9 +49,9 @@
 
 **���发点**：`apps/cli/src/main.ts`
 
-- **TUI 模式**：`vynth`（需真实 TTY）
-- **无头模式**：`vynth -g '<目标>'`
-- **插件模式**：`vynth -g '<目标>' -p <路径>`
+- **TUI 模式**：`zeno`（需真实 TTY）
+- **无头模式**：`zeno -g '<目标>'`
+- **插件模式**：`zeno -g '<目标>' -p <路径>`
 
 配置通过 `loadConfig()` 从环境变量加载：
 
@@ -90,7 +90,7 @@ for step in 0..maxSteps:
 
 | Provider | 触发条件 | 行为 |
 |----------|----------|------|
-| `OpenAiProvider` | `VYNTH_API_KEY` 非空 | 真实 SSE 流式（v0.1.0 起移除 EchoProvider；空 key 抛 `LlmError`） |
+| `OpenAiProvider` | `ZENO_API_KEY` 非空 | 真实 SSE 流式（v0.1.0 起移除 EchoProvider；空 key 抛 `LlmError`） |
 
 #### SSE 解析流程
 
@@ -121,7 +121,7 @@ fetch POST {baseUrl}/chat/completions
 |------|----------|
 | `read_file` | `safeResolve` 拒绝 `../`、绝对路径、symlink 逃逸 |
 | `write_file` | 同上 |
-| `run_shell` | `safeResolve` + `VYNTH_NET` 网络开关 + 30s 超时 |
+| `run_shell` | `safeResolve` + `ZENO_NET` 网络开关 + 30s 超时 |
 
 #### safeResolve 算法
 
@@ -159,7 +159,7 @@ function safeResolve(cwd: string, userPath: string): string {
 1. **StreamEvent 是唯一跨层协议**：`engine` 向 `tui` / `cli` 只暴露 `StreamEvent`（`token` / `tool` / `done`），渲染层与上层解耦。
 2. **工具结果统一为 `ToolResult`**：`{ ok, output, error? }`；失败不抛异常，而是 `ok:false` 回灌 `messages`，由 LLM 决定下一步。
 3. **沙箱是工具执行的唯一出口**：所有 fs / shell 访问经 `sandbox` 的 `safeResolve` 越界守卫与网络开关，agent 不能直接触达宿主机任意路径。
-4. **无 key 即失败**：`createProvider` 在 `apiKey` 为空时抛出 `LlmError`，要求显式配置 `VYNTH_API_KEY`。
+4. **无 key 即失败**：`createProvider` 在 `apiKey` 为空时抛出 `LlmError`，要求显式配置 `ZENO_API_KEY`。
 
 ---
 

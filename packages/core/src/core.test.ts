@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import { loadConfig } from './config';
-import { ConfigError, LlmError, SandboxError, ToolError, VynthError } from './errors';
+import { ConfigError, LlmError, SandboxError, ToolError, ZenoError } from './errors';
 import { Emitter } from './events';
 import { log, setLogLevel } from './logger';
 
@@ -8,7 +8,7 @@ const SAVED = { ...process.env };
 
 beforeEach(() => {
   for (const k of Object.keys(process.env)) {
-    if (k.startsWith('VYNTH_')) delete process.env[k];
+    if (k.startsWith('ZENO_')) delete process.env[k];
   }
 });
 
@@ -23,52 +23,52 @@ describe('loadConfig 默认值（冻结 X1/X2）', () => {
     expect(c.llmBaseUrl).toBe('https://api.deepseek.com/v1');
   });
 
-  it('VYNTH_API_KEY 缺省为空串（createProvider 时会抛出 LlmError）', () => {
+  it('ZENO_API_KEY 缺省为空串（createProvider 时会抛出 LlmError）', () => {
     expect(loadConfig().apiKey).toBe('');
   });
 
-  it('VYNTH_MODE 缺省回退 vibe', () => {
+  it('ZENO_MODE 缺省回退 vibe', () => {
     expect(loadConfig().mode).toBe('vibe');
   });
 
-  it('VYNTH_MODE=plan 生效', () => {
-    process.env.VYNTH_MODE = 'plan';
+  it('ZENO_MODE=plan 生效', () => {
+    process.env.ZENO_MODE = 'plan';
     expect(loadConfig().mode).toBe('plan');
   });
 
-  it('VYNTH_MODE 非法值回退 vibe', () => {
-    process.env.VYNTH_MODE = 'bogus';
+  it('ZENO_MODE 非法值回退 vibe', () => {
+    process.env.ZENO_MODE = 'bogus';
     expect(loadConfig().mode).toBe('vibe');
   });
 
-  it('VYNTH_THEME=latte 生效，否则默认 mocha', () => {
+  it('ZENO_THEME=latte 生效，否则默认 mocha', () => {
     expect(loadConfig().theme).toBe('mocha');
-    process.env.VYNTH_THEME = 'latte';
+    process.env.ZENO_THEME = 'latte';
     expect(loadConfig().theme).toBe('latte');
   });
 });
 
-describe('VYNTH_NET 出站开关解析', () => {
+describe('ZENO_NET 出站开关解析', () => {
   it('未设 → 放行（true）', () => {
     expect(loadConfig().sandbox.networkAllowed).toBe(true);
   });
 
   it('空串 → 视为未设（true）', () => {
-    process.env.VYNTH_NET = '';
+    process.env.ZENO_NET = '';
     expect(loadConfig().sandbox.networkAllowed).toBe(true);
   });
 
   it('off / 0 / false / no → 拒绝（false）', () => {
     for (const v of ['off', '0', 'false', 'no']) {
-      process.env.VYNTH_NET = v;
+      process.env.ZENO_NET = v;
       expect(loadConfig().sandbox.networkAllowed).toBe(false);
     }
   });
 });
 
-describe('VynthError 错误码体系', () => {
+describe('ZenoError 错误码体系', () => {
   it('基类携带 code 字符串', () => {
-    const e = new VynthError('config', 'boom');
+    const e = new ZenoError('config', 'boom');
     expect(e).toBeInstanceOf(Error);
     expect(e.code).toBe('config');
     expect(e.message).toBe('boom');
@@ -82,7 +82,7 @@ describe('VynthError 错误码体系', () => {
   });
 
   it('子类可经 instanceof 向上识别', () => {
-    expect(new ConfigError('x')).toBeInstanceOf(VynthError);
+    expect(new ConfigError('x')).toBeInstanceOf(ZenoError);
   });
 });
 

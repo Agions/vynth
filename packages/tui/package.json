@@ -1,14 +1,15 @@
 {
-  "name": "@vynth/tui",
+  "name": "@zeno/tui",
   "description": "终端 UI：交互式 TUI（catppuccin 主题 + ANSI 转义）+ 无头模式流式输出",
   "version": "0.1.1",
   "type": "module",
   "main": "src/index.ts",
   "exports": { ".": "./src/index.ts" },
   "dependencies": {
-    "@vynth/core": "workspace:*",
-    "@vynth/engine": "workspace:*",
-    "@vynth/plugins": "workspace:*"
+    "@zeno/core": "workspace:*",
+    "@zeno/engine": "workspace:*",
+    "@zeno/plugins": "workspace:*",
+    "@zeno/sandbox": "workspace:*"
   },
-  "scripts": { "build": "echo '@vynth/tui consumed via workspace'" }
+  "scripts": { "build": "echo '@zeno/tui consumed via workspace'" }
 }

@@ -1,19 +1,19 @@
 {
-  "name": "@vynth/cli",
+  "name": "@zeno/cli",
   "description": "CLI 入口：单二进制分发、TTY 双模式路由（无头 / 交互式 TUI）、参数解析与退出码契约",
   "version": "0.1.0",
   "type": "module",
   "bin": {
-    "vynth": "src/main.ts"
+    "zeno": "src/main.ts"
   },
   "dependencies": {
-    "@vynth/core": "workspace:*",
-    "@vynth/engine": "workspace:*",
-    "@vynth/mcp": "workspace:*",
-    "@vynth/tui": "workspace:*",
-    "@vynth/plugins": "workspace:*"
+    "@zeno/core": "workspace:*",
+    "@zeno/engine": "workspace:*",
+    "@zeno/mcp": "workspace:*",
+    "@zeno/tui": "workspace:*",
+    "@zeno/plugins": "workspace:*"
   },
   "scripts": {
-    "build": "bun build --compile --target=bun src/main.ts --outfile ../../dist/vynth"
+    "build": "bun build --compile --target=bun src/main.ts --outfile ../../dist/zeno"
   }
 }

@@ -1,13 +1,13 @@
 {
-  "name": "@vynth/plugins",
+  "name": "@zeno/plugins",
   "description": "插件系统：动态加载、工具注册、MVP 无头模式（M5 扩展即 TUI 内插件属完整版 F13）",
   "version": "0.1.1",
   "type": "module",
   "main": "src/index.ts",
   "exports": { ".": "./src/index.ts" },
   "dependencies": {
-    "@vynth/core": "workspace:*",
-    "@vynth/engine": "workspace:*"
+    "@zeno/core": "workspace:*",
+    "@zeno/engine": "workspace:*"
   },
-  "scripts": { "build": "echo '@vynth/plugins consumed via workspace'" }
+  "scripts": { "build": "echo '@zeno/plugins consumed via workspace'" }
 }

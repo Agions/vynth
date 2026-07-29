@@ -1,14 +1,8 @@
-/**
- * F15 OS 级硬隔离测试。
- *
- * 重要约束：测试集**必须**在沙箱有效的 CI 上跑（macOS 自带 sandbox-exec，
- * linux 需 bwrap）。本机跳过时不 fail，只 skip 并报告完整原因。
- */
 import { afterEach, describe, expect, test } from 'bun:test';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { SandboxError } from '@vynth/core';
+import { SandboxError } from '@zeno/core';
 import { buildBwrapArgs, buildSbplProfile, detectHardenBackend, spawnHardened } from './harden';
 import { runCommand } from './sandbox';
 
@@ -20,8 +14,7 @@ afterEach(() => {
     rmSync(dir, { recursive: true, force: true });
     dir = null;
   }
-  // 跑完一个测试清理环境变量，避免污染其它测试
-  process.env.VYNTH_HARDEN = '';
+  process.env.ZENO_HARDEN = '';
 });
 
 const EMPTY_CMD = { command: '' } as const;
@@ -33,7 +26,7 @@ async function backendAvailable(): Promise<boolean> {
 }
 
 function fresh(): string {
-  dir = mkdtempSync(join(tmpdir(), 'vynth-harden-'));
+  dir = mkdtempSync(join(tmpdir(), 'zeno-harden-'));
   return dir;
 }
 
@@ -93,13 +86,13 @@ describe('spawnHardened 平台分流', () => {
   });
 });
 
-describe('runCommand + VYNTH_HARDEN=1 端到端', () => {
+describe('runCommand + ZENO_HARDEN=1 端到端', () => {
   test('硬化开启 + 后端可用 + 简单命令成功', async () => {
     if ((await backendAvailable()) === false) {
       console.log('skip: 后端不可用，平台=', process.platform);
       return;
     }
-    process.env.VYNTH_HARDEN = '1';
+    process.env.ZENO_HARDEN = '1';
     const d = fresh();
     const r = await runCommand('echo hardened-ok', {
       cwd: d,
@@ -108,7 +101,6 @@ describe('runCommand + VYNTH_HARDEN=1 端到端', () => {
     });
     expect(r.ok).toBe(true);
     expect(r.output.trim()).toBe('hardened-ok');
-    // 不带 (hardened) 后缀（code=0 路径）
     expect(r.error).toBeUndefined();
   });
 
@@ -117,7 +109,7 @@ describe('runCommand + VYNTH_HARDEN=1 端到端', () => {
       console.log('skip: 后端不可用');
       return;
     }
-    process.env.VYNTH_HARDEN = '1';
+    process.env.ZENO_HARDEN = '1';
     const d = fresh();
     const r = await runCommand('exit 7', { cwd: d, networkAllowed: true, timeoutMs: 5000 });
     expect(r.ok).toBe(false);
@@ -131,33 +123,30 @@ describe('runCommand + VYNTH_HARDEN=1 端到端', () => {
       console.log('skip: 后端不可用');
       return;
     }
-    process.env.VYNTH_HARDEN = '1';
+    process.env.ZENO_HARDEN = '1';
     const d = fresh();
     writeFileSync(join(d, 'inner.txt'), 'inner');
-    // cwd 内读
     const r1 = await runCommand('cat inner.txt', { cwd: d, networkAllowed: true, timeoutMs: 5000 });
     expect(r1.ok).toBe(true);
     expect(r1.output.trim()).toBe('inner');
-    // 读 cwd 外的 /etc/passwd（应被拒）—— 沙箱策略 deny default
     const r2 = await runCommand('cat /etc/passwd', {
       cwd: d,
       networkAllowed: true,
       timeoutMs: 5000
     });
     expect(r2.ok).toBe(false);
-    // 失败码要么是 exit 1（命令本身失败），要么是 close 事件触发 EACCES
     expect(r2.error).toBeDefined();
   });
 
-  test('硬化关闭 + VYNTH_HARDEN 未设 → 走原路径，不带 (hardened) 后缀', async () => {
-    process.env.VYNTH_HARDEN = '';
+  test('硬化关闭 + ZENO_HARDEN 未设 → 走原路径，不带 (hardened) 后缀', async () => {
+    process.env.ZENO_HARDEN = '';
     const d = fresh();
     const r = await runCommand('exit 0', { cwd: d, networkAllowed: true, timeoutMs: 5000 });
     expect(r.ok).toBe(true);
   });
 });
 
-describe('VYNTH_HARDEN=1 + 后端不可用（App Sandbox 阻断场景）', () => {
+describe('ZENO_HARDEN=1 + 后端不可用（App Sandbox 阻断场景）', () => {
   test('sandbox-exec 拒绝 apply 时 → 启动时即报 VC-030006（不静默降级）', async () => {
     if (process.platform !== 'darwin') {
       console.log('skip: macOS 专属场景');
@@ -167,13 +156,14 @@ describe('VYNTH_HARDEN=1 + 后端不可用（App Sandbox 阻断场景）', () =>
       console.log('skip: 后端可 apply，本机可以跑通硬化');
       return;
     }
-    process.env.VYNTH_HARDEN = '1';
+    process.env.ZENO_HARDEN = '1';
     const d = fresh();
     const r = await runCommand('echo x', { cwd: d, networkAllowed: true, timeoutMs: 5000 });
-    // 启动时探测到后端不可用 → 立即抛 VC-030006，不让命令继续走到 spawn
     expect(r.ok).toBe(false);
     expect(r.error).toContain('VC-030006');
     expect(r.error).toContain('platform=darwin');
+    expect(r.error).toContain('macOS 15');
+    expect(r.error).toContain('root');
   });
 });
 
@@ -183,7 +173,7 @@ describe('runCommand 硬化失败兜底', () => {
       console.log('skip: 当前平台会进入真实 spawn 路径');
       return;
     }
-    process.env.VYNTH_HARDEN = '1';
+    process.env.ZENO_HARDEN = '1';
     const d = fresh();
     const r = await runCommand('echo x', { cwd: d, networkAllowed: true, timeoutMs: 5000 });
     expect(r.ok).toBe(false);

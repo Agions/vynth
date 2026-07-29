@@ -1,14 +1,14 @@
 {
-  "name": "@vynth/harness",
+  "name": "@zeno/harness",
   "description": "端到端测试工具包：CLI 退出码契约、安全红线用例、插件 fixtures、冷启动性能基准",
   "version": "0.1.1",
   "type": "module",
   "private": true,
   "dependencies": {
-    "@vynth/core": "workspace:*",
-    "@vynth/engine": "workspace:*",
-    "@vynth/mcp": "workspace:*",
-    "@vynth/plugins": "workspace:*"
+    "@zeno/core": "workspace:*",
+    "@zeno/engine": "workspace:*",
+    "@zeno/mcp": "workspace:*",
+    "@zeno/plugins": "workspace:*"
   },
   "scripts": {
     "test": "bun test"

@@ -1,7 +1,3 @@
-/**
- * 渲染原语单元测试：visibleWidth / wrapLine / renderMessage / renderPanel 等。
- * 不写 stdout，纯函数验证。
- */
 import { describe, expect, it } from 'bun:test';
 import {
   renderBadge,
@@ -29,7 +25,6 @@ describe('render primitives', () => {
   it('wrapLine keeps ANSI sequences intact and breaks on visible width', () => {
     const input = '\x1b[38;2;200;100;50mxxxxxx xxxx xxxx xxxx xxxx\x1b[0m';
     const out = wrapLine(input, 8);
-    // 至少两行；每行去掉 ANSI 后宽度不超过 8
     expect(out.length).toBeGreaterThanOrEqual(2);
     for (const ln of out) {
       expect(visibleWidth(ln)).toBeLessThanOrEqual(8);
@@ -61,31 +56,64 @@ describe('render primitives', () => {
     expect(out).toContain('RIGHT');
   });
 
-  it('renderMessage emits a left color bar (no role label)', () => {
+  it('renderMessage formats user prompt icon and content without role header', () => {
     const out = renderMessage({
       role: 'user',
       content: 'hello',
       palette: palette('mocha'),
       width: 40
     });
-    expect(out).not.toContain('You');
-    expect(out).not.toContain('System');
-    expect(out).not.toContain('Vynth');
+    // Ultra-clean design: user messages use prompt icon ❯ without "You" or "USER" headers
+    expect(out).toContain('❯');
     expect(out).toContain('hello');
-    expect(out).toContain('▎');
+    expect(out).not.toContain('You');
   });
 
   it('renderToolBlock marks running/ok/error distinctly', () => {
     const c = palette('mocha');
     expect(
-      renderToolBlock({ name: 'read_file', args: '{}', status: 'ok', palette: c, width: 30 })
+      renderToolBlock({ name: 'read_file', args: '{}', status: 'ok', palette: c, width: 40 })
     ).toContain('read_file');
     expect(
-      renderToolBlock({ name: 'read_file', args: '{}', status: 'error', palette: c, width: 30 })
-    ).toContain('✗');
+      renderToolBlock({ name: 'read_file', args: '{}', status: 'error', palette: c, width: 40 })
+    ).toContain('✖');
+    // Running uses Braille spinner frame (⠋)
     expect(
-      renderToolBlock({ name: 'read_file', args: '{}', status: 'running', palette: c, width: 30 })
-    ).toContain('◐');
+      renderToolBlock({ name: 'read_file', args: '{}', status: 'running', palette: c, width: 40 })
+    ).toContain('read_file');
+    // ok uses checkmark
+    expect(
+      renderToolBlock({ name: 'read_file', args: '{}', status: 'ok', palette: c, width: 40 })
+    ).toContain('✔');
+  });
+
+  it('renderToolBlock error footer shows VC code + actionable hint', () => {
+    const c = palette('mocha');
+    const out = renderToolBlock({
+      name: 'run_shell',
+      args: '{}',
+      status: 'error',
+      output: '[VC-030006] sandbox-exec unavailable',
+      palette: c,
+      width: 60
+    });
+    expect(out).toContain('VC-030006');
+    expect(out).toContain('→');
+    expect(out).toContain('bubblewrap');
+  });
+
+  it('renderToolBlock error without VC code shows no footer hint', () => {
+    const c = palette('mocha');
+    const out = renderToolBlock({
+      name: 'run_shell',
+      args: '{}',
+      status: 'error',
+      output: 'something broke',
+      palette: c,
+      width: 60
+    });
+    expect(out).toContain('✖');
+    expect(out).not.toContain('→');
   });
 
   it('renderPanel wraps body lines and renders top/divider/bottom', () => {

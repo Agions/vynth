@@ -1,22 +1,11 @@
 import { resolve } from 'node:path';
-import { type Mode, audit, initAudit, loadConfig } from '@vynth/core';
-import { builtinTools, createProvider, runAgent } from '@vynth/engine';
-import { McpClient, McpError } from '@vynth/mcp';
-import { loadPluginsWithTrust } from '@vynth/plugins';
-import { startTui } from '@vynth/tui';
+import { type Mode, audit, formatZenoError, initAudit, loadConfig } from '@zeno/core';
+import { builtinTools, createProvider, runAgent } from '@zeno/engine';
+import { McpClient, McpError } from '@zeno/mcp';
+import { loadPluginsWithTrust } from '@zeno/plugins';
+import { startTui } from '@zeno/tui';
 
 const VERSION = '0.1.1';
-
-/** 把已知 VynthError 带上 6 位码前缀（其它错误原样） */
-function formatErr(err: unknown): string {
-  if (err && typeof err === 'object' && 'numericCode' in err && 'message' in err) {
-    const e = err as { numericCode?: string; message?: string };
-    if (e.numericCode && /^VC-\d{6}$/.test(e.numericCode)) {
-      return `[${e.numericCode}] ${e.message ?? ''}`.trim();
-    }
-  }
-  return err instanceof Error ? err.message : String(err);
-}
 
 interface Parsed {
   goal?: string;
@@ -61,21 +50,21 @@ function parseArgs(argv: string[]): Parsed {
 }
 
 function printHelp(): void {
-  console.log(`Vynth ${VERSION} — 你 terminal 里的代码合成器
+  console.log(`Zeno ${VERSION} — 你 terminal 里的代码合成器
 
 用法:
-  vynth                启动交互式 TUI（需真实终端）
-  vynth -g "<目标>"   无头 agent 模式（流式输出到终端）
-  vynth -m plan       指定模式 plan|vibe
-  vynth -p <路径>     加载插件（无头模式直接加载；TUI 模式会弹出信任确认后再加载）
-  vynth -s "<命令>"   接入 MCP server（stdio JSON-RPC 2024-11-05，可重复指定多个）
+  zeno                启动交互式 TUI（需真实终端）
+  zeno -g "<目标>"   无头 agent 模式（流式输出到终端）
+  zeno -m plan       指定模式 plan|vibe
+  zeno -p <路径>     加载插件（无头模式直接加载；TUI 模式会弹出信任确认后再加载）
+  zeno -s "<命令>"   接入 MCP server（stdio JSON-RPC 2024-11-05，可重复指定多个）
 
 环境变量:
-  VYNTH_API_KEY       LLM API key（必填）
-  VYNTH_MODEL         模型名（默认 deepseek-v4-pro）
-  VYNTH_LLM_BASE_URL  OpenAI 兼容端点
-  VYNTH_MODE          plan | vibe
-  VYNTH_THEME         mocha | latte
+  ZENO_API_KEY       LLM API key（必填）
+  ZENO_MODEL         模型名（默认 deepseek-v4-pro）
+  ZENO_LLM_BASE_URL  OpenAI 兼容端点
+  ZENO_MODE          plan | vibe
+  ZENO_THEME         mocha | latte
 `);
 }
 
@@ -85,10 +74,10 @@ async function runHeadless(
   mcpCommands: string[] = []
 ): Promise<void> {
   const config = loadConfig();
-  initAudit(config); // F14：按 config.audit 启用 5 维审计单例
+  initAudit(config);
   audit().record(
     'config_change',
-    { source: process.env.VYNTH_CONFIG_FILE ? 'file' : 'env', auditEnabled: config.audit },
+    { source: process.env.ZENO_CONFIG_FILE ? 'file' : 'env', auditEnabled: config.audit },
     true
   );
   const provider = createProvider(config);
@@ -97,7 +86,7 @@ async function runHeadless(
     const res = await loadPluginsWithTrust(
       [resolve(config.sandbox.cwd, pluginPath)],
       tools,
-      async () => true // 无头脚本中 -p 显式授权即视为已信任
+      async () => true
     );
     for (const n of res.loaded) console.log(`› 已加载插件: ${n}`);
     for (const e of res.errors) console.error(`✗ 插件加载失败: ${e.error}`);
@@ -116,7 +105,6 @@ async function runHeadless(
       try {
         tools.register(d);
       } catch {
-        // 与内置/插件工具重名时跳过，避免阻断启动
       }
     }
     console.log(`› 已连接 MCP server: ${spec}（${defs.length} 个工具）`);
@@ -152,10 +140,10 @@ async function main(): Promise<void> {
       return;
     }
     const config = loadConfig({ mode: parsed.mode });
-    initAudit(config); // F14：TUI 路径同样初始化审计单例
+    initAudit(config);
     audit().record(
       'config_change',
-      { source: process.env.VYNTH_CONFIG_FILE ? 'file' : 'env', auditEnabled: config.audit },
+      { source: process.env.ZENO_CONFIG_FILE ? 'file' : 'env', auditEnabled: config.audit },
       true
     );
     if (parsed.goal) {
@@ -163,13 +151,12 @@ async function main(): Promise<void> {
       return;
     }
     if (!process.stdout.isTTY || !process.stdin.isTTY) {
-      console.error('当前不是交互式终端。请使用无头模式： vynth -g "<目标>"');
+      console.error('当前不是交互式终端。请使用无头模式： zeno -g "<目标>"');
       process.exit(2);
     }
-    await startTui(config, parsed.plugin ? [parsed.plugin] : []);
+    await startTui(config, parsed.plugin ? [parsed.plugin] : [], VERSION);
   } catch (err) {
-    // 顶层捕获：所有 VynthError 都带 [VC-XXXXXX] 前缀输出
-    console.error(`✗ ${formatErr(err)}`);
+    console.error(`✗ ${formatZenoError(err)}`);
     process.exit(1);
   }
 }

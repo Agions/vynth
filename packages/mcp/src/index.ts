@@ -1,2 +1,2 @@
 export * from './mcp-client';
-export { McpError } from '@vynth/core';
+export { McpError } from '@zeno/core';
